@@ -19,11 +19,24 @@ android {
         compose = true
     }
 
+    signingConfigs {
+        create("debugKey") {
+            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
-            optimization {
-                enable = false
-            }
+            signingConfig = signingConfigs.getByName("debugKey")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
     compileOptions {
