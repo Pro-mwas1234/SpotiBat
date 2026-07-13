@@ -15,6 +15,15 @@ through untouched.
 
 ---
 
+## download
+
+grab the latest apk from the [releases page](https://github.com/lyssadev/spotilol/releases/latest).
+
+download the `.apk` file and install it on your device. you may need to
+toggle "install from unknown sources" in your settings.
+
+---
+
 ## what it does
 
 - blocks audio ads 
@@ -84,4 +93,4 @@ spotilol exists because deviato did the reverse-engineering work on spotifuck.
 this ports the core logic from smali to kotlin with extra features and
 maintenance.
 
-open-sourced by lyssadev <3 deviato
+**pen-sourced by lyssadev <3 deviato**
