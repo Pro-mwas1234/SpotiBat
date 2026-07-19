@@ -35,9 +35,11 @@ import java.security.cert.X509Certificate
 import java.util.Collections
 import java.util.Date
 import java.util.concurrent.Executors
+import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLParameters
+import javax.net.ssl.SSLPeerUnverifiedException
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 
@@ -253,7 +255,16 @@ object LocalProxyManager {
                     it.sslParameters = params
                 }
             }
+            
+            upstreamSSLSocket.soTimeout = 30000 
+            upstreamSSLSocket.startHandshake()
 
+            val hostnameVerifier = HttpsURLConnection.getDefaultHostnameVerifier()
+            if (!hostnameVerifier.verify(host, upstreamSSLSocket.session)) {
+                Log.e(TAG, "SECURITY ALERT: Hostname verification failed for $host. Possible network attack.")
+                throw SSLPeerUnverifiedException("Cannot verify hostname: $host")
+            }
+            
             val clientIn = clientSSLSocket.inputStream
             val clientOut = clientSSLSocket.outputStream
             val upstreamIn = upstreamSSLSocket.inputStream
