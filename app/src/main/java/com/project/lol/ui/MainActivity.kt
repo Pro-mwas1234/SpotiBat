@@ -305,10 +305,15 @@ class MainActivity : ComponentActivity() {
 
         val customCss = prefs.getString("CustomCss", "") ?: ""
         val amoledEnabled = prefs.getBoolean("AmoledTheme", false)
+        val closeNowPlay = prefs.getBoolean("CloseNowPlay", true)
 
         webView?.let { view ->
-            val js = SpotifyWebViewClient.buildAmoledJs(amoledEnabled) + "\n" +
-                    SpotifyWebViewClient.buildCustomCssJs(customCss)
+            val js = buildString {
+                append("window.closeNowPlay=$closeNowPlay;\n")
+                append(SpotifyWebViewClient.buildAmoledJs(amoledEnabled))
+                append("\n")
+                append(SpotifyWebViewClient.buildCustomCssJs(customCss))
+            }
             view.evaluateJavascript(js, null)
         }
     }
