@@ -5,6 +5,28 @@
 <h1 align="center">Spotilol</h1>
 
 <p align="center">
+  <a href="https://github.com/lyssadev/Spotilol/stargazers">
+    <img src="https://img.shields.io/github/stars/lyssadev/Spotilol?style=for-the-badge&logo=starship&labelColor=0d0d0d&color=1DB954" alt="stars"/>
+  </a>
+  &nbsp;
+  <a href="https://github.com/lyssadev/Spotilol/releases">
+    <img src="https://img.shields.io/github/downloads/lyssadev/Spotilol/total?style=for-the-badge&logo=download&labelColor=0d0d0d&color=1DB954" alt="downloads"/>
+  </a>
+  &nbsp;
+  <a href="https://github.com/lyssadev/Spotilol/releases/latest">
+    <img src="https://img.shields.io/github/v/release/lyssadev/Spotilol?style=for-the-badge&logo=github&labelColor=0d0d0d&color=1DB954" alt="version"/>
+  </a>
+  &nbsp;
+  <a href="https://github.com/lyssadev/Spotilol/forks">
+    <img src="https://img.shields.io/github/forks/lyssadev/Spotilol?style=for-the-badge&logo=git&labelColor=0d0d0d&color=1DB954" alt="forks"/>
+  </a>
+  &nbsp;
+  <a href="https://github.com/lyssadev/Spotilol/commits/main">
+    <img src="https://img.shields.io/github/last-commit/lyssadev/Spotilol?style=for-the-badge&logo=git&labelColor=0d0d0d&color=1DB954" alt="last commit"/>
+  </a>
+</p>
+
+<p align="center">
   a lil Android app that wraps Spotify's web player with built-in adblocking.
 </p>
 
