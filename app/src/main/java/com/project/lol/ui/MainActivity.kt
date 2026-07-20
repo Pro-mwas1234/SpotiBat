@@ -315,6 +315,13 @@ class MainActivity : ComponentActivity() {
                 append(SpotifyWebViewClient.buildCustomCssJs(customCss))
             }
             view.evaluateJavascript(js, null)
+
+            view.evaluateJavascript(SpotifyWebViewClient.LOGOUT_CHECK_JS) { result ->
+                if (result == "\"out\"") {
+                    prefs.edit().putBoolean("LoggedIn", false).apply()
+                    view.loadUrl("https://accounts.spotify.com/login")
+                }
+            }
         }
     }
 
