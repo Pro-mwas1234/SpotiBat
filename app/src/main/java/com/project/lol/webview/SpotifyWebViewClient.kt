@@ -486,13 +486,15 @@ class SpotifyWebViewClient(
 
                     if(typeof npBtn=='undefined') {
                         var lyBtn = document.querySelector('button[data-testid=lyrics-button]:not(.fuckd)');
-                        if(lyBtn) {
-                            lyBtn.classList.add('fuckd');
+                        var queueBtn = document.querySelector('button[data-testid=control-button-queue]:not(.fuckd)');
+                        var anchorBtn = lyBtn || queueBtn;
+                        if(anchorBtn) {
+                            if(anchorBtn === lyBtn) lyBtn.classList.add('fuckd');
                             npBtn = document.createElement('button');
                             npBtn.className = 'npbtn';
                             npBtn.onclick = clickNP;
                             npBtn.innerHTML = '<svg viewBox="0 0 16 17"><rect x="1" y="0.75" width="14" height="15.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M 6 5 L 6 5.9160156 L 9.6933594 8.5 L 6 11.080078 L 6 12 L 11 8.5 L 6 5 z" stroke="currentColor" stroke-width="1.2"/></svg>';
-                            lyBtn.parentNode.insertBefore(npBtn, lyBtn);
+                            anchorBtn.parentNode.insertBefore(npBtn, anchorBtn);
                             window.timerBtn = document.createElement('button');
                             timerBtn.className = 'npbtn';
                             timerBtn.onclick = function(){ AndBridge.openTimerDialog(); };
