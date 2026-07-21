@@ -28,9 +28,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -95,17 +97,20 @@ class MainActivity : ComponentActivity() {
     private val materialYouState = mutableStateOf(false)
     private val amoledState = mutableStateOf(false)
 
-    // Sleep timer state
     private val showSleepTimerDialog = mutableStateOf(false)
     private val sleepTimerSelectedMinutes = mutableIntStateOf(0)
     private var sleepTimer: CountDownTimer? = null
     private val sleepTimerRemainingMs = mutableLongStateOf(0L)
     private val sleepTimerActive = mutableStateOf(false)
 
-    // Page loading progress (0-100)
     private val loadingProgress = mutableIntStateOf(100)
+    private val updateAvailable = mutableStateOf(false)
 
     private val notifPermLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ -> }
+
+    private val btPermLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { _ -> }
 
@@ -128,7 +133,10 @@ class MainActivity : ComponentActivity() {
         }
 
         requestNotificationPermission()
-        UpdateChecker(this).autoCheck()
+        requestBluetoothPermission()
+        val uc = UpdateChecker(this)
+        updateAvailable.value = uc.hasUpdateAvailable()
+        uc.autoCheck()
 
         val prefs = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
         val loggedIn = prefs.getBoolean("LoggedIn", false)
@@ -159,11 +167,21 @@ class MainActivity : ComponentActivity() {
                                 IconButton(onClick = {
                                     startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
                                 }) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_settings),
-                                        contentDescription = "Settings",
-                                        tint = MaterialTheme.colorScheme.onSurface
-                                    )
+                                    Box {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_settings),
+                                            contentDescription = "Settings",
+                                            tint = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        if (updateAvailable.value) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(8.dp)
+                                                    .align(Alignment.TopEnd)
+                                                    .background(Color.Red, CircleShape)
+                                            )
+                                        }
+                                    }
                                 }
                                 Spacer(Modifier.width(4.dp))
                                 Switch(
@@ -580,6 +598,16 @@ class MainActivity : ComponentActivity() {
                 != PackageManager.PERMISSION_GRANTED
             ) {
                 notifPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
+    private fun requestBluetoothPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                btPermLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
             }
         }
     }
