@@ -110,6 +110,10 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestPermission()
     ) { _ -> }
 
+    private val btPermLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ -> }
+
     private val sleepTimerOptions = listOf(
         0 to "Off",
         5 to "5 min",
@@ -129,6 +133,7 @@ class MainActivity : ComponentActivity() {
         }
 
         requestNotificationPermission()
+        requestBluetoothPermission()
         val uc = UpdateChecker(this)
         updateAvailable.value = uc.hasUpdateAvailable()
         uc.autoCheck()
@@ -593,6 +598,16 @@ class MainActivity : ComponentActivity() {
                 != PackageManager.PERMISSION_GRANTED
             ) {
                 notifPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
+    private fun requestBluetoothPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                btPermLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
             }
         }
     }
