@@ -399,10 +399,7 @@ class MainActivity : ComponentActivity() {
                     "if(window.timerBtn) timerBtn.style.color='';",
                     null
                 )
-                webView?.evaluateJavascript(
-                    "(function(){ if(window.pBtn && pBtn.getAttribute('aria-label')!=='Play'){ pBtn.click(); } })();",
-                    null
-                )
+                webView?.evaluateJavascript("actPlayPause(false)", null)
             }
         }.start()
     }

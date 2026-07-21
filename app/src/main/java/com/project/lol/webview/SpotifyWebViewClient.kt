@@ -420,9 +420,14 @@ class SpotifyWebViewClient(
                 });
             };
             window.actPlayPause = function(play) {
-                if('pBtn' in window) {
-                    if(pBtn.getAttribute('aria-label')==='Play') { if(play) pBtn.click(); }
-                    else { if(!play) pBtn.click(); }
+                var pb = window.pBtn;
+                if (!pb) return;
+                if (play === null || typeof play === 'undefined') {
+                    pb.click();
+                } else if (play === true) {
+                    if (!window.playing) pb.click();
+                } else if (play === false) {
+                    if (window.playing) pb.click();
                 }
             };
             window.actSkipBack = function() {
