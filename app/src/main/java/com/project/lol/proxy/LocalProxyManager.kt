@@ -204,7 +204,7 @@ object LocalProxyManager {
         val queue = upstreamPool[poolKey(host, port)] ?: return null
         while (true) {
             val sock = queue.poll() ?: return null
-            if (sock.isClosed || !sock.isConnected) {
+            if (sock.isClosed || !sock.isConnected || isSocketLikelyDead(sock)) {
                 try { sock.close() } catch (_: Exception) {}
                 continue
             }
@@ -218,7 +218,7 @@ object LocalProxyManager {
             try { sock.close() } catch (_: Exception) {}
             return
         }
-        val queue = upstreamPool.getOrPut(poolKey(host, port)) { ConcurrentLinkedQueue() }
+        val queue = upstreamPool.computeIfAbsent(poolKey(host, port)) { ConcurrentLinkedQueue() }
         if (queue.size >= MAX_IDLE_UPSTREAM_PER_HOST) {
             try { sock.close() } catch (_: Exception) {}
             return
@@ -235,6 +235,26 @@ object LocalProxyManager {
             }
         }
         upstreamPool.clear()
+    }
+	
+	    /**
+     * Pre-check a pooled socket before writing anything to it.
+     * Similar to how Chromium handles its socket pool.
+     * If the peer already closed the connection, it returns EOF immediately;
+     * If the connection is idle-but-alive, nothing arrives and it times out.
+     */
+    private fun isSocketLikelyDead(socket: SSLSocket): Boolean {
+        val original = try { socket.soTimeout } catch (_: Exception) { return true }
+        return try {
+            socket.soTimeout = 1
+            socket.inputStream.read() == -1  // EOF = peer already closed it
+        } catch (_: java.net.SocketTimeoutException) {
+            false // nothing waiting - healthy, idle connection, the common case
+        } catch (_: Exception) {
+            true // any other I/O error on a socket we haven't used yet - don't risk it
+        } finally {
+            try { socket.soTimeout = original } catch (_: Exception) {}
+        }
     }
 
     /** Opens and fully verifies a brand-new upstream TLS connection. */
@@ -299,21 +319,22 @@ object LocalProxyManager {
 
             val sslContext = getOrCreateSSLContext(host)
 
-            clientSSLSocket = sslContext.socketFactory.createSocket(
+            val clientSocket = sslContext.socketFactory.createSocket(
                 client, host, client.port, true
             ) as SSLSocket
-            clientSSLSocket.useClientMode = false
+            clientSocket.useClientMode = false
+            clientSSLSocket = clientSocket
 
             if (Build.VERSION.SDK_INT >= 29) {
-                val params = clientSSLSocket.sslParameters
+                val params = clientSocket.sslParameters
                 params.applicationProtocols = arrayOf("http/1.1")
-                clientSSLSocket.sslParameters = params
+                clientSocket.sslParameters = params
             }
 
-            clientSSLSocket.startHandshake()
+            clientSocket.startHandshake()
 
             val negotiatedProtocol = if (Build.VERSION.SDK_INT >= 29) {
-                clientSSLSocket.applicationProtocol
+                clientSocket.applicationProtocol
             } else null
 
             // We only ever offer "http/1.1" to the client above, so this is always false currently.
@@ -321,18 +342,20 @@ object LocalProxyManager {
             val useHttp2 = negotiatedProtocol == "h2"
             Log.d(TAG, "Protocol for $host: ${negotiatedProtocol ?: "none"}")
 
-            upstreamSSLSocket = borrowUpstreamSocket(host, targetPort)
-            if (upstreamSSLSocket != null) {
+            val borrowed = borrowUpstreamSocket(host, targetPort)
+            var upstream: SSLSocket = if (borrowed != null) {
                 fromPool = true
                 Log.d(TAG, "Reusing pooled upstream connection for $host")
+                borrowed
             } else {
-                upstreamSSLSocket = openUpstreamSocket(host, targetPort, useHttp2)
+                openUpstreamSocket(host, targetPort, useHttp2)
             }
+            upstreamSSLSocket = upstream
 
-            val clientIn = clientSSLSocket.inputStream
-            val clientOut = clientSSLSocket.outputStream
-            var upstreamIn = upstreamSSLSocket.inputStream
-            var upstreamOut = upstreamSSLSocket.outputStream
+            val clientIn = clientSocket.inputStream
+            val clientOut = clientSocket.outputStream
+            var upstreamIn = upstream.inputStream
+            var upstreamOut = upstream.outputStream
 
             if (useHttp2) {
                 reuseUpstream = false
@@ -350,14 +373,20 @@ object LocalProxyManager {
                         //Retry once on a fresh socket instead of failing the whole tunnel;
                         if (!fromPool) throw e
                         Log.d(TAG, "Pooled upstream for $host was stale, reconnecting")
-                        try { upstreamSSLSocket.close() } catch (_: Exception) {}
-                        upstreamSSLSocket = openUpstreamSocket(host, targetPort, useHttp2)
+                        try { upstream.close() } catch (_: Exception) {}
+                        upstream = openUpstreamSocket(host, targetPort, useHttp2)
+                        upstreamSSLSocket = upstream
                         fromPool = false
-                        upstreamIn = upstreamSSLSocket.inputStream
-                        upstreamOut = upstreamSSLSocket.outputStream
+                        upstreamIn = upstream.inputStream
+                        upstreamOut = upstream.outputStream
                         writeHead(reqHead, upstreamOut)
                     }
-                    pipeBody(clientIn, upstreamOut, reqHead)  // outside the retry to avoid truncated body
+                    // outside the retry to reduce chance of truncated body
+                    val clientBodyTruncated = pipeBody(clientIn, upstreamOut, reqHead, isResponse = false)
+                    if (clientBodyTruncated) {
+                        reuseUpstream = false
+                        break
+                    }
 
                     val respHead = readHttpHead(upstreamIn, requestMethod)
                     if (respHead == null) {
@@ -368,11 +397,19 @@ object LocalProxyManager {
                     val statusCode = extractStatusCode(respHead)
                     writeHead(respHead, clientOut)
 
-                    pipeBody(upstreamIn, clientOut, respHead)
+                    val upstreamExhausted = pipeBody(upstreamIn, clientOut, respHead, isResponse = true)
+                    if (upstreamExhausted) {
+                        // Body had no Content-Length/chunked framing, so it was read until
+                        // EOF - the upstream socket is now dead regardless of what any
+                        // Connection header said. End this tunnel cleanly rather than try
+                        // to keep using (or pool) a socket that's already closed.
+                        reuseUpstream = false
+                        break
+                    }
 
                     if (statusCode == 100 || statusCode == 101) {
-                        clientSSLSocket.soTimeout = 0
-                        upstreamSSLSocket.soTimeout = 0
+                        clientSocket.soTimeout = 0
+                        upstream.soTimeout = 0
                         reuseUpstream = false
                         bidirectionalPipe(clientIn, clientOut, upstreamIn, upstreamOut)
                         return
@@ -455,13 +492,37 @@ object LocalProxyManager {
         output.flush()
     }
 
-    private fun pipeBody(input: InputStream, output: OutputStream, head: HttpHead) {
-        when {
-            head.noBody -> {}
+    /**
+     * Returns true if piping this body left the connection unusable (so the caller must
+     * not pool it, and must treat this exchange as the last one on this socket).
+     */
+    private fun pipeBody(
+        input: InputStream, output: OutputStream, head: HttpHead, isResponse: Boolean
+    ): Boolean {
+        return when {
+            head.noBody -> false
             head.isChunked -> pipeChunkedBody(input, output)
-            head.contentLength > 0 -> pipeExactBytes(input, output, head.contentLength)
-            else -> {}
+            head.contentLength > 0 -> { pipeExactBytes(input, output, head.contentLength); false }
+            isResponse && head.contentLength < 0 -> {
+                // No Content-Length and not chunked on a RESPONSE: per RFC 7230 3.3.3 the
+                // body is delimited by the connection closing, not a known length.
+                // The old code did nothing here, read to EOF and forward it instead. This exhausts the upstream
+                // socket by definition since it can only end via close.
+                pipeUntilEof(input, output)
+                true
+            }
+            else -> false
         }
+    }
+
+    private fun pipeUntilEof(input: InputStream, output: OutputStream) {
+        val buf = ByteArray(8192)
+        while (true) {
+            val n = input.read(buf)
+            if (n == -1) break
+            output.write(buf, 0, n)
+        }
+        output.flush()
     }
 
     private fun pipeExactBytes(input: InputStream, output: OutputStream, count: Long) {
@@ -476,26 +537,31 @@ object LocalProxyManager {
         output.flush()
     }
 
-    private fun pipeChunkedBody(input: InputStream, output: OutputStream) {
+    private fun pipeChunkedBody(input: InputStream, output: OutputStream): Boolean {
         while (true) {
-            val sizeLine = readLine(input) ?: break
+            val sizeLine = readLine(input) ?: return true
             if (sizeLine.isBlank()) continue
             
             output.write((sizeLine + "\r\n").toByteArray(Charsets.ISO_8859_1))
-            val chunkSize = sizeLine.split(";")[0].trim().toLongOrNull(16) ?: break
+            val chunkSize = sizeLine.split(";")[0].trim().toLongOrNull(16) ?: return true
             
             if (chunkSize == 0L) {
-                val trailer = readLine(input) ?: break
-                output.write((trailer + "\r\n").toByteArray(Charsets.ISO_8859_1))
+                // Zero-or-more trailer header lines can follow the final chunk, terminated
+                // by a blank line. Consume all of them so
+                // nothing is left sitting unread on the socket.
+                while (true) {
+                    val trailerLine = readLine(input) ?: return true
+                    output.write((trailerLine + "\r\n").toByteArray(Charsets.ISO_8859_1))
+                    if (trailerLine.isEmpty()) break
+                }
                 output.flush()
-                break
+                return false
             }
             
             pipeExactBytes(input, output, chunkSize)
-            val crlf = readLine(input) ?: break
+            val crlf = readLine(input) ?: return true
             output.write((crlf + "\r\n").toByteArray(Charsets.ISO_8859_1))
         }
-        output.flush()
     }
 
     private fun extractMethod(head: HttpHead): String {
