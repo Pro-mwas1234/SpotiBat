@@ -75,7 +75,8 @@ class SpotifyWebViewClient(
                 ByteArrayInputStream(ByteArray(0)))
         }
 
-        if (isAdCdn(url)) {
+        val adMatch = matchAdCdn(url)
+        if (adMatch != null) {
             view.post { view.evaluateJavascript("AndBridge.deferMessage('adblock')", null) }
             val silent = view.context.assets?.open("silent.mp3") ?: return null
             return WebResourceResponse("audio/mpeg", null, silent)
@@ -829,21 +830,22 @@ class SpotifyWebViewClient(
                     url.contains("sentry.io")
         }
 
-        private fun isAdCdn(url: String): Boolean {
-            return url.contains("scdn.co/mp3-ad/") ||
-                    url.contains("mp3ad.scdn.co") ||
-                    url.contains("amillionads.com") ||
-                    url.contains("2mdn.net") ||
-                    url.contains("adxcel.com") ||
-                    url.contains("adstudio-assets.scdn.co") ||
-                    url.contains("audio-ads.spotify.com") ||
-                    url.contains("ads-akp.spotify.com") ||
-                    url.contains("ads-fa.spotify.com") ||
-                    url.contains("adeventtracker.spotify.com") ||
-                    url.contains("pixel.spotify.com") ||
-                    url.contains("pixel-static.spotify.com") ||
-                    url.contains("adstudio.spotify.com") ||
-                    url.contains("ads.spotify.com")
+        private fun matchAdCdn(url: String): String? {
+            if (url.contains("scdn.co/mp3-ad/")) return "scdn.co/mp3-ad/"
+            if (url.contains("mp3ad.scdn.co")) return "mp3ad.scdn.co"
+            if (url.contains("amillionads.com")) return "amillionads.com"
+            if (url.contains("2mdn.net")) return "2mdn.net"
+            if (url.contains("adxcel.com")) return "adxcel.com"
+            if (url.contains("adstudio-assets.scdn.co")) return "adstudio-assets.scdn.co"
+            if (url.contains("audio-ads.spotify.com")) return "audio-ads.spotify.com"
+            if (url.contains("ads-akp.spotify.com")) return "ads-akp.spotify.com"
+            if (url.contains("ads-fa.spotify.com")) return "ads-fa.spotify.com"
+            if (url.contains("adeventtracker.spotify.com")) return "adeventtracker.spotify.com"
+            if (url.contains("pixel-static.spotify.com")) return "pixel-static.spotify.com"
+            if (url.contains("pixel.spotify.com")) return "pixel.spotify.com"
+            if (url.contains("adstudio.spotify.com")) return "adstudio.spotify.com"
+            if (url.contains("ads.spotify.com")) return "ads.spotify.com"
+            return null
         }
 
         fun buildCustomCssJs(css: String): String {
