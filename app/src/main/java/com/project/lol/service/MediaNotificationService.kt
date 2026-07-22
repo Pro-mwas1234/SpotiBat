@@ -86,15 +86,22 @@ class MediaNotificationService : Service() {
     private val audioBecomingNoisyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
-                pausePlayback()
+                val prefs = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+                if (prefs.getBoolean("BtAutoPause", false)) pausePlayback()
             }
         }
     }
 
     private val bluetoothReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == BluetoothDevice.ACTION_ACL_DISCONNECTED) {
-                pausePlayback()
+            val prefs = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+            when (intent.action) {
+                BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+                    if (prefs.getBoolean("BtAutoPause", false)) pausePlayback()
+                }
+                BluetoothDevice.ACTION_ACL_CONNECTED -> {
+                    if (prefs.getBoolean("BtAutoResume", false)) resumePlayback()
+                }
             }
         }
     }
@@ -222,7 +229,10 @@ class MediaNotificationService : Service() {
             registerReceiver(audioBecomingNoisyReceiver, noisyFilter)
         }
 
-        val btFilter = IntentFilter(BluetoothDevice.ACTION_ACL_DISCONNECTED)
+        val btFilter = IntentFilter().apply {
+            addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
+            addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(bluetoothReceiver, btFilter, RECEIVER_EXPORTED)
         } else {
@@ -238,6 +248,16 @@ class MediaNotificationService : Service() {
             mediaSession.controller.transportControls.pause()
         } catch (_: Exception) {}
         webView?.evaluateJavascript("actPlayPause(false)", null)
+    }
+
+    private fun resumePlayback() {
+        isPlaying = true
+        updatePlaybackState()
+        showNotification()
+        try {
+            mediaSession.controller.transportControls.play()
+        } catch (_: Exception) {}
+        webView?.evaluateJavascript("actPlayPause(true)", null)
     }
 
     fun updateFromMediaStatus(json: String) {

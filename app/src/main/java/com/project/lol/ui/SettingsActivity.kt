@@ -170,6 +170,8 @@ fun SettingsScreen(
     var customCss by remember { mutableStateOf(prefs.getString("CustomCss", "") ?: "") }
     var amoledTheme by remember { mutableStateOf(amoledThemeState) }
     var swipeStop by remember { mutableStateOf(prefs.getBoolean("SwipeStop", true)) }
+    var btAutoPause by remember { mutableStateOf(prefs.getBoolean("BtAutoPause", false)) }
+    var btAutoResume by remember { mutableStateOf(prefs.getBoolean("BtAutoResume", false)) }
 
     var showClearCacheDialog by remember { mutableStateOf(false) }
     var showClearDataDialog by remember { mutableStateOf(false) }
@@ -266,6 +268,35 @@ fun SettingsScreen(
                     onCheckedChange = {
                         closeNowPlay = it
                         prefs.edit().putBoolean("CloseNowPlay", it).apply()
+                    }
+                )
+            }
+
+            SettingSectionCard(
+                title = "BLUETOOTH",
+                icon = Icons.Default.Smartphone
+            ) {
+                SettingSwitchTile(
+                    title = "Pause on Disconnect",
+                    subtitle = "Pause when BT/headphones disconnect",
+                    icon = Icons.Default.Smartphone,
+                    checked = btAutoPause,
+                    onCheckedChange = {
+                        btAutoPause = it
+                        prefs.edit().putBoolean("BtAutoPause", it).apply()
+                    }
+                )
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+                SettingSwitchTile(
+                    title = "Resume on Connect",
+                    subtitle = "Resume when BT device connects",
+                    icon = Icons.Default.Smartphone,
+                    checked = btAutoResume,
+                    onCheckedChange = {
+                        btAutoResume = it
+                        prefs.edit().putBoolean("BtAutoResume", it).apply()
                     }
                 )
             }
