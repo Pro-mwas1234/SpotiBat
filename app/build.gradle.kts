@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
 }
 
 android {
@@ -24,16 +26,22 @@ android {
 
     signingConfigs {
         create("debugKey") {
-            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+            storeFile = file("keystore/spotilol.keystore")
+            storePassword = "spotilol"
+            keyAlias = "spotilol_debug"
+            keyPassword = "spotilol"
+        }
+        create("releaseKey") {
+            storeFile = file("keystore/spotilol.keystore")
+            storePassword = "spotilol"
+            keyAlias = "spotilol_release"
+            keyPassword = "spotilol"
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debugKey")
+            signingConfig = signingConfigs.getByName("releaseKey")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -57,6 +65,12 @@ dependencies {
     implementation(libs.bouncyprov)
     implementation(libs.bouncypkix)
     implementation(libs.security.crypto)
+
+    // Firebase
+    implementation(platform("com.google.firebase:firebase-bom:34.16.0"))
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-crashlytics")
+    implementation("com.google.firebase:firebase-perf")
 
     // Jetpack Compose
     implementation(platform(libs.compose.bom))

@@ -15,11 +15,15 @@ app/build
 # Gradle wrapper binary
 gradle/wrapper/gradle-wrapper.jar
 
+# Firebase
+app/google-services.json
+
 # Keystore files
 *.jks
 *.keystore
 *.p12
 *.pem
+keystore/
 
 # OS files
 Thumbs.db

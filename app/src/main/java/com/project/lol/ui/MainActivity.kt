@@ -76,6 +76,7 @@ import androidx.webkit.ProxyController
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import androidx.webkit.WebSettingsCompat
+import com.google.firebase.analytics.FirebaseAnalytics
 import com.project.lol.R
 import com.project.lol.bridge.SpotifyBridge
 import com.project.lol.proxy.LocalProxyManager
@@ -126,10 +127,18 @@ class MainActivity : ComponentActivity() {
         60 to "60 min"
     )
 
+    private val analytics: FirebaseAnalytics by lazy { FirebaseAnalytics.getInstance(this) }
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
+        // Track screen view
+        analytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, Bundle().apply {
+            putString(FirebaseAnalytics.Param.SCREEN_NAME, "MainActivity")
+            putString(FirebaseAnalytics.Param.SCREEN_CLASS, "MainActivity")
+        })
 
         // After an OOM kill, Android can resume directly at MainActivity
         if (!LocalProxyManager.isRunning) {
@@ -175,6 +184,9 @@ class MainActivity : ComponentActivity() {
                             },
                             actions = {
                                 IconButton(onClick = {
+                                    analytics.logEvent("open_settings", Bundle().apply {
+                                        putString(FirebaseAnalytics.Param.SCREEN_NAME, "SettingsActivity")
+                                    })
                                     startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
                                 }) {
                                     Box {
@@ -202,9 +214,16 @@ class MainActivity : ComponentActivity() {
                                             .putBoolean("ServiceOn", newValue)
                                             .apply()
                                         if (!newValue) {
+                                            analytics.logEvent("service_toggle", Bundle().apply {
+                                                putString("enabled", "off")
+                                            })
                                             stopService(Intent(this@MainActivity, MediaNotificationService::class.java))
                                             serviceStarted = false
                                             destroyWebView()
+                                        } else {
+                                            analytics.logEvent("service_toggle", Bundle().apply {
+                                                putString("enabled", "on")
+                                            })
                                         }
                                     },
                                     colors = SwitchDefaults.colors(
@@ -392,6 +411,10 @@ class MainActivity : ComponentActivity() {
         val totalMs = minutes * 60 * 1000L
         sleepTimerActive.value = true
         sleepTimerRemainingMs.longValue = totalMs
+
+        analytics.logEvent("sleep_timer_start", Bundle().apply {
+            putString("minutes", minutes.toString())
+        })
 
         webView?.evaluateJavascript(
             "if(window.timerBtn) timerBtn.style.color='#2d6';",
@@ -640,6 +663,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+
+        analytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, Bundle().apply {
+            putString(FirebaseAnalytics.Param.SCREEN_NAME, "MainActivity")
+            putString(FirebaseAnalytics.Param.SCREEN_CLASS, "MainActivity")
+        })
+
         val prefs = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
         serviceEnabledState.value = prefs.getBoolean("ServiceOn", true)
         materialYouState.value = prefs.getBoolean("MaterialYou", false)
