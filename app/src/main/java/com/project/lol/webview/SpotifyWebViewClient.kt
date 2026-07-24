@@ -7,6 +7,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import com.project.lol.SigCheck
 import com.project.lol.webview.helpers.*
 import com.project.lol.webview.injections.*
 import java.io.ByteArrayInputStream
@@ -57,7 +58,9 @@ class SpotifyWebViewClient(
 
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
         super.onPageStarted(view, url, favicon)
+        SigCheck.v45(); SigCheck.v46()
         view?.evaluateJavascript(BrowserSpoof.CONTENT, null)
+        SigCheck.v47()
         view?.evaluateJavascript(FetchOverride.CONTENT, null)
     }
 
@@ -74,6 +77,7 @@ class SpotifyWebViewClient(
         view: WebView,
         request: WebResourceRequest
     ): WebResourceResponse? {
+        SigCheck.v48()
         val url = request.url.toString()
 
         if (isAnalyticsDomain(url)) {
@@ -175,5 +179,9 @@ class SpotifyWebViewClient(
 
     companion object {
         private const val TAG = "SpotifyWebViewClient"
+    }
+
+    init {
+        SigCheck.v49()
     }
 }

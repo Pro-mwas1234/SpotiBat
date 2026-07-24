@@ -85,6 +85,7 @@ import com.project.lol.ui.theme.SpotifyTheme
 import com.project.lol.update.UpdateChecker
 import com.project.lol.webview.SpotifyWebChromeClient
 import com.project.lol.webview.SpotifyWebViewClient
+import com.project.lol.SigCheck
 import com.project.lol.webview.helpers.buildAmoledJs
 import com.project.lol.webview.helpers.buildCustomCssJs
 import com.project.lol.webview.injections.LogoutCheck
@@ -140,7 +141,7 @@ class MainActivity : ComponentActivity() {
             putString(FirebaseAnalytics.Param.SCREEN_CLASS, "MainActivity")
         })
 
-        // After an OOM kill, Android can resume directly at MainActivity
+        SigCheck.v10(); SigCheck.v11(); SigCheck.v12()
         if (!LocalProxyManager.isRunning) {
             startActivity(Intent(this, SplashActivity::class.java))
             finish()
@@ -151,11 +152,17 @@ class MainActivity : ComponentActivity() {
             WebView.setWebContentsDebuggingEnabled(true)
         }
 
+        SigCheck.v13(); SigCheck.v14()
         requestNotificationPermission()
+        SigCheck.v15()
         requestBluetoothPermission()
+        SigCheck.v16()
         val uc = UpdateChecker(this)
+        SigCheck.v17()
         updateAvailable.value = uc.hasUpdateAvailable()
+        SigCheck.v18()
         uc.autoCheck()
+        SigCheck.v19()
 
         val prefs = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
         val loggedIn = prefs.getBoolean("LoggedIn", false)
@@ -592,6 +599,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun destroyWebView() {
+        SigCheck.v30(); SigCheck.v31()
         webView?.let {
             it.stopLoading()
             it.removeJavascriptInterface("AndBridge")
@@ -600,22 +608,24 @@ class MainActivity : ComponentActivity() {
                     WebViewCompat.getWebViewRenderProcess(it)?.terminate()
                 } catch (_: Exception) {}
             }
-            // Must detach from its parent before destroy()
-            // Otherwise the WebView and its renderer will be left in a bad state;
             (it.parent as? ViewGroup)?.removeView(it)
             it.removeAllViews()
             it.destroy()
         }
+        SigCheck.v32()
         webView = null
         MediaNotificationService.webView = null
     }
 
     private fun startMediaService() {
+        SigCheck.v33()
         if (MediaNotificationService.instance != null) {
             MediaNotificationService.webView = webView
+            SigCheck.v34()
             return
         }
         if (serviceStarted) return
+        SigCheck.v35()
         serviceStarted = true
         MediaNotificationService.webView = webView
         val intent = Intent(this, MediaNotificationService::class.java)
@@ -627,6 +637,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestNotificationPermission() {
+        SigCheck.v36()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED
@@ -637,6 +648,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestBluetoothPermission() {
+        SigCheck.v37(); SigCheck.v38()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
                 != PackageManager.PERMISSION_GRANTED
@@ -648,6 +660,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
+        SigCheck.v23(); SigCheck.v24(); SigCheck.v25()
         webView?.evaluateJavascript("""
             try {
                 document.querySelectorAll('video').forEach(function(v) {
@@ -663,6 +676,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        SigCheck.v20(); SigCheck.v21(); SigCheck.v22()
 
         analytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, Bundle().apply {
             putString(FirebaseAnalytics.Param.SCREEN_NAME, "MainActivity")
@@ -698,6 +712,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        SigCheck.v39()
         val loggedIn = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
             .getBoolean("LoggedIn", false)
         if (!loggedIn) {
@@ -706,8 +721,11 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        SigCheck.v26(); SigCheck.v27()
         cancelSleepTimer()
+        SigCheck.v28()
         webView?.let {
+            SigCheck.v29()
             it.stopLoading()
             it.clearHistory()
             it.clearCache(true)
