@@ -42,6 +42,10 @@
   runs a local MITM proxy with a custom CA cert so Spotify doesn't clock you're on a WebView. that's the magic trick. everything else passes through untouched.
 </p>
 
+<p align="center">
+  📖 documented at <a href="https://deepwiki.com/lyssadev/Spotilol">deepwiki.com/lyssadev/Spotilol</a>
+</p>
+
 ---
 
 ## Preview
@@ -108,6 +112,20 @@ cd Spotilol
 ```
 
 APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
+
+### Google Services
+
+this project uses Firebase (analytics, crash reporting, performance). to build, you need:
+
+1. create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
+2. register an Android app with package name `com.project.lol`
+3. download the `google-services.json` and place it in `app/`
+4. register the **SHA-256 fingerprint** of your signing key in Firebase Console → Project Settings → Your app
+
+```bash
+# get your SHA-256 fingerprint
+keytool -list -v -keystore keystore/spotilol.keystore -storepass spotilol -alias spotilol_debug | grep SHA256
+```
 
 ---
 
