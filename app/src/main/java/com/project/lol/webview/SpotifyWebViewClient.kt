@@ -120,7 +120,7 @@ class SpotifyWebViewClient(
                 buildAmoledJs(amoledEnabled) + "\n" +
                 buildCustomCssJs(customCss)
         if (playerMode == "original") {
-            view.evaluateJavascript(cleanJs + "\n(function(){var s=document.createElement('style');s.textContent='aside[data-testid=\"now-playing-bar\"]{display:flex!important}';document.head.appendChild(s);})();", null)
+            view.evaluateJavascript(cleanJs + "\n(function(){var s=document.createElement('style');s.id='spl-np-show';s.textContent='aside[data-testid=\"now-playing-bar\"]{display:flex!important}';document.head.appendChild(s);})();", null)
         } else {
             view.evaluateJavascript(cleanJs, null)
         }
@@ -153,6 +153,7 @@ class SpotifyWebViewClient(
             """.trimIndent()
             view.evaluateJavascript(js, null)
         } else {
+            view.evaluateJavascript("if(typeof initSpotilolPlayer!=='function'){" + SpotilolPlayer.CONTENT + "}", null)
             val js = """
                 (function(){
                     var s=document.getElementById('spl-np-show');
