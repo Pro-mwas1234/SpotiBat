@@ -14,7 +14,6 @@
         android:maxSdkVersion="28" />
 
     <application
-        android:name=".SpotilolApplication"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"

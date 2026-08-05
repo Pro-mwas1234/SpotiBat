@@ -24,27 +24,13 @@ android {
         compose = true
     }
 
-    signingConfigs {
-        create("debugKey") {
-            storeFile = file("keystore/spotilol.keystore")
-            storePassword = "spotilol"
-            keyAlias = "spotilol_debug"
-            keyPassword = "spotilol"
-        }
-        create("releaseKey") {
-            storeFile = file("keystore/spotilol.keystore")
-            storePassword = "spotilol"
-            keyAlias = "spotilol_release"
-            keyPassword = "spotilol"
-        }
-    }
-
     buildTypes {
         debug {
-            signingConfig = signingConfigs.getByName("debugKey")
+            // Uses the default debug keystore (~/.android/debug.keystore)
         }
         release {
-            signingConfig = signingConfigs.getByName("releaseKey")
+            // Sign release builds with the default debug keystore
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

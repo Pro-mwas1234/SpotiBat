@@ -14,5 +14,3 @@
 -keep class com.google.firebase.crashlytics.** { *; }
 -dontwarn com.google.firebase.crashlytics.**
 
-# Keep the Application class for Firebase initialization
--keep class com.project.lol.SpotilolApplication { *; }

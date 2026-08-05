@@ -1,10 +1,3 @@
--overloadaggressively
--allowaccessmodification
--repackageclasses ''
--flattenpackagehierarchy ''
--mergeinterfacesaggressively
-
--keep class com.project.lol.SpotilolApplication { *; }
 -keepclassmembers class com.project.lol.bridge.SpotifyBridge {
     @android.webkit.JavascriptInterface <methods>;
 }
@@ -29,6 +22,3 @@
 }
 -keepattributes *Annotation*,JavascriptInterface,SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
-
--optimizationpasses 9
--optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*

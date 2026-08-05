@@ -120,12 +120,6 @@ this project uses Firebase (analytics, crash reporting, performance). to build, 
 1. create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
 2. register an Android app with package name `com.project.lol`
 3. download the `google-services.json` and place it in `app/`
-4. register the **SHA-256 fingerprint** of your signing key in Firebase Console → Project Settings → Your app
-
-```bash
-# get your SHA-256 fingerprint
-keytool -list -v -keystore keystore/spotilol.keystore -storepass spotilol -alias spotilol_debug | grep SHA256
-```
 
 ---
 

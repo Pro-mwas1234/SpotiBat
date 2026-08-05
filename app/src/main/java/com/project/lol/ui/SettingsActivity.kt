@@ -92,7 +92,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.webkit.WebViewCompat
-import com.project.lol.SigCheck
 import com.project.lol.proxy.LocalProxyManager
 import com.project.lol.update.UpdateChecker
 
@@ -102,12 +101,9 @@ class SettingsActivity : ComponentActivity() {
     private lateinit var prefs: SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        SigCheck.v40(); SigCheck.v41(); SigCheck.v42()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        SigCheck.v43()
         prefs = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
-        SigCheck.v44()
 
         setContent {
             var materialYou by remember { mutableStateOf(prefs.getBoolean("MaterialYou", false)) }
