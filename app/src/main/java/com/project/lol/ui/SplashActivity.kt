@@ -136,6 +136,15 @@ class SplashActivity : ComponentActivity() {
                                     .fillMaxSize()
                                     .background(MaterialTheme.colorScheme.background)
                                     .graphicsLayer { alpha = certAlpha },
+                                onSwitchNormal = {
+                                    getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+                                        .edit()
+                                        .putString("ConnectionMode", "normal")
+                                        .putBoolean("ServiceOn", false)
+                                        .apply()
+                                    LocalProxyManager.stop()
+                                    recreate()
+                                },
                                 onCheck = {
                                     checking = true
                                     scope.launch {
@@ -238,6 +247,7 @@ private fun LoadingScreen() {
 @Composable
 private fun CACertScreen(
     modifier: Modifier = Modifier,
+    onSwitchNormal: () -> Unit,
     onCheck: () -> Unit,
     onExport: () -> Unit
 ) {
@@ -314,6 +324,22 @@ private fun CACertScreen(
                 ) {
                     Text("Check", color = Color.White, fontWeight = FontWeight.SemiBold)
                 }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        Surface(
+            onClick = onSwitchNormal,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            color = Color.White.copy(alpha = 0.06f)
+        ) {
+            Box(
+                modifier = Modifier.padding(vertical = 14.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Switch to Normal", color = Color.White.copy(alpha = 0.7f))
             }
         }
     }
