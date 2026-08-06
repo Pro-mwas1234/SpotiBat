@@ -87,10 +87,18 @@ class SplashActivity : ComponentActivity() {
 
             LaunchedEffect(Unit) {
                 withContext(Dispatchers.IO) {
-                    LocalProxyManager.init(this@SplashActivity)
-                    LocalProxyManager.start()
-                    delay(800)
-                    certInstalled = LocalProxyManager.isCAInstalled()
+                    val useProxy = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+                        .getString("ConnectionMode", "normal") == "proxy"
+                    if (useProxy) {
+                        LocalProxyManager.init(this@SplashActivity)
+                        LocalProxyManager.start()
+                        delay(800)
+                        certInstalled = LocalProxyManager.isCAInstalled()
+                    } else {
+                        LocalProxyManager.stop()
+                        delay(600)
+                        certInstalled = true
+                    }
                     checkDone = true
                     checking = false
                 }

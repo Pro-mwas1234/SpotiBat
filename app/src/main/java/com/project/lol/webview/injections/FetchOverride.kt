@@ -55,6 +55,20 @@ object FetchOverride {
                             }
                         }
                     }
+                    var method = (init && init.method) ? String(init.method).toUpperCase() : 'GET';
+                    if(!window.__spotilolUseProxy && url && url.indexOf && url.indexOf('connect-state') !== -1 && window.mngFetch) {
+                        return window.mngFetch(input, init);
+                    }
+                    if(window.ffDone && url && url.indexOf && url.indexOf('/track-playback/') !== -1 && method === 'PUT' && init && init.body) {
+                        try {
+                            var pb = typeof init.body === 'string' ? JSON.parse(init.body) : init.body;
+                            if(pb && pb.state_ref && pb.state_ref.paused === true && window.playing) {
+                                window.actPlayPause(false);
+                            } else if(pb && pb.state_ref && pb.state_ref.paused === false && !window.playing) {
+                                window.actPlayPause(true);
+                            }
+                        } catch(e){}
+                    }
                     return orig.call(window, input, init);
                 };
             })();

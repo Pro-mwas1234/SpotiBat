@@ -6,7 +6,7 @@ object PlaybackControls {
                 var type = uri.match(/^spotify:([^:]+)/);
                 type = type ? type[1] : 'your_library';
                 if(type=='user') type='your_library';
-                oriFetch('https://gew4-spclient.spotify.com/connect-state/v1/player/command/from/'+window.spotDevId+'/to/'+window.spotDevId, {
+                (window.mngFetch || oriFetch)('https://gew4-spclient.spotify.com/connect-state/v1/player/command/from/'+window.spotDevId+'/to/'+window.spotDevId, {
                     method:'POST',
                     headers:{'Authorization':window.spotAuthToken,'Client-Token':window.spotCliToken,'Content-Type':'application/json'},
                     body:JSON.stringify({

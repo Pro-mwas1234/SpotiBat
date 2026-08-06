@@ -140,8 +140,11 @@ class MainActivity : ComponentActivity() {
             putString(FirebaseAnalytics.Param.SCREEN_CLASS, "MainActivity")
         })
 
+        val prefs = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+        val useProxy = prefs.getString("ConnectionMode", "normal") == "proxy"
+
         // After an OOM kill, Android can resume directly at MainActivity
-        if (!LocalProxyManager.isRunning) {
+        if (useProxy && !LocalProxyManager.isRunning) {
             startActivity(Intent(this, SplashActivity::class.java))
             finish()
             return
@@ -157,7 +160,6 @@ class MainActivity : ComponentActivity() {
         updateAvailable.value = uc.hasUpdateAvailable()
         uc.autoCheck()
 
-        val prefs = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
         val loggedIn = prefs.getBoolean("LoggedIn", false)
 
         serviceEnabledState.value = prefs.getBoolean("ServiceOn", true)
@@ -317,8 +319,8 @@ class MainActivity : ComponentActivity() {
                                             }
                                         )
 
-                                        if (LocalProxyManager.isRunning) {
-                                            val executor = Executors.newSingleThreadExecutor()
+                                        val executor = Executors.newSingleThreadExecutor()
+                                        if (useProxy && LocalProxyManager.isRunning) {
                                             val proxyConfig = ProxyConfig.Builder()
                                                 .addProxyRule("localhost:${LocalProxyManager.port}")
                                                 .build()
@@ -327,6 +329,8 @@ class MainActivity : ComponentActivity() {
                                                 executor,
                                                 { }
                                             )
+                                        } else {
+                                            ProxyController.getInstance().clearProxyOverride(executor, { })
                                         }
 
                                         if (loggedIn) {

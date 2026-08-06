@@ -10,6 +10,9 @@ import android.webkit.WebViewClient
 import com.project.lol.webview.helpers.*
 import com.project.lol.webview.injections.*
 import java.io.ByteArrayInputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.Locale
 
 class SpotifyWebViewClient(
     private val onLoginRequired: () -> Unit
@@ -57,6 +60,9 @@ class SpotifyWebViewClient(
 
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
         super.onPageStarted(view, url, favicon)
+        val useProxy = view?.context?.getSharedPreferences("spotilol_prefs", 0)
+            ?.getString("ConnectionMode", "normal") == "proxy"
+        view?.evaluateJavascript("window.__spotilolUseProxy=$useProxy;", null)
         view?.evaluateJavascript(BrowserSpoof.CONTENT, null)
         view?.evaluateJavascript(FetchOverride.CONTENT, null)
     }
@@ -82,6 +88,46 @@ class SpotifyWebViewClient(
                 ByteArrayInputStream(ByteArray(0)))
         }
 
+        val useProxy = view.context.getSharedPreferences("spotilol_prefs", 0)
+            .getString("ConnectionMode", "normal") == "proxy"
+
+        if (!useProxy) {
+            try {
+                val conn = URL(url).openConnection() as HttpURLConnection
+                try {
+                    conn.requestMethod = request.method
+                    conn.instanceFollowRedirects = true
+                    conn.connectTimeout = 5000
+                    conn.readTimeout = 5000
+                    for ((k, v) in request.requestHeaders) {
+                        val lk = k.lowercase(Locale.ROOT)
+                        if (lk != "x-requested-with" && lk != "sec-gpc" && !lk.startsWith("sec-ch-ua")) {
+                            conn.setRequestProperty(k, v)
+                        }
+                    }
+                    conn.setRequestProperty("sec-gpc", "1")
+                    conn.setRequestProperty("sec-ch-ua-platform", "\"Windows\"")
+                    conn.setRequestProperty("sec-ch-ua-mobile", "?0")
+                    conn.setRequestProperty("sec-ch-ua", "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Google Chrome\";v=\"150\"")
+                    conn.connect()
+                    val contentType = conn.contentType
+                    if (contentType == "audio/mpeg" &&
+                        !url.contains("podz-content") && !url.contains("gew4-spclient") &&
+                        isAdAudioUrl(url)
+                    ) {
+                        view.post { view.evaluateJavascript("AndBridge.deferMessage('adblock')", null) }
+                        val silent = view.context.assets?.open("silent.mp3") ?: return null
+                        return WebResourceResponse("audio/mpeg", null, silent)
+                    }
+                } finally {
+                    conn.disconnect()
+                }
+            } catch (_: Exception) {
+                return null
+            }
+            return null
+        }
+
         val adMatch = matchAdCdn(url)
         if (adMatch != null) {
             view.post { view.evaluateJavascript("AndBridge.deferMessage('adblock')", null) }
@@ -99,11 +145,14 @@ class SpotifyWebViewClient(
         val amoledEnabled = prefs.getBoolean("AmoledTheme", false)
         val customCss = prefs.getString("CustomCss", "") ?: ""
         val playerMode = prefs.getString("PlayerMode", "spotilol") ?: "spotilol"
+        val useProxy = prefs.getString("ConnectionMode", "normal") == "proxy"
 
         val js = buildString {
             append("window.autoPlayMode='$autoPlayMode';\n")
             append("window.closeNpPref=$closeNowPlay;\n")
+            append("window.__spotilolUseProxy=$useProxy;\n")
             append(PlayerCore.CONTENT)
+            append(ClassicBridge.CONTENT)
             append(MediaUpdater.CONTENT)
             append(LibraryFetcher.CONTENT)
             append(LibraryParser.CONTENT)

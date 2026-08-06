@@ -5,7 +5,7 @@ object LibraryFetcher {
             window.fetchAllLibrary = async function(){
                 var limit=50, offset=0, allItems=[], hasMore=true;
                 while(hasMore){
-                    var resp = await oriFetch('https://api-partner.spotify.com/pathfinder/v2/query',{
+                    var resp = await (window.mngFetch || oriFetch)('https://api-partner.spotify.com/pathfinder/v2/query',{
                         method:'POST',
                         headers:{
                             'Authorization':window.spotAuthToken,

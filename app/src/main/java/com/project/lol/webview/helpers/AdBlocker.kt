@@ -11,6 +11,17 @@ fun isAnalyticsDomain(url: String): Boolean {
             url.contains("aet.spotify.com")
 }
 
+fun isAdAudioUrl(url: String): Boolean {
+    return url.contains("akamaized.net/audio/") ||
+            url.contains("scdn.co/audio/") ||
+            url.contains("scdn.co/mp3-ad/") ||
+            url.contains("spotifycdn.com/audio/") ||
+            url.contains("amillionads.com") ||
+            url.contains("2mdn.net") ||
+            url.contains("adxcel.com") ||
+            url.contains("adstudio-assets.scdn.co")
+}
+
 fun matchAdCdn(url: String): String? {
     if (url.contains("scdn.co/mp3-ad/")) return "scdn.co/mp3-ad/"
     if (url.contains("mp3ad.scdn.co")) return "mp3ad.scdn.co"

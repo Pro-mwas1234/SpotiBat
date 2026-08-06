@@ -38,6 +38,35 @@ object BrowserSpoof {
                     m.length = 2;
                     return m;
                 });
+                try {
+                    var uaData = {
+                        brands: [
+                            { brand: 'Not.A/Brand', version: '8' },
+                            { brand: 'Chromium', version: '150' },
+                            { brand: 'Google Chrome', version: '150' }
+                        ],
+                        mobile: false,
+                        platform: 'Windows',
+                        architecture: 'x86',
+                        bitness: '64',
+                        wow64: false,
+                        model: '',
+                        platformVersion: '10.0.0',
+                        uaFullVersion: '150.0.7871.187',
+                        fullVersionList: [
+                            { brand: 'Not.A/Brand', version: '8' },
+                            { brand: 'Chromium', version: '150.0.7871.187' },
+                            { brand: 'Google Chrome', version: '150.0.7871.187' }
+                        ]
+                    };
+                    uaData.getHighEntropyValues = async function(hints){
+                        var out = {};
+                        hints.forEach(function(h){ if(h in uaData) out[h] = uaData[h]; });
+                        return out;
+                    };
+                    safeDefine(navigator, 'userAgentData', function(){ return uaData; });
+                    safeDefine(navigator, 'maxTouchPoints', function(){ return 0; });
+                } catch(e){}
             })();
         
     """

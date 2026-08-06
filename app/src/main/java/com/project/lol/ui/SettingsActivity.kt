@@ -84,6 +84,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import com.project.lol.R
+import com.project.lol.service.MediaNotificationService
 import com.project.lol.ui.theme.SpotifyTheme
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -116,11 +117,24 @@ class SettingsActivity : ComponentActivity() {
                     amoledThemeState = amoledTheme,
                     onAmoledThemeChange = { amoledTheme = it },
                     onBack = { finish() },
+                    onConnectionModeChange = { switchConnectionMode(it) },
                     onClearCache = { clearWebViewCache() },
                     onClearData = { clearAllData() }
                 )
             }
         }
+    }
+
+    private fun switchConnectionMode(mode: String) {
+        prefs.edit().putString("ConnectionMode", mode).apply()
+        prefs.edit().putBoolean("ServiceOn", false).apply()
+        stopService(Intent(this, MediaNotificationService::class.java))
+        LocalProxyManager.stop()
+        val intent = Intent(this, SplashActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        startActivity(intent)
+        finish()
     }
 
     private fun clearWebViewCache() {
@@ -159,6 +173,7 @@ fun SettingsScreen(
     amoledThemeState: Boolean,
     onAmoledThemeChange: (Boolean) -> Unit,
     onBack: () -> Unit,
+    onConnectionModeChange: (String) -> Unit,
     onClearCache: () -> Unit,
     onClearData: () -> Unit
 ) {
@@ -173,7 +188,9 @@ fun SettingsScreen(
     var btAutoPause by remember { mutableStateOf(prefs.getBoolean("BtAutoPause", false)) }
     var btAutoResume by remember { mutableStateOf(prefs.getBoolean("BtAutoResume", false)) }
     var playerMode by remember { mutableStateOf(prefs.getString("PlayerMode", "spotilol") ?: "spotilol") }
+    var connectionMode by remember { mutableStateOf(prefs.getString("ConnectionMode", "normal") ?: "normal") }
 
+    var showConnectionModeDialog by remember { mutableStateOf(false) }
     var showClearCacheDialog by remember { mutableStateOf(false) }
     var showClearDataDialog by remember { mutableStateOf(false) }
     var showAutoPlayDialog by remember { mutableStateOf(false) }
@@ -217,6 +234,23 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            SettingSectionCard(
+                title = "CONNECTION MODE",
+                icon = Icons.Default.Shield
+            ) {
+                val modeLabel = if (connectionMode == "proxy") {
+                    "MITM Proxy (Certificate)"
+                } else {
+                    "Normal (No Certificate)"
+                }
+                SettingTile(
+                    title = "MITM Proxy Mode",
+                    subtitle = "$modeLabel — restarts the app",
+                    icon = Icons.Default.Shield,
+                    onClick = { showConnectionModeDialog = true }
+                )
+            }
+
             SettingSectionCard(
                 title = "PLAYER",
                 icon = Icons.Default.PlayCircle
@@ -371,20 +405,22 @@ fun SettingsScreen(
                 )
             }
 
-            SettingSectionCard(
-                title = "SECURITY & NETWORK",
-                icon = Icons.Default.Shield
-            ) {
-                val context = LocalContext.current
-                SettingTile(
-                    title = "CA Certificate",
-                    subtitle = "Re-export proxy certificate to Downloads",
-                    icon = Icons.Default.Shield,
-                    onClick = {
-                        val path = LocalProxyManager.exportCACert(context)
-                        Toast.makeText(context, "Exported to $path", Toast.LENGTH_LONG).show()
-                    }
-                )
+            if (connectionMode == "proxy") {
+                SettingSectionCard(
+                    title = "SECURITY & NETWORK",
+                    icon = Icons.Default.Shield
+                ) {
+                    val context = LocalContext.current
+                    SettingTile(
+                        title = "CA Certificate",
+                        subtitle = "Re-export proxy certificate to Downloads",
+                        icon = Icons.Default.Shield,
+                        onClick = {
+                            val path = LocalProxyManager.exportCACert(context)
+                            Toast.makeText(context, "Exported to $path", Toast.LENGTH_LONG).show()
+                        }
+                    )
+                }
             }
 
             SettingSectionCard(
@@ -495,6 +531,22 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(8.dp))
         }
+    }
+
+    if (showConnectionModeDialog) {
+        SingleChoiceDialog(
+            title = "MITM Proxy Mode",
+            options = listOf(
+                "normal" to "Normal (No Certificate)",
+                "proxy" to "MITM Proxy (Certificate)"
+            ),
+            selected = connectionMode,
+            onSelect = { value ->
+                connectionMode = value
+                onConnectionModeChange(value)
+            },
+            onDismiss = { showConnectionModeDialog = false }
+        )
     }
 
     if (showAutoPlayDialog) {
@@ -967,6 +1019,7 @@ fun SettingsScreenPreview() {
             amoledThemeState = false,
             onAmoledThemeChange = {},
             onBack = {},
+            onConnectionModeChange = {},
             onClearCache = {},
             onClearData = {}
         )
