@@ -110,6 +110,18 @@ class SpotifyBridge(activityRef: WeakReference<Activity>) {
     }
 
     @JavascriptInterface
+    fun recAccountName(name: String) {
+        val activity = activityRef.get() ?: return
+        val trimmed = name.trim()
+        if (trimmed.isNotEmpty()) {
+            activity.getSharedPreferences("spotilol_prefs", Activity.MODE_PRIVATE)
+                .edit()
+                .putString("CurrentAccountName", trimmed)
+                .apply()
+        }
+    }
+
+    @JavascriptInterface
     fun openTimerDialog() {
         val activity = activityRef.get() ?: return
         activity.runOnUiThread {

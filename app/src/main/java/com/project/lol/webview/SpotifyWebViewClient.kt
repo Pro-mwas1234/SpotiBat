@@ -160,6 +160,21 @@ class SpotifyWebViewClient(
             append(MainLoop.CONTENT)
             append(AutoFeatures.CONTENT)
             append(AndroidTracker.CONTENT)
+            append("""
+                (function(){
+                    var recAcc=function(){
+                        try{
+                            var uw=document.querySelector('[data-testid="user-widget-link"]');
+                            if(uw){
+                                var txt=(uw.textContent||'').split('\n')[0].trim();
+                                if(txt) AndBridge.recAccountName(txt);
+                            }
+                        }catch(e){}
+                    };
+                    setTimeout(recAcc,5000);
+                    setInterval(recAcc,60000);
+                })();
+            """.trimIndent())
             append(CssHack.CONTENT)
             if (playerMode == "spotilol") {
                 append(SpotilolPlayer.CONTENT)

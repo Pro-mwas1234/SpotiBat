@@ -30,6 +30,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import android.net.Uri
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
@@ -50,6 +53,9 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -84,6 +90,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import com.project.lol.R
+import com.project.lol.profile.ProfileManager
 import com.project.lol.service.MediaNotificationService
 import com.project.lol.ui.theme.SpotifyTheme
 import androidx.compose.ui.text.font.FontFamily
@@ -118,6 +125,9 @@ class SettingsActivity : ComponentActivity() {
                     onAmoledThemeChange = { amoledTheme = it },
                     onBack = { finish() },
                     onConnectionModeChange = { switchConnectionMode(it) },
+                    onSaveProfile = { name, cookies -> saveProfile(name, cookies) },
+                    onLoadProfile = { cookies -> loadProfile(cookies) },
+                    onDeleteProfile = { name -> deleteProfile(name) },
                     onClearCache = { clearWebViewCache() },
                     onClearData = { clearAllData() }
                 )
@@ -135,6 +145,28 @@ class SettingsActivity : ComponentActivity() {
         }
         startActivity(intent)
         finish()
+    }
+
+    private fun saveProfile(name: String, cookies: String) {
+        ProfileManager.saveProfile(this, name, cookies)
+        Toast.makeText(this, "Account saved", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun loadProfile(cookies: String) {
+        if (!ProfileManager.applyProfile(this, cookies)) {
+            Toast.makeText(this, "Profile could not be loaded", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val intent = Intent(this, SplashActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        startActivity(intent)
+        finish()
+    }
+
+    private fun deleteProfile(name: String) {
+        ProfileManager.deleteProfile(this, name)
+        Toast.makeText(this, "Profile deleted", Toast.LENGTH_SHORT).show()
     }
 
     private fun clearWebViewCache() {
@@ -174,6 +206,9 @@ fun SettingsScreen(
     onAmoledThemeChange: (Boolean) -> Unit,
     onBack: () -> Unit,
     onConnectionModeChange: (String) -> Unit,
+    onSaveProfile: (String, String) -> Unit,
+    onLoadProfile: (String) -> Unit,
+    onDeleteProfile: (String) -> Unit,
     onClearCache: () -> Unit,
     onClearData: () -> Unit
 ) {
@@ -190,7 +225,13 @@ fun SettingsScreen(
     var playerMode by remember { mutableStateOf(prefs.getString("PlayerMode", "spotilol") ?: "spotilol") }
     var connectionMode by remember { mutableStateOf(prefs.getString("ConnectionMode", "normal") ?: "normal") }
 
+    val context = LocalContext.current
+    var profiles by remember { mutableStateOf(ProfileManager.getProfiles(context)) }
+
     var showConnectionModeDialog by remember { mutableStateOf(false) }
+    var showSaveAccountDialog by remember { mutableStateOf(false) }
+    var pendingCookies by remember { mutableStateOf<String?>(null) }
+    var accountNameInput by remember { mutableStateOf("") }
     var showClearCacheDialog by remember { mutableStateOf(false) }
     var showClearDataDialog by remember { mutableStateOf(false) }
     var showAutoPlayDialog by remember { mutableStateOf(false) }
@@ -249,6 +290,45 @@ fun SettingsScreen(
                     icon = Icons.Default.Shield,
                     onClick = { showConnectionModeDialog = true }
                 )
+            }
+
+            SettingSectionCard(
+                title = "ACCOUNTS",
+                icon = Icons.Default.PersonAdd
+            ) {
+                SettingTile(
+                    title = "Save Current Account",
+                    subtitle = "Store the current session as a profile",
+                    icon = Icons.Default.PersonAdd,
+                    onClick = {
+                        val cookies = ProfileManager.captureSession(context)
+                        if (cookies == null) {
+                            Toast.makeText(context, "Log in to Spotify first", Toast.LENGTH_SHORT).show()
+                        } else {
+                            pendingCookies = cookies
+                            accountNameInput = prefs.getString("CurrentAccountName", "") ?: ""
+                            showSaveAccountDialog = true
+                        }
+                    }
+                )
+                if (profiles.isNotEmpty()) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+                    profiles.forEachIndexed { index, profile ->
+                        ProfileRow(
+                            name = profile.name,
+                            subtitle = "Saved " + SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
+                                .format(Date(profile.savedAt)),
+                            onLoad = { onLoadProfile(profile.cookies) },
+                            onDelete = {
+                                onDeleteProfile(profile.name)
+                                profiles = ProfileManager.getProfiles(context)
+                            }
+                        )
+                        if (index < profiles.lastIndex) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+                        }
+                    }
+                }
             }
 
             SettingSectionCard(
@@ -531,6 +611,66 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(8.dp))
         }
+    }
+
+    if (showSaveAccountDialog) {
+        AlertDialog(
+            onDismissRequest = { showSaveAccountDialog = false },
+            shape = RoundedCornerShape(28.dp),
+            title = {
+                Text(
+                    text = "Save Current Account",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "The current Spotify session will be stored on this device.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    OutlinedTextField(
+                        value = accountNameInput,
+                        onValueChange = { accountNameInput = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Account name") },
+                        placeholder = { Text("e.g. Premium, Work") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val cookies = pendingCookies
+                        if (cookies != null && accountNameInput.isNotBlank()) {
+                            onSaveProfile(accountNameInput, cookies)
+                            profiles = ProfileManager.getProfiles(context)
+                        }
+                        accountNameInput = ""
+                        showSaveAccountDialog = false
+                    },
+                    enabled = accountNameInput.isNotBlank()
+                ) {
+                    Text("Save", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSaveAccountDialog = false }) {
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        )
     }
 
     if (showConnectionModeDialog) {
@@ -820,6 +960,59 @@ fun SettingSwitchTile(
 }
 
 @Composable
+fun ProfileRow(
+    name: String,
+    subtitle: String,
+    onLoad: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onLoad)
+            .padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(12.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        IconButton(onClick = onDelete) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "Delete",
+                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+            )
+        }
+    }
+}
+
+@Composable
 fun SingleChoiceDialog(
     title: String,
     options: List<Pair<String, String>>,
@@ -1020,6 +1213,9 @@ fun SettingsScreenPreview() {
             onAmoledThemeChange = {},
             onBack = {},
             onConnectionModeChange = {},
+            onSaveProfile = { _, _ -> },
+            onLoadProfile = {},
+            onDeleteProfile = {},
             onClearCache = {},
             onClearData = {}
         )
