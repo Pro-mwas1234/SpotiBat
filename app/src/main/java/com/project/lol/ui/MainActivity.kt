@@ -116,7 +116,7 @@ class MainActivity : ComponentActivity() {
 
     private val btPermLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { _ -> }
+    ) { _ -> requestNotificationPermission() }
 
     private val sleepTimerOptions = listOf(
         0 to "Off",
@@ -154,7 +154,6 @@ class MainActivity : ComponentActivity() {
             WebView.setWebContentsDebuggingEnabled(true)
         }
 
-        requestNotificationPermission()
         requestBluetoothPermission()
         val uc = UpdateChecker(this)
         updateAvailable.value = uc.hasUpdateAvailable()
@@ -646,7 +645,11 @@ class MainActivity : ComponentActivity() {
                 != PackageManager.PERMISSION_GRANTED
             ) {
                 btPermLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+            } else {
+                requestNotificationPermission()
             }
+        } else {
+            requestNotificationPermission()
         }
     }
 
