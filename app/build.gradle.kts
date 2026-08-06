@@ -26,10 +26,8 @@ android {
 
     buildTypes {
         debug {
-            // Uses the default debug keystore (~/.android/debug.keystore)
         }
         release {
-            // Sign release builds with the default debug keystore
             signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
