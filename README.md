@@ -39,7 +39,7 @@
 </p>
 
 <p align="center">
-  runs a local MITM proxy with a custom CA cert so Spotify doesn't clock you're on a WebView. that's the magic trick. everything else passes through untouched.
+  runs in two modes: <strong>normal</strong> (no certificate, works out of the box - the default) or <strong>proxy MITM</strong> (local proxy with a custom CA cert) so Spotify doesn't clock you're on a WebView. everything else passes through untouched.
 </p>
 
 <p align="center">
@@ -51,9 +51,9 @@
 ## Preview
 
 <div align="center">
-  <img src="art/spotilol_ss1.webp" alt="screenshot 1" width="30%" style="max-width: 250px; margin: 4px; border-radius: 12px;" />
-  <img src="art/spotilol_ss2.webp" alt="screenshot 2" width="30%" style="max-width: 250px; margin: 4px; border-radius: 12px;" />
-  <img src="art/spotilol_ss3.webp" alt="screenshot 3" width="30%" style="max-width: 250px; margin: 4px; border-radius: 12px;" />
+  <img src="art/spotilol_ss1.jpg" alt="screenshot 1" width="30%" style="max-width: 250px; margin: 4px; border-radius: 12px;" />
+  <img src="art/spotilol_ss2.jpg" alt="screenshot 2" width="30%" style="max-width: 250px; margin: 4px; border-radius: 12px;" />
+  <img src="art/spotilol_ss3.jpg" alt="screenshot 3" width="30%" style="max-width: 250px; margin: 4px; border-radius: 12px;" />
 </div>
 
 ---
@@ -69,6 +69,7 @@ download the `.apk` file and install it on your device. you may need to toggle *
 ## Features
 
 - blocks audio ads 🚫
+- works with or without a certificate: **normal mode** (default) & **proxy MITM**
 - media notification with play/pause, skip, seek, like/unlike
 - works with lock screen, Bluetooth, Wear OS
 - autoplay modes: off, once at start, or permanent
@@ -88,11 +89,19 @@ download the `.apk` file and install it on your device. you may need to toggle *
 
 ---
 
-## Quick Start: The Certificate Thing
+## Quick Start
+
+install the APK, open it, done. Spotilol runs in **normal mode** by default - no certificate, no setup, no "Certificate Required" screen. it just works out of the box.
+
+### Switching to Proxy MITM Mode
+
+want the full fingerprint treatment? flip the mode in **Settings → Connection Mode → "MITM Proxy (Certificate)"**. the app restarts and walks you through the cert install.
+
+### The Certificate Thing (proxy mode only)
 
 Spotilol generates a local CA cert so Spotify doesn't know you're in a WebView. it lives on your device, stays on your device.
 
-1. open Spotilol — you'll see the **"Certificate Required"** screen
+1. open Spotilol in proxy mode — you'll see the **"Certificate Required"** screen
 2. tap **"Export .pem"** to save it to your Downloads
 3. go to **Settings > Security > Encryption & Credentials > Install a certificate > CA certificate**
 4. find `spotilol_ca.pem` in your Downloads and tap it
