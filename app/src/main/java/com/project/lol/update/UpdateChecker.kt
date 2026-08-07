@@ -11,32 +11,22 @@ class UpdateChecker(private val context: Context) {
 
     companion object {
         private const val API_URL = "https://api.github.com/repos/lyssadev/Spotilol/releases/latest"
+        private const val RELEASE_URL = "https://github.com/lyssadev/Spotilol/releases/latest"
         private const val PREFS_NAME = "spotilol_prefs"
-        private const val KEY_HAS_UPDATE = "hasUpdateAvailable"
         private const val KEY_LAST_CHECK = "LastUpdateCheck"
-        private const val CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000L
+        private const val CHECK_INTERVAL_MS = 60 * 60 * 1000L
     }
 
-    fun hasUpdateAvailable(): Boolean {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getBoolean(KEY_HAS_UPDATE, false)
-    }
-
-    fun clearUpdateAvailable() {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_HAS_UPDATE, false).apply()
-    }
-
-    fun autoCheck() {
+    fun autoCheck(onUpdateAvailable: (String) -> Unit) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val lastCheck = prefs.getLong(KEY_LAST_CHECK, 0)
         if (System.currentTimeMillis() - lastCheck < CHECK_INTERVAL_MS) return
 
         prefs.edit().putLong(KEY_LAST_CHECK, System.currentTimeMillis()).apply()
-        fetchUpdateAvailable()
+        fetchUpdateAvailable(onUpdateAvailable)
     }
 
-    private fun fetchUpdateAvailable() {
+    private fun fetchUpdateAvailable(onUpdateAvailable: (String) -> Unit) {
         Thread {
             try {
                 val url = URL(API_URL)
@@ -54,8 +44,9 @@ class UpdateChecker(private val context: Context) {
                         .getPackageInfo(context.packageName, 0).versionName ?: ""
 
                     if (isNewer(tagName, currentVersion)) {
-                        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                            .edit().putBoolean(KEY_HAS_UPDATE, true).apply()
+                        Handler(Looper.getMainLooper()).post {
+                            onUpdateAvailable(RELEASE_URL)
+                        }
                     }
                 }
             } catch (_: Exception) {}

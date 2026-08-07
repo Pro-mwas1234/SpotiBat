@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import android.net.Uri
@@ -51,7 +50,6 @@ import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Smartphone
-import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
@@ -101,7 +99,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.webkit.WebViewCompat
 import com.project.lol.proxy.LocalProxyManager
-import com.project.lol.update.UpdateChecker
 
 @OptIn(ExperimentalMaterial3Api::class)
 class SettingsActivity : ComponentActivity() {
@@ -538,25 +535,6 @@ fun SettingsScreen(
                 )
             }
 
-            val updateContext = LocalContext.current
-            val uc = remember { UpdateChecker(updateContext) }
-            var hasUpdate by remember { mutableStateOf(uc.hasUpdateAvailable()) }
-            SettingSectionCard(
-                title = "UPDATES",
-                icon = Icons.Default.SystemUpdate
-            ) {
-                SettingTile(
-                    title = "Check for Updates",
-                    subtitle = "Manually check for new releases",
-                    icon = Icons.Default.SystemUpdate,
-                    showBadge = hasUpdate,
-                    onClick = {
-                        uc.clearUpdateAvailable()
-                        hasUpdate = false
-                    }
-                )
-            }
-
             val context = LocalContext.current
             val pkg = remember { WebViewCompat.getCurrentWebViewPackage(context) }
             val packageInfo = remember {
@@ -828,8 +806,7 @@ fun SettingTile(
     icon: ImageVector? = null,
     painter: Painter? = null,
     onClick: () -> Unit,
-    isDestructive: Boolean = false,
-    showBadge: Boolean = false
+    isDestructive: Boolean = false
 ) {
     Row(
         modifier = Modifier
@@ -865,14 +842,6 @@ fun SettingTile(
                     contentDescription = null,
                     tint = tint,
                     modifier = Modifier.size(20.dp)
-                )
-            }
-            if (showBadge) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .align(Alignment.TopEnd)
-                        .background(Color.Red, CircleShape)
                 )
             }
         }

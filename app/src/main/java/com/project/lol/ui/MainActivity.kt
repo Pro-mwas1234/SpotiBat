@@ -12,10 +12,14 @@ import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.drawable.Icon
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.os.Handler
+import android.os.Looper
 import android.util.Rational
+import android.widget.Toast
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -42,7 +46,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -128,7 +131,6 @@ class MainActivity : ComponentActivity() {
     private val sleepTimerActive = mutableStateOf(false)
 
     private val loadingProgress = mutableIntStateOf(100)
-    private val updateAvailable = mutableStateOf(false)
 
     private val notifPermLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -176,8 +178,14 @@ class MainActivity : ComponentActivity() {
 
         requestBluetoothPermission()
         val uc = UpdateChecker(this)
-        updateAvailable.value = uc.hasUpdateAvailable()
-        uc.autoCheck()
+        uc.autoCheck { url ->
+            Toast.makeText(this, "A new update is available", Toast.LENGTH_SHORT).show()
+            Handler(Looper.getMainLooper()).postDelayed({
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                } catch (_: Exception) {}
+            }, 2000)
+        }
 
         val loggedIn = prefs.getBoolean("LoggedIn", false)
 
@@ -210,21 +218,11 @@ class MainActivity : ComponentActivity() {
                                     })
                                     startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
                                 }) {
-                                    Box {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.ic_settings),
-                                            contentDescription = "Settings",
-                                            tint = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        if (updateAvailable.value) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(8.dp)
-                                                    .align(Alignment.TopEnd)
-                                                    .background(Color.Red, CircleShape)
-                                            )
-                                        }
-                                    }
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_settings),
+                                        contentDescription = "Settings",
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
                                 }
                                 Spacer(Modifier.width(4.dp))
                                 Switch(
