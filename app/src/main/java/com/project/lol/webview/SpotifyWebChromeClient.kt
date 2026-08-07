@@ -22,7 +22,18 @@ class SpotifyWebChromeClient(
         childWebView?.let {
             try { it.destroy() } catch (_: Exception) {}
         }
-        val newWebView = WebView(view?.context ?: return false).apply {
+        val parentView = view ?: return false
+        val newWebView = WebView(parentView.context).apply {
+            settings.userAgentString = parentView.settings.userAgentString
+            settings.javaScriptEnabled = parentView.settings.javaScriptEnabled
+            settings.domStorageEnabled = parentView.settings.domStorageEnabled
+            settings.javaScriptCanOpenWindowsAutomatically =
+                parentView.settings.javaScriptCanOpenWindowsAutomatically
+            settings.setSupportMultipleWindows(true)
+            settings.mixedContentMode = parentView.settings.mixedContentMode
+            settings.cacheMode = parentView.settings.cacheMode
+            settings.allowFileAccess = parentView.settings.allowFileAccess
+            settings.allowContentAccess = parentView.settings.allowContentAccess
             webViewClient = object : WebViewClient() {
                 @Suppress("DEPRECATION")
                 override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
