@@ -1,8 +1,10 @@
 package com.project.lol.webview.injections
 
-object BrowserSpoof {
+object GoogleSpoof {
     const val CONTENT = """
             (function(){
+                var DESKTOP_UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36';
+                var DESKTOP_APP='5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36';
                 try {
                     window.screen.__defineGetter__('width', function(){ return 1920; });
                     window.screen.__defineGetter__('height', function(){ return 1080; });
@@ -17,6 +19,11 @@ object BrowserSpoof {
                 safeDefine(navigator, 'webdriver', function(){ return false; });
                 safeDefine(navigator, 'vendor', function(){ return 'Google Inc.'; });
                 safeDefine(navigator, 'productSub', function(){ return '20030107'; });
+                safeDefine(navigator, 'userAgent', function(){ return DESKTOP_UA; });
+                safeDefine(navigator, 'appVersion', function(){ return DESKTOP_APP; });
+                safeDefine(navigator, 'appName', function(){ return 'Netscape'; });
+                safeDefine(navigator, 'appCodeName', function(){ return 'Mozilla'; });
+                safeDefine(navigator, 'product', function(){ return 'Gecko'; });
                 safeDefine(navigator, 'platform', function(){ return 'Win32'; });
                 safeDefine(navigator, 'oscpu', function(){ return 'Windows NT 10.0; Win64; x64'; });
                 safeDefine(navigator, 'languages', function(){ return ['en-US','en']; });
@@ -52,11 +59,11 @@ object BrowserSpoof {
                         wow64: false,
                         model: '',
                         platformVersion: '10.0.0',
-                        uaFullVersion: '150.0.7871.187',
+                        uaFullVersion: '150.0.0.0',
                         fullVersionList: [
                             { brand: 'Not.A/Brand', version: '8' },
-                            { brand: 'Chromium', version: '150.0.7871.187' },
-                            { brand: 'Google Chrome', version: '150.0.7871.187' }
+                            { brand: 'Chromium', version: '150.0.0.0' },
+                            { brand: 'Google Chrome', version: '150.0.0.0' }
                         ]
                     };
                     uaData.getHighEntropyValues = async function(hints){
@@ -66,6 +73,18 @@ object BrowserSpoof {
                     };
                     safeDefine(navigator, 'userAgentData', function(){ return uaData; });
                     safeDefine(navigator, 'maxTouchPoints', function(){ return 0; });
+                } catch(e){}
+                try {
+                    if(!window.chrome){
+                        var chromeStub={
+                            runtime:{id:undefined,connect:function(){},sendMessage:function(){}},
+                            app:{isInstalled:false},
+                            loadTimes:function(){return {}},
+                            csi:function(){return {}},
+                            webstore:undefined
+                        };
+                        Object.defineProperty(window,'chrome',{value:chromeStub,configurable:true,writable:true});
+                    }
                 } catch(e){}
             })();
         

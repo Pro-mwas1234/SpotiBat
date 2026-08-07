@@ -2,6 +2,7 @@ package com.project.lol.webview
 
 import android.graphics.Bitmap
 import android.util.Log
+import android.webkit.CookieManager
 import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -63,7 +64,11 @@ class SpotifyWebViewClient(
         val useProxy = view?.context?.getSharedPreferences("spotilol_prefs", 0)
             ?.getString("ConnectionMode", "normal") == "proxy"
         view?.evaluateJavascript("window.__spotilolUseProxy=$useProxy;", null)
-        view?.evaluateJavascript(BrowserSpoof.CONTENT, null)
+        if (isGoogleAuthUrl(url)) {
+            view?.evaluateJavascript(GoogleSpoof.CONTENT, null)
+        } else {
+            view?.evaluateJavascript(BrowserSpoof.CONTENT, null)
+        }
         view?.evaluateJavascript(FetchOverride.CONTENT, null)
     }
 
@@ -99,17 +104,33 @@ class SpotifyWebViewClient(
                     conn.instanceFollowRedirects = true
                     conn.connectTimeout = 5000
                     conn.readTimeout = 5000
+                    val isGoogle = isGoogleAuthUrl(url)
                     for ((k, v) in request.requestHeaders) {
                         val lk = k.lowercase(Locale.ROOT)
-                        if (lk != "x-requested-with" && lk != "sec-gpc" && !lk.startsWith("sec-ch-ua")) {
+                        if (lk != "x-requested-with" && lk != "sec-gpc" && !lk.startsWith("sec-ch-ua") &&
+                            !(isGoogle && lk == "user-agent")
+                        ) {
                             conn.setRequestProperty(k, v)
                         }
+                    }
+                    if (isGoogle) {
+                        conn.setRequestProperty("User-Agent", DESKTOP_UA)
+                        val cookie = CookieManager.getInstance().getCookie(url)
+                        if (!cookie.isNullOrEmpty()) conn.setRequestProperty("Cookie", cookie)
                     }
                     conn.setRequestProperty("sec-gpc", "1")
                     conn.setRequestProperty("sec-ch-ua-platform", "\"Windows\"")
                     conn.setRequestProperty("sec-ch-ua-mobile", "?0")
                     conn.setRequestProperty("sec-ch-ua", "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Google Chrome\";v=\"150\"")
                     conn.connect()
+                    if (isGoogle) {
+                        conn.headerFields.forEach { (key, values) ->
+                            if (key != null && key.equals("Set-Cookie", ignoreCase = true)) {
+                                values.forEach { CookieManager.getInstance().setCookie(url, it) }
+                            }
+                        }
+                        CookieManager.getInstance().flush()
+                    }
                     val contentType = conn.contentType
                     if (contentType == "audio/mpeg" &&
                         !url.contains("podz-content") && !url.contains("gew4-spclient") &&
@@ -136,6 +157,17 @@ class SpotifyWebViewClient(
         }
 
         return null
+    }
+
+    private fun isGoogleAuthUrl(url: String?): Boolean {
+        if (url == null) return false
+        val host = runCatching { android.net.Uri.parse(url).host }.getOrNull()
+            ?.lowercase() ?: return false
+        return host == "google.com" ||
+            host.endsWith(".google.com") ||
+            host.contains(".google.") ||
+            host.endsWith(".youtube.com") ||
+            host == "youtube.com"
     }
 
     private fun injectPlayerControl(view: WebView) {
@@ -239,5 +271,7 @@ class SpotifyWebViewClient(
 
     companion object {
         private const val TAG = "SpotifyWebViewClient"
+        private const val DESKTOP_UA =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
     }
 }
