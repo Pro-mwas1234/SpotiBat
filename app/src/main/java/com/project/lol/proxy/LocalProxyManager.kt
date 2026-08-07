@@ -1,13 +1,11 @@
 package com.project.lol.proxy
 
-import android.app.Activity
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import android.security.KeyChain
 import android.util.Base64
 import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
@@ -832,16 +830,4 @@ object LocalProxyManager {
         return "export failed"
     }
 
-    fun caCertFileExists(context: Context): Boolean = File(context.filesDir, KEYSTORE_FILE).exists()
-
-    fun installCACert(activity: Activity) {
-        try {
-            val intent = KeyChain.createInstallIntent()
-            intent.putExtra(KeyChain.EXTRA_NAME, "SpotilolMITM")
-            intent.putExtra(KeyChain.EXTRA_CERTIFICATE, caCert!!.encoded)
-            activity.startActivity(intent)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to open KeyChain installer", e)
-        }
-    }
 }
