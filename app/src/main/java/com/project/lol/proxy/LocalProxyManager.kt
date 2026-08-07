@@ -1,6 +1,7 @@
 package com.project.lol.proxy
 
 import android.app.Activity
+import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.os.Build
@@ -760,23 +761,48 @@ object LocalProxyManager {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val resolver = context.contentResolver
-            val values = ContentValues().apply {
-                put(MediaStore.Downloads.DISPLAY_NAME, "Spotilol_CA.pem")
-                put(MediaStore.Downloads.MIME_TYPE, "application/x-pem-file")
-                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-                put(MediaStore.Downloads.IS_PENDING, 1)
-            }
-            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-            if (uri != null) {
-                resolver.openOutputStream(uri)?.use { os ->
-                    os.write(pem.toByteArray())
+            try {
+                val existing = resolver.query(
+                    MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                    arrayOf(MediaStore.MediaColumns._ID),
+                    "${MediaStore.MediaColumns.DISPLAY_NAME} = ?",
+                    arrayOf("Spotilol_CA.pem"),
+                    null
+                )
+                existing?.use { cursor ->
+                    while (cursor.moveToNext()) {
+                        val id = cursor.getLong(0)
+                        resolver.delete(
+                            ContentUris.withAppendedId(
+                                MediaStore.Downloads.EXTERNAL_CONTENT_URI, id
+                            ),
+                            null,
+                            null
+                        )
+                    }
                 }
-                val clearPending = ContentValues().apply {
-                    put(MediaStore.Downloads.IS_PENDING, 0)
+
+                val values = ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, "Spotilol_CA.pem")
+                    put(MediaStore.Downloads.MIME_TYPE, "application/x-pem-file")
+                    put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                    put(MediaStore.Downloads.IS_PENDING, 1)
                 }
-                resolver.update(uri, clearPending, null, null)
-                Log.d(TAG, "CA exported to Downloads via MediaStore")
-                return "/sdcard/Download/Spotilol_CA.pem"
+                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                if (uri != null) {
+                    resolver.openOutputStream(uri)?.use { os ->
+                        os.write(pem.toByteArray())
+                    }
+                    val clearPending = ContentValues().apply {
+                        put(MediaStore.Downloads.IS_PENDING, 0)
+                    }
+                    resolver.update(uri, clearPending, null, null)
+                    Log.d(TAG, "CA exported to Downloads via MediaStore")
+                    return "/sdcard/Download/Spotilol_CA.pem"
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to export CA certificate", e)
+                return "export failed"
             }
         } else {
             @Suppress("DEPRECATION")
