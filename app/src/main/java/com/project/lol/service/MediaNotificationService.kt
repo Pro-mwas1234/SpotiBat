@@ -110,15 +110,28 @@ class MediaNotificationService : Service() {
         super.onCreate()
         instance = this
         createNotificationChannel()
-        setupMediaSession()
-        registerReceivers()
-        registerDisconnectReceivers()
+
         try {
-            startForeground(NOTIFICATION_ID, buildNotification(), getStartForegroundServiceType())
+            setupMediaSession()
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Failed to setup media session", e)
+        }
+
+        try {
+            startForeground(NOTIFICATION_ID, buildNotificationSafe(), getStartForegroundServiceType())
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Failed to start foreground", e)
-            stopSelf()
-            return
+        }
+
+        try {
+            registerReceivers()
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Failed to register receivers", e)
+        }
+        try {
+            registerDisconnectReceivers()
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Failed to register disconnect receivers", e)
         }
     }
 
@@ -132,7 +145,16 @@ class MediaNotificationService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        MediaButtonReceiver.handleIntent(mediaSession, intent)
+        try {
+            startForeground(NOTIFICATION_ID, buildNotificationSafe(), getStartForegroundServiceType())
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Failed to re-assert foreground", e)
+        }
+        try {
+            MediaButtonReceiver.handleIntent(mediaSession, intent)
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Failed to handle media button intent", e)
+        }
         return START_STICKY
     }
 
@@ -152,7 +174,9 @@ class MediaNotificationService : Service() {
         try { unregisterReceiver(actionReceiver) } catch (_: Exception) {}
         try { unregisterReceiver(bluetoothReceiver) } catch (_: Exception) {}
         try { unregisterReceiver(audioBecomingNoisyReceiver) } catch (_: Exception) {}
-        mediaSession.release()
+        if (::mediaSession.isInitialized) {
+            try { mediaSession.release() } catch (_: Exception) {}
+        }
         super.onDestroy()
     }
 
@@ -252,9 +276,11 @@ class MediaNotificationService : Service() {
         isPlaying = false
         updatePlaybackState()
         showNotification()
-        try {
-            mediaSession.controller.transportControls.pause()
-        } catch (_: Exception) {}
+        if (::mediaSession.isInitialized) {
+            try {
+                mediaSession.controller.transportControls.pause()
+            } catch (_: Exception) {}
+        }
         webView?.evaluateJavascript("actPlayPause(false)", null)
     }
 
@@ -262,9 +288,11 @@ class MediaNotificationService : Service() {
         isPlaying = true
         updatePlaybackState()
         showNotification()
-        try {
-            mediaSession.controller.transportControls.play()
-        } catch (_: Exception) {}
+        if (::mediaSession.isInitialized) {
+            try {
+                mediaSession.controller.transportControls.play()
+            } catch (_: Exception) {}
+        }
         webView?.evaluateJavascript("actPlayPause(true)", null)
     }
 
@@ -315,7 +343,9 @@ class MediaNotificationService : Service() {
                 favIcon
             )
             .build()
-        mediaSession.setPlaybackState(state)
+        if (::mediaSession.isInitialized) {
+            try { mediaSession.setPlaybackState(state) } catch (_: Exception) {}
+        }
     }
 
     private fun updateMetadata() {
@@ -329,7 +359,9 @@ class MediaNotificationService : Service() {
             builder.putBitmap(MediaMetadataCompat.METADATA_KEY_ART, bmp)
             builder.putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, bmp)
         }
-        mediaSession.setMetadata(builder.build())
+        if (::mediaSession.isInitialized) {
+            try { mediaSession.setMetadata(builder.build()) } catch (_: Exception) {}
+        }
     }
 
     private fun loadCoverArt(url: String) {
@@ -361,6 +393,30 @@ class MediaNotificationService : Service() {
     private fun showNotification() {
         val nm = getSystemService(NotificationManager::class.java)
         nm.notify(NOTIFICATION_ID, buildNotification())
+    }
+
+    private fun buildNotificationSafe(): Notification {
+        return try {
+            buildNotification()
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Failed to build notification", e)
+            NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Spotilol")
+                .setSmallIcon(R.drawable.ic_notification)
+                .setOngoing(true)
+                .build()
+        }
+    }
+
+    private fun buildMediaStyle(): MediaStyle {
+        val style = MediaStyle()
+            .setShowActionsInCompactView(0, 1, 2)
+            .setShowCancelButton(true)
+            .setCancelButtonIntent(getActionPendingIntent(ACTION_PLAY_PAUSE))
+        if (::mediaSession.isInitialized) {
+            style.setMediaSession(mediaSession.sessionToken)
+        }
+        return style
     }
 
     private fun buildNotification(): Notification {
@@ -405,13 +461,7 @@ class MediaNotificationService : Service() {
             .addAction(playPauseAction)
             .addAction(nextAction)
             .addAction(favAction)
-            .setStyle(
-                MediaStyle()
-                    .setMediaSession(mediaSession.sessionToken)
-                    .setShowActionsInCompactView(0, 1, 2)
-                    .setShowCancelButton(true)
-                    .setCancelButtonIntent(getActionPendingIntent(ACTION_PLAY_PAUSE))
-            )
+            .setStyle(buildMediaStyle())
 
         coverBitmap?.let { builder.setLargeIcon(it) }
 
