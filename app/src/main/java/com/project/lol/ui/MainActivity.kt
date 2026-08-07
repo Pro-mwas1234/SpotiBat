@@ -2,16 +2,26 @@ package com.project.lol.ui
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.PendingIntent
+import android.app.PictureInPictureParams
+import android.app.RemoteAction
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.util.Rational
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
+import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -89,13 +99,23 @@ import com.project.lol.webview.helpers.buildAmoledJs
 import com.project.lol.webview.helpers.buildCustomCssJs
 import com.project.lol.webview.injections.LogoutCheck
 import java.lang.ref.WeakReference
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.concurrent.Executors
+import kotlin.math.min
+import org.json.JSONObject
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
 
     private var webView: WebView? = null
     private var serviceStarted = false
+    @Volatile private var pipCoverBitmap: Bitmap? = null
+    @Volatile private var pipPlaying = false
+    private var lastPipCoverUrl = ""
+    private var pipOverlay: FrameLayout? = null
+    private var pipCoverImg: ImageView? = null
+    private var pipUsed = false
 
     private val serviceEnabledState = mutableStateOf(true)
     private val materialYouState = mutableStateOf(false)
@@ -259,6 +279,14 @@ class MainActivity : ComponentActivity() {
                                 if (!timerActive) {
                                     sleepTimerSelectedMinutes.intValue = 0
                                 }
+                            }
+
+                            bridge.onEnterPipRequest = {
+                                enterPipMode()
+                            }
+
+                            bridge.onMediaStatus = { json ->
+                                handleMediaStatus(json)
                             }
 
                             BackHandler(enabled = webView?.canGoBack() == true) {
@@ -592,6 +620,154 @@ class MainActivity : ComponentActivity() {
                 dismissButton = {}
             )
         }
+    }
+
+    private fun enterPipMode() {
+        pipUsed = true
+        if (lastPipCoverUrl.isNotEmpty() && pipCoverBitmap == null) {
+            fetchPipCover(lastPipCoverUrl)
+        }
+        showPipOverlay()
+        val ok = enterPictureInPictureMode(buildPipParams())
+        if (!ok) hidePipOverlay()
+    }
+
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: Configuration
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (isInPictureInPictureMode) {
+            showPipOverlay()
+            updatePipParams()
+        } else {
+            hidePipOverlay()
+        }
+    }
+
+    private fun buildPipParams(): PictureInPictureParams =
+        PictureInPictureParams.Builder()
+            .setAspectRatio(Rational(1, 1))
+            .setActions(buildPipActions())
+            .build()
+
+    private fun buildPipActions(): List<RemoteAction> {
+        val prev = RemoteAction(
+            Icon.createWithResource(this, R.drawable.ic_skip_prev),
+            "Previous", "Previous",
+            pipActionIntent(MediaNotificationService.ACTION_PREV)
+        )
+        val playPause = RemoteAction(
+            Icon.createWithResource(
+                this,
+                if (pipPlaying) R.drawable.ic_pause else R.drawable.ic_play
+            ),
+            if (pipPlaying) "Pause" else "Play",
+            if (pipPlaying) "Pause" else "Play",
+            pipActionIntent(MediaNotificationService.ACTION_PLAY_PAUSE)
+        )
+        val next = RemoteAction(
+            Icon.createWithResource(this, R.drawable.ic_skip_next),
+            "Next", "Next",
+            pipActionIntent(MediaNotificationService.ACTION_NEXT)
+        )
+        return listOf(prev, playPause, next)
+    }
+
+    private fun pipActionIntent(action: String): PendingIntent {
+        val intent = Intent(action).setPackage(packageName)
+        return PendingIntent.getBroadcast(
+            this, action.hashCode(), intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    private fun updatePipParams() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isInPictureInPictureMode) {
+            setPictureInPictureParams(buildPipParams())
+        }
+    }
+
+    private fun showPipOverlay() {
+        if (pipOverlay != null) return
+        val content = findViewById<ViewGroup>(android.R.id.content) ?: return
+        val img = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            setImageBitmap(pipCoverBitmap)
+        }
+        val overlay = FrameLayout(this).apply {
+            setBackgroundColor(0xFF000000.toInt())
+            addView(
+                img,
+                FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+            )
+        }
+        pipCoverImg = img
+        pipOverlay = overlay
+        content.addView(
+            overlay,
+            ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
+    }
+
+    private fun hidePipOverlay() {
+        pipOverlay?.let {
+            (it.parent as? ViewGroup)?.removeView(it)
+        }
+        pipOverlay = null
+        pipCoverImg = null
+    }
+
+    private fun handleMediaStatus(json: String) {
+        try {
+            val obj = JSONObject(json)
+            pipPlaying = obj.optBoolean("playing", false)
+            val coverUrl = obj.optString("cover", "")
+            if (coverUrl.isNotEmpty() && coverUrl != "null" && coverUrl != lastPipCoverUrl) {
+                lastPipCoverUrl = coverUrl
+                if (pipUsed || isInPictureInPictureMode) {
+                    fetchPipCover(coverUrl)
+                } else {
+                    pipCoverBitmap = null
+                }
+            }
+            runOnUiThread { updatePipParams() }
+        } catch (_: Exception) {}
+    }
+
+    private fun fetchPipCover(url: String) {
+        Thread {
+            var conn: HttpURLConnection? = null
+            try {
+                conn = URL(url).openConnection() as HttpURLConnection
+                conn.connectTimeout = 5000
+                conn.readTimeout = 5000
+                conn.connect()
+                val raw = BitmapFactory.decodeStream(conn.inputStream)
+                if (raw != null) {
+                    val target = 1024
+                    val scale = min(target.toFloat() / raw.width, target.toFloat() / raw.height)
+                    val w = (raw.width * scale).toInt().coerceAtLeast(1)
+                    val h = (raw.height * scale).toInt().coerceAtLeast(1)
+                    val scaled = Bitmap.createScaledBitmap(raw, w, h, true)
+                    if (scaled != raw) raw.recycle()
+                    pipCoverBitmap = scaled
+                    runOnUiThread {
+                        pipCoverImg?.setImageBitmap(scaled)
+                        updatePipParams()
+                    }
+                }
+            } catch (_: Exception) {
+            } finally {
+                try { conn?.disconnect() } catch (_: Exception) {}
+            }
+        }.start()
     }
 
     private fun destroyWebView() {

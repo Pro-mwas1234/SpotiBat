@@ -38,6 +38,7 @@
             android:name=".ui.MainActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            android:supportsPictureInPicture="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Spotilol" />

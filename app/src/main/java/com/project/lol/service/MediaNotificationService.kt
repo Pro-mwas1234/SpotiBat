@@ -37,9 +37,9 @@ class MediaNotificationService : Service() {
         private const val CHANNEL_ID = "spotilol_media_playback"
         private const val NOTIFICATION_ID = 1
 
-        private const val ACTION_PLAY_PAUSE = "com.project.lol.ACTION_PLAY_PAUSE"
-        private const val ACTION_NEXT = "com.project.lol.ACTION_NEXT"
-        private const val ACTION_PREV = "com.project.lol.ACTION_PREV"
+        const val ACTION_PLAY_PAUSE = "com.project.lol.ACTION_PLAY_PAUSE"
+        const val ACTION_NEXT = "com.project.lol.ACTION_NEXT"
+        const val ACTION_PREV = "com.project.lol.ACTION_PREV"
         private const val ACTION_FAVORITE = "com.project.lol.ACTION_FAVORITE"
 
         private const val CUSTOM_ACTION_TOGGLE_FAV = "toggle_fav"
