@@ -35,6 +35,7 @@ import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.Collections
 import java.util.Date
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
@@ -123,6 +124,16 @@ object LocalProxyManager {
         }
     }
 
+    private inline fun <T> withUsLocale(block: () -> T): T {
+        val previous = Locale.getDefault()
+        return try {
+            Locale.setDefault(Locale.US)
+            block()
+        } finally {
+            Locale.setDefault(previous)
+        }
+    }
+
     private fun generateCA(ksFile: File, password: String) {
         val kpg = KeyPairGenerator.getInstance("RSA")
         kpg.initialize(2048, SecureRandom())
@@ -133,9 +144,11 @@ object LocalProxyManager {
         val notBefore = Date()
         val notAfter = Date(notBefore.time + 365L * 24 * 60 * 60 * 1000L * 10)
 
-        val builder = JcaX509v3CertificateBuilder(
-            name, serial, notBefore, notAfter, name, caKeyPair!!.public
-        )
+        val builder = withUsLocale {
+            JcaX509v3CertificateBuilder(
+                name, serial, notBefore, notAfter, name, caKeyPair!!.public
+            )
+        }
 
         builder.addExtension(
             Extension.basicConstraints,
@@ -627,9 +640,11 @@ object LocalProxyManager {
         val notBefore = Date()
         val notAfter = Date(notBefore.time + 365L * 24 * 60 * 60 * 1000L)
 
-        val builder = JcaX509v3CertificateBuilder(
-            issuer, serial, notBefore, notAfter, subject, domainKeyPair.public
-        )
+        val builder = withUsLocale {
+            JcaX509v3CertificateBuilder(
+                issuer, serial, notBefore, notAfter, subject, domainKeyPair.public
+            )
+        }
 
         val san = GeneralNames(GeneralName(GeneralName.dNSName, domain))
         builder.addExtension(Extension.subjectAlternativeName, false, san)
