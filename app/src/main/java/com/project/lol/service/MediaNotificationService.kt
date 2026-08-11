@@ -21,6 +21,7 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.webkit.WebView
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import com.project.lol.R
 import androidx.media.app.NotificationCompat.MediaStyle
 import androidx.media.session.MediaButtonReceiver
@@ -118,8 +119,8 @@ class MediaNotificationService : Service() {
         }
 
         try {
-            startForeground(NOTIFICATION_ID, buildNotificationSafe(), getStartForegroundServiceType())
-        } catch (e: Exception) {
+            ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotificationSafe(), getStartForegroundServiceType())
+        } catch (e: Throwable) {
             android.util.Log.e(TAG, "Failed to start foreground", e)
         }
 
@@ -146,8 +147,8 @@ class MediaNotificationService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         try {
-            startForeground(NOTIFICATION_ID, buildNotificationSafe(), getStartForegroundServiceType())
-        } catch (e: Exception) {
+            ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotificationSafe(), getStartForegroundServiceType())
+        } catch (e: Throwable) {
             android.util.Log.e(TAG, "Failed to re-assert foreground", e)
         }
         try {

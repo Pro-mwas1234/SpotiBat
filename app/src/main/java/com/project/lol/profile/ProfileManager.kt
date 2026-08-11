@@ -30,14 +30,34 @@ object ProfileManager {
     )
 
     private fun prefs(context: Context): SharedPreferences {
-        val masterKey = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-        return EncryptedSharedPreferences.create(
-            PREFS,
-            masterKey,
-            context,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
+        try {
+            val masterKey = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+            return EncryptedSharedPreferences.create(
+                PREFS,
+                masterKey,
+                context,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        } catch (e: Exception) {
+            try {
+                val ks = java.security.KeyStore.getInstance("AndroidKeyStore")
+                ks.load(null)
+                ks.deleteEntry(MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC))
+            } catch (_: Exception) {}
+            return try {
+                val masterKey = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+                EncryptedSharedPreferences.create(
+                    PREFS,
+                    masterKey,
+                    context,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                )
+            } catch (_: Exception) {
+                context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            }
+        }
     }
 
     fun getProfiles(context: Context): List<Profile> {
