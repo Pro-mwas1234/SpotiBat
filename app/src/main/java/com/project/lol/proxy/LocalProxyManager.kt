@@ -3,6 +3,7 @@ package com.project.lol.proxy
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
+import android.content.SharedPreferences
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -69,23 +70,53 @@ object LocalProxyManager {
     val isRunning: Boolean get() = serverSocket?.isBound == true && !(serverSocket?.isClosed ?: true)
 
     private fun getOrCreateKeystorePassword(context: Context): String {
-        val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-        val prefs = EncryptedSharedPreferences.create(
-            KEYSTORE_PREFS,
-            masterKeyAlias,
-            context,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
-        var password = prefs.getString(KEY_PASSWORD, null)
+        val prefs = securePrefs(context)
+        var password = try {
+            prefs.getString(KEY_PASSWORD, null)
+        } catch (_: Exception) {
+            null
+        }
         if (password == null) {
             val random = SecureRandom()
             val bytes = ByteArray(32)
             random.nextBytes(bytes)
             password = Base64.encodeToString(bytes, Base64.NO_WRAP)
-            prefs.edit().putString(KEY_PASSWORD, password).apply()
+            try {
+                prefs.edit().putString(KEY_PASSWORD, password).apply()
+            } catch (_: Exception) {}
         }
         return password
+    }
+
+    private fun securePrefs(context: Context): SharedPreferences {
+        try {
+            val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+            return EncryptedSharedPreferences.create(
+                KEYSTORE_PREFS,
+                masterKeyAlias,
+                context,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        } catch (_: Exception) {
+            try {
+                val ks = KeyStore.getInstance("AndroidKeyStore")
+                ks.load(null)
+                ks.deleteEntry(MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC))
+            } catch (_: Exception) {}
+            return try {
+                val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+                EncryptedSharedPreferences.create(
+                    KEYSTORE_PREFS,
+                    masterKeyAlias,
+                    context,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                )
+            } catch (_: Exception) {
+                context.getSharedPreferences(KEYSTORE_PREFS, Context.MODE_PRIVATE)
+            }
+        }
     }
 
     fun init(context: Context) {
