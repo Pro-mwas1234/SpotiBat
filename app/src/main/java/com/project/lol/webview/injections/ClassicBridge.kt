@@ -45,6 +45,7 @@ object ClassicBridge {
                         url: url,
                         json: function(){ return Promise.resolve(JSON.parse(data.body || '{}')); },
                         text: function(){ return Promise.resolve(data.body || ''); },
+                        arrayBuffer: function(){ return Promise.resolve(new TextEncoder().encode(data.body || '').buffer); },
                         clone: function(){ return this; }
                     };
                 };
