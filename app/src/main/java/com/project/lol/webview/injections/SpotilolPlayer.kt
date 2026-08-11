@@ -15,6 +15,11 @@ object SpotilolPlayer {
                     +'<div class="spl-cover"><img id="spl-cover-img" src="" alt=""></div>'
                     +'<div class="spl-info"><div class="spl-track" id="spl-track">No track</div>'
                     +'<div class="spl-artist" id="spl-artist">\u2014</div></div>'
+                    +'<div class="spl-mini-transport">'
+                    +'<button class="spl-btn" id="spl-prev-mini" aria-label="Previous"><svg viewBox="0 0 16 16" width="19" height="19"><path fill="currentColor" d="M3.3 1a.7.7 0 0 1 .7.7v5.15l9.95-5.744a.7.7 0 0 1 1.05.606v12.575a.7.7 0 0 1-1.05.607L4 9.149V14.3a.7.7 0 0 1-.7.7H1.7a.7.7 0 0 1-.7-.7V1.7a.7.7 0 0 1 .7-.7z"/></svg></button>'
+                    +'<button class="spl-btn spl-play" id="spl-play-mini" aria-label="Play"><svg viewBox="0 0 16 16" width="23" height="23"><path fill="currentColor" d="M3 1.713a.7.7 0 0 1 1.05-.607l10.89 6.288a.7.7 0 0 1 0 1.212L4.05 14.894A.7.7 0 0 1 3 14.288z"/></svg></button>'
+                    +'<button class="spl-btn" id="spl-next-mini" aria-label="Next"><svg viewBox="0 0 16 16" width="19" height="19"><path fill="currentColor" d="M12.7 1a.7.7 0 0 0-.7.7v5.15L2.05 1.107A.7.7 0 0 0 1 1.712v12.575a.7.7 0 0 0 1.05.607L12 9.149V14.3a.7.7 0 0 0 .7.7h1.6a.7.7 0 0 0 .7-.7V1.7a.7.7 0 0 0-.7-.7z"/></svg></button>'
+                    +'</div>'
                     +'</div>'
                     +'<div class="spl-row2">'
                     +'<div class="spl-actions-left">'
@@ -32,6 +37,7 @@ object SpotilolPlayer {
                     +'<div class="spl-bar-wrap"><div class="spl-bar" id="spl-bar"><div class="spl-fill" id="spl-fill"></div><div class="spl-handle" id="spl-handle"></div></div></div>'
                     +'<span class="spl-time" id="spl-dur">0:00</span>'
                     +'</div>'
+                    +'<div class="spl-edgebar" id="spl-edgebar"><div class="spl-fill" id="spl-fill-edge"></div></div>'
                     +'<div class="spl-transport">'
                     +'<button class="spl-btn spl-btn-sm" id="spl-shuffle" aria-label="Shuffle"><svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M13.151.922a.75.75 0 1 0-1.06 1.06L13.109 3H11.16a3.75 3.75 0 0 0-2.873 1.34l-6.173 7.356A2.25 2.25 0 0 1 .39 12.5H0V14h.391a3.75 3.75 0 0 0 2.873-1.34l6.173-7.356a2.25 2.25 0 0 1 1.724-.804h1.947l-1.017 1.018a.75.75 0 0 0 1.06 1.06L15.98 3.75zM.391 3.5H0V2h.391c1.109 0 2.16.49 2.873 1.34L4.89 5.277l-.979 1.167-1.796-2.14A2.25 2.25 0 0 0 .39 3.5zm7.758 6.22l.979-1.167 1.35 1.605a2.25 2.25 0 0 0 1.724.804h1.947l-1.017-1.018a.75.75 0 1 1 1.06-1.06l2.829 2.828-2.829 2.828a.75.75 0 1 1-1.06-1.06L13.109 13H11.16a3.75 3.75 0 0 1-2.873-1.34l-1.138-1.94z"/></svg></button>'
                     +'<button class="spl-btn" id="spl-prev" aria-label="Previous"><svg viewBox="0 0 16 16" width="18" height="18"><path fill="currentColor" d="M3.3 1a.7.7 0 0 1 .7.7v5.15l9.95-5.744a.7.7 0 0 1 1.05.606v12.575a.7.7 0 0 1-1.05.607L4 9.149V14.3a.7.7 0 0 1-.7.7H1.7a.7.7 0 0 1-.7-.7V1.7a.7.7 0 0 1 .7-.7z"/></svg></button>'
@@ -45,6 +51,9 @@ object SpotilolPlayer {
                 document.getElementById('spl-prev').onclick=function(){actSkipBack()};
                 document.getElementById('spl-next').onclick=function(){actSkipForward()};
                 document.getElementById('spl-play').onclick=function(){var pb=document.querySelector('button[data-testid=control-button-playpause]');actPlayPause(pb&&pb.getAttribute('aria-label')==='Play')};
+                document.getElementById('spl-prev-mini').onclick=function(){actSkipBack()};
+                document.getElementById('spl-next-mini').onclick=function(){actSkipForward()};
+                document.getElementById('spl-play-mini').onclick=function(){var pb=document.querySelector('button[data-testid=control-button-playpause]');actPlayPause(pb&&pb.getAttribute('aria-label')==='Play')};
                 document.getElementById('spl-shuffle').onclick=function(){var sb=document.querySelector('button[data-testid=control-button-shuffle]');if(sb)sb.click()};
                 document.getElementById('spl-repeat').onclick=function(){actRepeat()};
                 document.getElementById('spl-lyrics').onclick=function(){if(this.classList.contains('spl-disabled'))return;if(typeof closeNowPlay==='function') closeNowPlay();var lb=document.querySelector('button[data-testid=lyrics-button]');if(lb&&!lb.disabled)lb.click()};
@@ -60,11 +69,13 @@ object SpotilolPlayer {
                 splTrack.style.cursor='pointer';
                 splArtist.style.cursor='pointer';
                 splTrack.onclick=function(){
+                    if(pl.classList.contains('spl-mini'))return;
                     if(typeof closeNowPlay==='function') closeNowPlay();
                     var rl=document.querySelector('a[data-testid=context-item-link]');
                     if(rl){rl.click();}
                 };
                 splArtist.onclick=function(){
+                    if(pl.classList.contains('spl-mini'))return;
                     if(typeof closeNowPlay==='function') closeNowPlay();
                     var al=document.querySelector('a[data-testid=context-item-info-artist]');
                     if(!al) al=document.querySelector('a[data-testid=context-item-info-show]');
@@ -72,22 +83,71 @@ object SpotilolPlayer {
                 };
 
                 var barEl=document.getElementById('spl-bar');
-                var dragging=false;
-                function seekTo(e){var r=barEl.getBoundingClientRect();var pct=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));var rg=document.querySelector('[data-testid="playback-progressbar"] input[type=range]');var mx=parseInt(rg?rg.getAttribute('max'):0)||1;actSeek(Math.round(pct*mx))}
-                barEl.addEventListener('mousedown',function(e){dragging=true;seekTo(e)});
-                barEl.addEventListener('touchstart',function(e){dragging=true;seekTo(e.touches[0])},{passive:true});
-                document.addEventListener('mousemove',function(e){if(dragging)seekTo(e)});
-                document.addEventListener('touchmove',function(e){if(dragging)seekTo(e.touches[0])},{passive:true});
+                var edgeBarEl=document.getElementById('spl-edgebar');
+                var dragging=false,dragEl=barEl;
+                function seekTo(el,e){var r=el.getBoundingClientRect();var pct=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));var rg=document.querySelector('[data-testid="playback-progressbar"] input[type=range]');var mx=parseInt(rg?rg.getAttribute('max'):0)||1;actSeek(Math.round(pct*mx))}
+                function bindSeek(el){el.addEventListener('mousedown',function(e){dragEl=el;dragging=true;seekTo(el,e)});el.addEventListener('touchstart',function(e){dragEl=el;dragging=true;seekTo(el,e.touches[0])},{passive:true});}
+                bindSeek(barEl);bindSeek(edgeBarEl);
+                document.addEventListener('mousemove',function(e){if(dragging)seekTo(dragEl,e)});
+                document.addEventListener('touchmove',function(e){if(dragging)seekTo(dragEl,e.touches[0])},{passive:true});
                 document.addEventListener('mouseup',function(){dragging=false});
-                document.addEventListener('touchend',function(){dragging=false});                    window.splUpdate=function(){
+                document.addEventListener('touchend',function(){dragging=false});
+
+                var splMini=false;
+                var splDrag=null,splSuppressClick=false,splLastDragEnd=0;
+                function splSetMini(m){
+                    splMini=!!m;
+                    window.splMiniPref=splMini;
+                    pl.classList.toggle('spl-mini',splMini);
+                }
+                function splDragStart(x,y){
+                    splDrag={sx:x,sy:y,moving:false,dy:0,mini:splMini};
+                    pl.style.transition='none';
+                }
+                function splDragMove(x,y){
+                    if(!splDrag)return;
+                    var dy=y-splDrag.sy,dx=x-splDrag.sx;
+                    if(!splDrag.moving){
+                        if(Math.abs(dy)<10||Math.abs(dy)<Math.abs(dx))return;
+                        splDrag.moving=true;
+                    }
+                    splDrag.dy=splDrag.mini?Math.min(0,dy):Math.max(0,dy);
+                    pl.style.transform='translateY('+splDrag.dy+'px)';
+                    pl.style.opacity=String(Math.max(.7,1-Math.abs(splDrag.dy)/500));
+                }
+                function splDragEnd(){
+                    if(!splDrag)return;
+                    var d=splDrag;
+                    splDrag=null;
+                    pl.style.transition='';
+                    pl.style.transform='';
+                    pl.style.opacity='';
+                    if(d.moving){
+                        splSuppressClick=true;
+                        splLastDragEnd=Date.now();
+                        setTimeout(function(){splSuppressClick=false;},100);
+                        if(d.mini){if(d.dy<-70)splSetMini(false);}
+                        else{if(d.dy>70)splSetMini(true);}
+                    }
+                }
+                pl.addEventListener('touchstart',function(e){if(e.target.closest('#spl-bar')||e.target.closest('#spl-edgebar'))return;var t=e.touches[0];splDragStart(t.clientX,t.clientY);},{passive:true});
+                pl.addEventListener('touchmove',function(e){if(splDrag&&splDrag.moving)e.preventDefault();if(!splDrag)return;var t=e.touches[0];splDragMove(t.clientX,t.clientY);},{passive:false});
+                pl.addEventListener('touchend',function(e){if(splDrag&&splDrag.moving)e.preventDefault();splDragEnd();});
+                pl.addEventListener('touchcancel',function(){splDragEnd();});
+                pl.addEventListener('mousedown',function(e){if(e.button!==0)return;if(e.target.closest('#spl-bar')||e.target.closest('#spl-edgebar')||e.target.closest('button'))return;splDragStart(e.clientX,e.clientY);});
+                document.addEventListener('mousemove',function(e){splDragMove(e.clientX,e.clientY);});
+                document.addEventListener('mouseup',function(){splDragEnd();});
+                pl.addEventListener('click',function(e){if(splSuppressClick)return;if(Date.now()-splLastDragEnd<400)return;if(splMini&&!e.target.closest('button')&&!e.target.closest('#spl-bar')&&!e.target.closest('#spl-edgebar'))splSetMini(false);});                    window.splUpdate=function(){
                         var ci=document.getElementById('spl-cover-img');
                         var tk=document.getElementById('spl-track');
                         var ar=document.getElementById('spl-artist');
                         var fl=document.getElementById('spl-fill');
+                        var fe=document.getElementById('spl-fill-edge');
                         var hd=document.getElementById('spl-handle');
                         var ps=document.getElementById('spl-pos');
                         var ds=document.getElementById('spl-dur');
                         var pp=document.getElementById('spl-play');
+                        var ppm=document.getElementById('spl-play-mini');
                         var sh=document.getElementById('spl-shuffle');
                         var rp=document.getElementById('spl-repeat');
                         var lk=document.getElementById('spl-liked');
@@ -106,12 +166,14 @@ object SpotilolPlayer {
                         if(ar&&artistEl&&tk.textContent!=='No track') ar.textContent=artistEl.textContent||'';
 
                         var rg=document.querySelector('[data-testid="playback-progressbar"] input[type=range]');
-                        if(pp){
+                        if(pp||ppm){
                             var pb=document.querySelector('button[data-testid=control-button-playpause]');
                             var isPlaying=pb&&pb.getAttribute('aria-label')!=='Play';
-                            pp.innerHTML=isPlaying
-                                ?'<svg viewBox="0 0 16 16" width="22" height="22"><path fill="currentColor" d="M2.7 1a.7.7 0 0 0-.7.7v12.6a.7.7 0 0 0 .7.7h2.6a.7.7 0 0 0 .7-.7V1.7a.7.7 0 0 0-.7-.7zm8 0a.7.7 0 0 0-.7.7v12.6a.7.7 0 0 0 .7.7h2.6a.7.7 0 0 0 .7-.7V1.7a.7.7 0 0 0-.7-.7z"/></svg>'
-                                :'<svg viewBox="0 0 16 16" width="22" height="22"><path fill="currentColor" d="M3 1.713a.7.7 0 0 1 1.05-.607l10.89 6.288a.7.7 0 0 1 0 1.212L4.05 14.894A.7.7 0 0 1 3 14.288z"/></svg>';
+                            var ph=isPlaying
+                                ?'<svg viewBox="0 0 16 16" width="23" height="23"><path fill="currentColor" d="M2.7 1a.7.7 0 0 0-.7.7v12.6a.7.7 0 0 0 .7.7h2.6a.7.7 0 0 0 .7-.7V1.7a.7.7 0 0 0-.7-.7zm8 0a.7.7 0 0 0-.7.7v12.6a.7.7 0 0 0 .7.7h2.6a.7.7 0 0 0 .7-.7V1.7a.7.7 0 0 0-.7-.7z"/></svg>'
+                                :'<svg viewBox="0 0 16 16" width="23" height="23"><path fill="currentColor" d="M3 1.713a.7.7 0 0 1 1.05-.607l10.89 6.288a.7.7 0 0 1 0 1.212L4.05 14.894A.7.7 0 0 1 3 14.288z"/></svg>';
+                            if(pp)pp.innerHTML=ph;
+                            if(ppm)ppm.innerHTML=ph;
                         }
                         if(sh){
                             var sb=document.querySelector('button[data-testid=control-button-shuffle]');
@@ -142,6 +204,7 @@ object SpotilolPlayer {
                             if(tr){
                                 var pct=parseFloat(tr)||0;
                                 if(fl) fl.style.transform='scaleX('+(pct/100)+')';
+                                if(fe) fe.style.transform='scaleX('+(pct/100)+')';
                                 if(hd) hd.style.left=pct+'%';
                             }
                         }
@@ -160,6 +223,7 @@ object SpotilolPlayer {
                         if(timestamp-rafLastTime>100){ splUpdate(); rafLastTime=timestamp; }
                         requestAnimationFrame(rafUpdate);
                     }
+                    if(window.splMiniPref) splSetMini(true);
                     requestAnimationFrame(rafUpdate);
             };
             if(document.readyState==='complete') initSpotilolPlayer();
