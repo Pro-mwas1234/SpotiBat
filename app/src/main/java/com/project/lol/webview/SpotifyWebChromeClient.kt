@@ -2,16 +2,27 @@ package com.project.lol.webview
 
 import android.os.Handler
 import android.os.Looper
+import android.view.View
 import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 
 class SpotifyWebChromeClient(
-    private val onProgressChanged: ((Int) -> Unit)? = null
+    private val onProgressChanged: ((Int) -> Unit)? = null,
+    private val onShowCustomView: ((View?, CustomViewCallback?) -> Unit)? = null,
+    private val onHideCustomView: (() -> Unit)? = null
 ) : WebChromeClient() {
 
     private var childWebView: WebView? = null
+
+    override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
+        onShowCustomView?.invoke(view, callback)
+    }
+
+    override fun onHideCustomView() {
+        onHideCustomView?.invoke()
+    }
 
     override fun onCreateWindow(
         view: WebView?,

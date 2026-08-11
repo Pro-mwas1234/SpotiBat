@@ -61,7 +61,17 @@ object SpotilolPlayer {
                 document.getElementById('spl-vol').onclick=function(){var vb=document.querySelector('button[data-testid=volume-bar-toggle-mute-button]');if(vb)vb.click()};
                 document.getElementById('spl-nptoggle').onclick=function(){clickNP()};
                 document.getElementById('spl-timer').onclick=function(){AndBridge.openTimerDialog()};
-                document.getElementById('spl-pip').onclick=function(){AndBridge.enterPip()};
+                document.getElementById('spl-pip').onclick=function(){
+                    var pv=document.querySelector('.VideoPlayer__container video');
+                    var isPodcast=!!pv&&(document.querySelector('[data-testid="episode"]')||document.querySelector('[data-testid="context-item-info-show"]'));
+                    if(isPodcast){
+                        var w=pv.videoWidth||0,h=pv.videoHeight||0;
+                        try{pv.requestFullscreen();}catch(e){}
+                        AndBridge.enterPipVideo(w,h);
+                    } else {
+                        AndBridge.enterPip();
+                    }
+                };
                 document.getElementById('spl-liked').onclick=function(){actAddToFav()};
 
                 var splTrack=document.getElementById('spl-track');

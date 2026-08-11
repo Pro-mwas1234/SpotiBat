@@ -119,6 +119,11 @@ class MainActivity : ComponentActivity() {
     private var pipOverlay: FrameLayout? = null
     private var pipCoverImg: ImageView? = null
     private var pipUsed = false
+    private var pipVideoView: View? = null
+    private var pipVideoCallback: android.webkit.WebChromeClient.CustomViewCallback? = null
+    private var pipVideoAspect: Rational? = null
+    private var pipVideoPending = false
+    private val pipVideoTimeout = Handler(Looper.getMainLooper())
 
     private val serviceEnabledState = mutableStateOf(true)
     private val materialYouState = mutableStateOf(false)
@@ -283,6 +288,10 @@ class MainActivity : ComponentActivity() {
                                 enterPipMode()
                             }
 
+                            bridge.onEnterPipVideoRequest = { w, h ->
+                                enterPipVideoMode(w, h)
+                            }
+
                             bridge.onMediaStatus = { json ->
                                 handleMediaStatus(json)
                             }
@@ -335,6 +344,12 @@ class MainActivity : ComponentActivity() {
                                         webChromeClient = SpotifyWebChromeClient(
                                             onProgressChanged = { progress ->
                                                 loadingProgress.intValue = progress
+                                            },
+                                            onShowCustomView = { view, callback ->
+                                                handleCustomViewShown(view, callback)
+                                            },
+                                            onHideCustomView = {
+                                                handleCustomViewHidden()
                                             }
                                         )
 
@@ -630,22 +645,65 @@ class MainActivity : ComponentActivity() {
         if (!ok) hidePipOverlay()
     }
 
+    private fun enterPipVideoMode(w: Int, h: Int) {
+        pipVideoAspect = if (w > 0 && h > 0) Rational(w, h) else Rational(9, 16)
+        if (pipVideoView != null) {
+            enterPipMode()
+        } else {
+            pipVideoPending = true
+            pipVideoTimeout.removeCallbacksAndMessages(null)
+            pipVideoTimeout.postDelayed({
+                if (pipVideoView == null && pipVideoPending) {
+                    pipVideoPending = false
+                    enterPipMode()
+                }
+            }, 1200)
+        }
+    }
+
+    private fun handleCustomViewShown(
+        view: View?,
+        callback: android.webkit.WebChromeClient.CustomViewCallback?
+    ) {
+        pipVideoView = view
+        pipVideoCallback = callback
+        showPipVideoOverlay()
+        if (pipVideoPending) {
+            pipVideoPending = false
+            pipVideoTimeout.removeCallbacksAndMessages(null)
+            enterPipMode()
+        }
+    }
+
+    private fun handleCustomViewHidden() {
+        pipVideoTimeout.removeCallbacksAndMessages(null)
+        pipVideoView = null
+        pipVideoCallback = null
+        pipVideoPending = false
+        hidePipOverlay()
+    }
+
     override fun onPictureInPictureModeChanged(
         isInPictureInPictureMode: Boolean,
         newConfig: Configuration
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         if (isInPictureInPictureMode) {
-            showPipOverlay()
+            if (pipVideoView == null) showPipOverlay()
             updatePipParams()
         } else {
             hidePipOverlay()
+            pipVideoView = null
+            pipVideoPending = false
+            pipVideoAspect = null
+            pipVideoCallback?.onCustomViewHidden()
+            pipVideoCallback = null
         }
     }
 
     private fun buildPipParams(): PictureInPictureParams =
         PictureInPictureParams.Builder()
-            .setAspectRatio(Rational(1, 1))
+            .setAspectRatio(pipVideoAspect ?: Rational(1, 1))
             .setActions(buildPipActions())
             .build()
 
@@ -684,6 +742,31 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isInPictureInPictureMode) {
             setPictureInPictureParams(buildPipParams())
         }
+    }
+
+    private fun showPipVideoOverlay() {
+        if (pipOverlay != null) return
+        val content = findViewById<ViewGroup>(android.R.id.content) ?: return
+        val overlay = FrameLayout(this).apply {
+            setBackgroundColor(0xFF000000.toInt())
+        }
+        pipVideoView?.let {
+            overlay.addView(
+                it,
+                FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+            )
+        }
+        pipOverlay = overlay
+        content.addView(
+            overlay,
+            ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
     }
 
     private fun showPipOverlay() {
@@ -769,6 +852,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun destroyWebView() {
+        pipVideoTimeout.removeCallbacksAndMessages(null)
+        pipVideoView = null
+        pipVideoCallback = null
+        pipVideoPending = false
+        hidePipOverlay()
         webView?.let {
             it.stopLoading()
             it.removeJavascriptInterface("AndBridge")
@@ -888,6 +976,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         cancelSleepTimer()
+        pipVideoTimeout.removeCallbacksAndMessages(null)
+        pipVideoView = null
+        pipVideoCallback = null
+        pipVideoPending = false
+        hidePipOverlay()
         webView?.let {
             it.stopLoading()
             it.clearHistory()
