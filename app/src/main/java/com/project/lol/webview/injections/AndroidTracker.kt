@@ -15,6 +15,23 @@ object AndroidTracker {
                     if(aa) artist=aa.text; else artist='';
                     var rr = document.querySelector('button[data-testid=control-button-repeat]');
                     if(rr) repmode=rr.getAttribute('aria-checked'); else repmode='false';
+                    var sbb = document.querySelector('button[data-testid="control-button-shuffle"]');
+                    if(!sbb) {
+                        var allb=document.querySelectorAll('button');
+                        for(var i=0;i<allb.length;i++){
+                            var sbal=allb[i].getAttribute('aria-label')||'';
+                            if(/shuffle/i.test(sbal)&&!/spl-btn/.test(allb[i].className||'')){ sbb=allb[i]; break; }
+                        }
+                    }
+                    if(sbb){
+                        if(sbb.getAttribute('aria-disabled')==='true') shuffle='disabled';
+                        else if(sbb.getAttribute('aria-checked')==='true') shuffle='shuffle';
+                        else {
+                            var sbl=sbb.getAttribute('aria-label')||'';
+                            if(/smart shuffle/i.test(sbl)) shuffle=/^disable/i.test(sbl)?'smart':'shuffle';
+                            else shuffle=/^disable/i.test(sbl)?'shuffle':'off';
+                        }
+                    } else shuffle='off';
                     var fb = document.querySelector('div[data-testid=now-playing-widget]>div:last-child>button');
                     if(fb && fb.getAttribute('aria-checked')==='true') isfav=true; else isfav=false;
                     var pb = document.querySelector('button[data-testid=control-button-playpause]');

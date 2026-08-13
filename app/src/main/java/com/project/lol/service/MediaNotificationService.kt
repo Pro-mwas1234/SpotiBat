@@ -41,9 +41,11 @@ class MediaNotificationService : Service() {
         const val ACTION_PLAY_PAUSE = "com.project.lol.ACTION_PLAY_PAUSE"
         const val ACTION_NEXT = "com.project.lol.ACTION_NEXT"
         const val ACTION_PREV = "com.project.lol.ACTION_PREV"
+        const val ACTION_SHUFFLE = "com.project.lol.ACTION_SHUFFLE"
         private const val ACTION_FAVORITE = "com.project.lol.ACTION_FAVORITE"
 
         private const val CUSTOM_ACTION_TOGGLE_FAV = "toggle_fav"
+        private const val CUSTOM_ACTION_TOGGLE_SHUFFLE = "toggle_shuffle"
 
         private val PLAYBACK_ACTIONS: Long =
             PlaybackStateCompat.ACTION_PLAY or
@@ -62,6 +64,9 @@ class MediaNotificationService : Service() {
 
     private lateinit var mediaSession: MediaSessionCompat
     private var isPlaying = false
+    private var isShuffle = false
+    private var isSmartShuffle = false
+    private var isShuffleAvailable = true
     private var isFavorite = false
     private var coverBitmap: Bitmap? = null
     private var currentTitle = ""
@@ -79,6 +84,7 @@ class MediaNotificationService : Service() {
                 }
                 ACTION_NEXT -> webView?.evaluateJavascript("actSkipForward()", null)
                 ACTION_PREV -> webView?.evaluateJavascript("actSkipBack()", null)
+                ACTION_SHUFFLE -> webView?.evaluateJavascript("actToggleShuffle()", null)
                 ACTION_FAVORITE -> webView?.evaluateJavascript("actAddToFav()", null)
             }
         }
@@ -230,8 +236,9 @@ class MediaNotificationService : Service() {
                 }
 
                 override fun onCustomAction(action: String?, extras: Bundle?) {
-                    if (action == CUSTOM_ACTION_TOGGLE_FAV) {
-                        webView?.evaluateJavascript("actAddToFav()", null)
+                    when (action) {
+                        CUSTOM_ACTION_TOGGLE_FAV -> webView?.evaluateJavascript("actAddToFav()", null)
+                        CUSTOM_ACTION_TOGGLE_SHUFFLE -> webView?.evaluateJavascript("actToggleShuffle()", null)
                     }
                 }
             })
@@ -244,6 +251,7 @@ class MediaNotificationService : Service() {
             addAction(ACTION_PLAY_PAUSE)
             addAction(ACTION_NEXT)
             addAction(ACTION_PREV)
+            addAction(ACTION_SHUFFLE)
             addAction(ACTION_FAVORITE)
             addAction(Intent.ACTION_MEDIA_BUTTON)
         }
@@ -304,6 +312,10 @@ class MediaNotificationService : Service() {
             currentArtist = obj.optString("artist", "")
             isPlaying = obj.optBoolean("playing", false)
             isFavorite = obj.optBoolean("fav", false)
+            val shuffleVal = obj.optString("shuffle", "off")
+            isShuffle = shuffleVal == "shuffle" || shuffleVal == "smart"
+            isSmartShuffle = shuffleVal == "smart"
+            isShuffleAvailable = shuffleVal != "disabled"
             currentDuration = obj.optLong("duration", 0L)
             currentPosition = obj.optLong("position", 0L)
             val coverUrl = obj.optString("cover", "")
@@ -331,6 +343,11 @@ class MediaNotificationService : Service() {
 
     private fun updatePlaybackState() {
         val favIcon = if (isFavorite) R.drawable.ic_favorite_filled else R.drawable.ic_favorite
+        val shuffleIcon = when {
+            isSmartShuffle -> R.drawable.ic_shuffle_smart_active
+            isShuffle -> R.drawable.ic_shuffle_active
+            else -> R.drawable.ic_shuffle
+        }
         val state = PlaybackStateCompat.Builder()
             .setActions(PLAYBACK_ACTIONS)
             .setState(
@@ -342,6 +359,15 @@ class MediaNotificationService : Service() {
                 CUSTOM_ACTION_TOGGLE_FAV,
                 if (isFavorite) "Unlike" else "Like",
                 favIcon
+            )
+            .addCustomAction(
+                CUSTOM_ACTION_TOGGLE_SHUFFLE,
+                when {
+                    isSmartShuffle -> "Disable smart shuffle"
+                    isShuffle -> "Disable shuffle"
+                    else -> "Enable shuffle"
+                },
+                shuffleIcon
             )
             .build()
         if (::mediaSession.isInitialized) {
@@ -409,9 +435,10 @@ class MediaNotificationService : Service() {
         }
     }
 
-    private fun buildMediaStyle(): MediaStyle {
+    private fun buildMediaStyle(showShuffle: Boolean): MediaStyle {
+        val compact = if (showShuffle) intArrayOf(0, 1, 2, 3) else intArrayOf(0, 1, 2)
         val style = MediaStyle()
-            .setShowActionsInCompactView(0, 1, 2)
+            .setShowActionsInCompactView(*compact)
             .setShowCancelButton(true)
             .setCancelButtonIntent(getActionPendingIntent(ACTION_PLAY_PAUSE))
         if (::mediaSession.isInitialized) {
@@ -441,11 +468,32 @@ class MediaNotificationService : Service() {
             R.drawable.ic_skip_next, "Next", getActionPendingIntent(ACTION_NEXT)
         ).build()
 
+        val shuffleAction = NotificationCompat.Action.Builder(
+            when {
+                isSmartShuffle -> R.drawable.ic_shuffle_smart_active
+                isShuffle -> R.drawable.ic_shuffle_active
+                else -> R.drawable.ic_shuffle
+            },
+            when {
+                isSmartShuffle -> "Disable smart shuffle"
+                isShuffle -> "Disable shuffle"
+                else -> "Enable shuffle"
+            },
+            getActionPendingIntent(ACTION_SHUFFLE)
+        ).build()
+
         val favAction = NotificationCompat.Action.Builder(
             if (isFavorite) R.drawable.ic_favorite_filled else R.drawable.ic_favorite,
             if (isFavorite) "Unlike" else "Like",
             getActionPendingIntent(ACTION_FAVORITE)
         ).build()
+
+        val actions = mutableListOf<NotificationCompat.Action>()
+        actions.add(prevAction)
+        actions.add(playPauseAction)
+        actions.add(nextAction)
+        if (isShuffleAvailable) actions.add(shuffleAction)
+        actions.add(favAction)
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(currentTitle.ifEmpty { "Spotilol" })
@@ -458,11 +506,8 @@ class MediaNotificationService : Service() {
             .setShowWhen(false)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setColor(NOTIF_COLOR)
-            .addAction(prevAction)
-            .addAction(playPauseAction)
-            .addAction(nextAction)
-            .addAction(favAction)
-            .setStyle(buildMediaStyle())
+            .setStyle(buildMediaStyle(isShuffleAvailable))
+        actions.forEach { builder.addAction(it) }
 
         coverBitmap?.let { builder.setLargeIcon(it) }
 

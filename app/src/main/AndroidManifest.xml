@@ -26,7 +26,8 @@
         <activity
             android:name=".ui.SplashActivity"
             android:exported="true"
-            android:screenOrientation="portrait"
+            android:screenOrientation="fullSensor"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:theme="@style/Theme.Spotilol">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -37,16 +38,10 @@
         <activity
             android:name=".ui.MainActivity"
             android:exported="false"
-            android:screenOrientation="portrait"
+            android:screenOrientation="fullSensor"
             android:supportsPictureInPicture="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.Spotilol" />
-
-        <activity
-            android:name=".ui.SettingsActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
             android:theme="@style/Theme.Spotilol" />
 
         <service

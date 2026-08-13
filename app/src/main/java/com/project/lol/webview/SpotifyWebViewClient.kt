@@ -192,6 +192,7 @@ class SpotifyWebViewClient(
             append(MainLoop.CONTENT)
             append(AutoFeatures.CONTENT)
             append(AndroidTracker.CONTENT)
+            append(SearchOverlay.CONTENT)
             append("""
                 (function(){
                     var recAcc=function(){

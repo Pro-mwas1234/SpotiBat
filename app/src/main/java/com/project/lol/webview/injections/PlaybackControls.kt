@@ -38,6 +38,20 @@ object PlaybackControls {
                 var fb = document.querySelector('button[data-testid=control-button-skip-forward]');
                 if(fb) { AndBridge.wakeUp(); fb.click(); }
             };
+            window.actToggleShuffle = function() {
+                var sb = document.querySelector('button[data-testid="control-button-shuffle"]');
+                if(!sb) {
+                    var allb=document.querySelectorAll('button');
+                    for(var i=0;i<allb.length;i++){
+                        var sbal=allb[i].getAttribute('aria-label')||'';
+                        if(/shuffle/i.test(sbal)&&!/spl-btn/.test(allb[i].className||'')){ sb=allb[i]; break; }
+                    }
+                }
+                if(sb && sb.getAttribute('aria-disabled')!=='true') {
+                    AndBridge.wakeUp();
+                    sb.click();
+                }
+            };
             window.actRepeat = function() {
                 var rb = document.querySelector('button[data-testid=control-button-repeat]');
                 if(rb) {

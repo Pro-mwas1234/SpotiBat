@@ -1,62 +1,62 @@
-package com.project.lol.ui
+package com.project.lol.ui.screens
 
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.os.Bundle
+import android.net.Uri
 import android.webkit.CookieManager
 import android.webkit.WebStorage
 import android.webkit.WebView
 import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import android.net.Uri
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.CloseFullscreen
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material.icons.filled.TouchApp
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -66,16 +66,17 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -83,125 +84,70 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import com.project.lol.R
-import com.project.lol.profile.ProfileManager
-import com.project.lol.service.MediaNotificationService
-import com.project.lol.ui.theme.SpotifyTheme
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.webkit.WebViewCompat
+import com.project.lol.R
+import com.project.lol.profile.ProfileManager
 import com.project.lol.proxy.LocalProxyManager
+import com.project.lol.ui.theme.SpotifyTheme
+import com.project.lol.util.GitHubApi
+import com.project.lol.util.GitHubRelease
+import com.project.lol.util.MarkdownText
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
-class SettingsActivity : ComponentActivity() {
+private val PalettePresets = listOf(
+    "Default" to null,
+    "Spotify Green" to "#1DB954",
+    "Purple" to "#BB86FC",
+    "Blue" to "#2196F3",
+    "Red" to "#E53935",
+    "Orange" to "#FB8C00",
+    "Pink" to "#EC407A",
+    "Teal" to "#26A69A",
+    "Yellow" to "#FDD835",
+    "Cyan" to "#00BCD4"
+)
 
-    private lateinit var prefs: SharedPreferences
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
-        super.onCreate(savedInstanceState)
-        prefs = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
-
-        setContent {
-            var materialYou by remember { mutableStateOf(prefs.getBoolean("MaterialYou", false)) }
-            var amoledTheme by remember { mutableStateOf(prefs.getBoolean("AmoledTheme", false)) }
-            SpotifyTheme(useDynamicColor = materialYou, amoled = amoledTheme) {
-                SettingsScreen(
-                    prefs = prefs,
-                    materialYou = materialYou,
-                    onMaterialYouChange = { materialYou = it },
-                    amoledThemeState = amoledTheme,
-                    onAmoledThemeChange = { amoledTheme = it },
-                    onBack = { finish() },
-                    onConnectionModeChange = { switchConnectionMode(it) },
-                    onSaveProfile = { name, cookies -> saveProfile(name, cookies) },
-                    onLoadProfile = { cookies -> loadProfile(cookies) },
-                    onDeleteProfile = { name -> deleteProfile(name) },
-                    onClearCache = { clearWebViewCache() },
-                    onClearData = { clearAllData() }
-                )
-            }
-        }
-    }
-
-    private fun switchConnectionMode(mode: String) {
-        prefs.edit().putString("ConnectionMode", mode).apply()
-        prefs.edit().putBoolean("ServiceOn", false).apply()
-        stopService(Intent(this, MediaNotificationService::class.java))
-        LocalProxyManager.stop()
-        val intent = Intent(this, SplashActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
-        startActivity(intent)
-        finish()
-    }
-
-    private fun saveProfile(name: String, cookies: String) {
-        ProfileManager.saveProfile(this, name, cookies)
-        Toast.makeText(this, "Account saved", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun loadProfile(cookies: String) {
-        if (!ProfileManager.applyProfile(this, cookies)) {
-            Toast.makeText(this, "Profile could not be loaded", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val intent = Intent(this, SplashActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
-        startActivity(intent)
-        finish()
-    }
-
-    private fun deleteProfile(name: String) {
-        ProfileManager.deleteProfile(this, name)
-        Toast.makeText(this, "Profile deleted", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun clearWebViewCache() {
-        val wv = WebView(applicationContext)
-        wv.clearCache(true)
-        wv.clearHistory()
-        wv.destroy()
-        Toast.makeText(this, "Cache cleared successfully", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun clearAllData() {
-        val wv = WebView(applicationContext)
-        wv.clearCache(true)
-        wv.clearHistory()
-        wv.clearFormData()
-        wv.destroy()
-        WebStorage.getInstance().deleteAllData()
-        CookieManager.getInstance().removeAllCookies(null)
-        CookieManager.getInstance().flush()
-        prefs.edit().putBoolean("LoggedIn", false).apply()
-        Toast.makeText(this, "All data cleared, please login again", Toast.LENGTH_SHORT).show()
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
-        startActivity(intent)
-        finish()
-    }
+private fun parsePaletteColor(hex: String?): Color? {
+    if (hex.isNullOrBlank()) return null
+    return runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull()
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+private fun formatHex(color: Color): String {
+    val r = (color.red * 255f).roundToInt()
+    val g = (color.green * 255f).roundToInt()
+    val b = (color.blue * 255f).roundToInt()
+    return "#" + String.format(Locale.US, "%02X%02X%02X", r, g, b)
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun SettingsScreen(
+fun SettingsContent(
+    modifier: Modifier = Modifier,
     prefs: SharedPreferences,
     materialYou: Boolean,
     onMaterialYouChange: (Boolean) -> Unit,
     amoledThemeState: Boolean,
     onAmoledThemeChange: (Boolean) -> Unit,
-    onBack: () -> Unit,
+    hideTopBar: Boolean,
+    onHideTopBarChange: (Boolean) -> Unit,
+    paletteSeed: String?,
+    onPaletteSeedChange: (String?) -> Unit,
     onConnectionModeChange: (String) -> Unit,
     onSaveProfile: (String, String) -> Unit,
     onLoadProfile: (String) -> Unit,
@@ -235,360 +181,361 @@ fun SettingsScreen(
     var showPlayerModeDialog by remember { mutableStateOf(false) }
     var showGuiModeDialog by remember { mutableStateOf(false) }
     var showCustomCssDialog by remember { mutableStateOf(false) }
+    var showPaletteDialog by remember { mutableStateOf(false) }
+    var showChangelogDialog by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Settings",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
-                )
+    Column(
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        SettingSectionCard(
+            title = "APPEARANCE",
+            icon = Icons.Default.Palette
+        ) {
+            val guiLabel = when (guiMode) {
+                "csshack" -> "Mobile CSS + JS"
+                "bigwindow" -> "Wide Window"
+                "none" -> "None"
+                else -> "Mobile CSS + JS"
+            }
+            SettingTile(
+                title = "GUI Hack Mode",
+                subtitle = guiLabel,
+                icon = Icons.Default.Palette,
+                onClick = { showGuiModeDialog = true }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingTile(
+                title = "Custom CSS",
+                subtitle = if (customCss.isBlank()) "None configured" else customCss,
+                icon = Icons.Default.Code,
+                onClick = { showCustomCssDialog = true }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingSwitchTile(
+                title = "Material You Theme",
+                subtitle = "Use Android system dynamic colors",
+                icon = Icons.Default.ColorLens,
+                checked = materialYou,
+                onCheckedChange = { enabled ->
+                    onMaterialYouChange(enabled)
+                    prefs.edit().putBoolean("MaterialYou", enabled).apply()
+                }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            val accentLabel = when {
+                materialYou -> "Dynamic (system colors)"
+                paletteSeed.isNullOrBlank() -> "Default"
+                else -> "Custom $paletteSeed"
+            }
+            SettingTile(
+                title = "Accent Color",
+                subtitle = accentLabel,
+                icon = Icons.Default.ColorLens,
+                onClick = { showPaletteDialog = true }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingSwitchTile(
+                title = "AMOLED Theme",
+                subtitle = "Pure black background (saves battery)",
+                icon = Icons.Default.DarkMode,
+                checked = amoledTheme,
+                onCheckedChange = { enabled ->
+                    amoledTheme = enabled
+                    onAmoledThemeChange(enabled)
+                    prefs.edit().putBoolean("AmoledTheme", enabled).apply()
+                }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingSwitchTile(
+                title = "Hide Top Bar",
+                subtitle = "Swipe down from the top to show it",
+                icon = Icons.Default.VisibilityOff,
+                checked = hideTopBar,
+                onCheckedChange = { enabled ->
+                    onHideTopBarChange(enabled)
+                    prefs.edit().putBoolean("HideTopBar", enabled).apply()
+                }
             )
         }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+
+        SettingSectionCard(
+            title = "PLAYER",
+            icon = Icons.Default.PlayCircle
         ) {
+            val autoplayLabel = when (autoplayMode) {
+                "disabled" -> "Disabled"
+                "onetime" -> "One time at start"
+                "permanent" -> "Permanent"
+                else -> "One time at start"
+            }
+            SettingTile(
+                title = "AutoPlay Mode",
+                subtitle = autoplayLabel,
+                icon = Icons.Default.PlayCircle,
+                onClick = { showAutoPlayDialog = true }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            val playerModeLabel = when (playerMode) {
+                "spotilol" -> "Spotilol Player"
+                "original" -> "Spotify Original"
+                else -> "Spotilol Player"
+            }
+            SettingTile(
+                title = "Player Mode",
+                subtitle = playerModeLabel,
+                icon = Icons.Default.PlayCircle,
+                onClick = { showPlayerModeDialog = true }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingSwitchTile(
+                title = "Take Player Control",
+                subtitle = "Auto-accept 'Take Control' prompt",
+                icon = Icons.Default.TouchApp,
+                checked = takeControl,
+                onCheckedChange = {
+                    takeControl = it
+                    prefs.edit().putBoolean("TakeControl", it).apply()
+                }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingSwitchTile(
+                title = "Android Auto Controls",
+                subtitle = "Media metadata for notifications",
+                icon = Icons.Default.DirectionsCar,
+                checked = andAuto,
+                onCheckedChange = {
+                    andAuto = it
+                    prefs.edit().putBoolean("AndAuto", it).apply()
+                }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingSwitchTile(
+                title = "Always Close Now Playing",
+                subtitle = "Auto-close the Now Playing panel",
+                icon = Icons.Default.CloseFullscreen,
+                checked = closeNowPlay,
+                onCheckedChange = {
+                    closeNowPlay = it
+                    prefs.edit().putBoolean("CloseNowPlay", it).apply()
+                }
+            )
+        }
+
+        SettingSectionCard(
+            title = "BLUETOOTH",
+            icon = Icons.Default.Smartphone
+        ) {
+            SettingSwitchTile(
+                title = "Pause on Disconnect",
+                subtitle = "Pause when BT/headphones disconnect",
+                icon = Icons.Default.Smartphone,
+                checked = btAutoPause,
+                onCheckedChange = {
+                    btAutoPause = it
+                    prefs.edit().putBoolean("BtAutoPause", it).apply()
+                }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingSwitchTile(
+                title = "Resume on Connect",
+                subtitle = "Resume when BT device connects",
+                icon = Icons.Default.Smartphone,
+                checked = btAutoResume,
+                onCheckedChange = {
+                    btAutoResume = it
+                    prefs.edit().putBoolean("BtAutoResume", it).apply()
+                }
+            )
+        }
+
+        SettingSectionCard(
+            title = "ACCOUNTS",
+            icon = Icons.Default.PersonAdd
+        ) {
+            SettingTile(
+                title = "Save Current Account",
+                subtitle = "Store the current session as a profile",
+                icon = Icons.Default.PersonAdd,
+                onClick = {
+                    val cookies = ProfileManager.captureSession(context)
+                    if (cookies == null) {
+                        Toast.makeText(context, "Log in to Spotify first", Toast.LENGTH_SHORT).show()
+                    } else {
+                        pendingCookies = cookies
+                        accountNameInput = prefs.getString("CurrentAccountName", "") ?: ""
+                        showSaveAccountDialog = true
+                    }
+                }
+            )
+            if (profiles.isNotEmpty()) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+                profiles.forEachIndexed { index, profile ->
+                    ProfileRow(
+                        name = profile.name,
+                        subtitle = "Saved " + SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
+                            .format(Date(profile.savedAt)),
+                        onLoad = { onLoadProfile(profile.cookies) },
+                        onDelete = {
+                            onDeleteProfile(profile.name)
+                            profiles = ProfileManager.getProfiles(context)
+                        }
+                    )
+                    if (index < profiles.lastIndex) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+                    }
+                }
+            }
+        }
+
+        SettingSectionCard(
+            title = "CONNECTION MODE",
+            icon = Icons.Default.Shield
+        ) {
+            val modeLabel = if (connectionMode == "proxy") {
+                "MITM Proxy (Certificate)"
+            } else {
+                "Normal (No Certificate)"
+            }
+            SettingTile(
+                title = "MITM Proxy Mode",
+                subtitle = "$modeLabel — restarts the app",
+                icon = Icons.Default.Shield,
+                onClick = { showConnectionModeDialog = true }
+            )
+        }
+
+        SettingSectionCard(
+            title = "SYSTEM",
+            icon = Icons.Default.PowerSettingsNew
+        ) {
+            SettingSwitchTile(
+                title = "Swipe to Stop Service",
+                subtitle = "Kill background service from recents",
+                icon = Icons.Default.PowerSettingsNew,
+                checked = swipeStop,
+                onCheckedChange = {
+                    swipeStop = it
+                    prefs.edit().putBoolean("SwipeStop", it).apply()
+                }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingTile(
+                title = "Empty Cache",
+                subtitle = "Useful if player navigation is slow",
+                icon = Icons.Default.CleaningServices,
+                onClick = { showClearCacheDialog = true }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingTile(
+                title = "Empty Cache & Login Data",
+                subtitle = "Clear everything and log out",
+                icon = Icons.Default.DeleteForever,
+                onClick = { showClearDataDialog = true },
+                isDestructive = true
+            )
+        }
+
+        if (connectionMode == "proxy") {
             SettingSectionCard(
-                title = "CONNECTION MODE",
+                title = "SECURITY & NETWORK",
                 icon = Icons.Default.Shield
             ) {
-                val modeLabel = if (connectionMode == "proxy") {
-                    "MITM Proxy (Certificate)"
-                } else {
-                    "Normal (No Certificate)"
-                }
                 SettingTile(
-                    title = "MITM Proxy Mode",
-                    subtitle = "$modeLabel — restarts the app",
+                    title = "CA Certificate",
+                    subtitle = "Re-export proxy certificate to Downloads",
                     icon = Icons.Default.Shield,
-                    onClick = { showConnectionModeDialog = true }
-                )
-            }
-
-            SettingSectionCard(
-                title = "ACCOUNTS",
-                icon = Icons.Default.PersonAdd
-            ) {
-                SettingTile(
-                    title = "Save Current Account",
-                    subtitle = "Store the current session as a profile",
-                    icon = Icons.Default.PersonAdd,
                     onClick = {
-                        val cookies = ProfileManager.captureSession(context)
-                        if (cookies == null) {
-                            Toast.makeText(context, "Log in to Spotify first", Toast.LENGTH_SHORT).show()
-                        } else {
-                            pendingCookies = cookies
-                            accountNameInput = prefs.getString("CurrentAccountName", "") ?: ""
-                            showSaveAccountDialog = true
-                        }
+                        val path = LocalProxyManager.exportCACert(context)
+                        Toast.makeText(context, "Exported to $path", Toast.LENGTH_LONG).show()
                     }
                 )
-                if (profiles.isNotEmpty()) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-                    profiles.forEachIndexed { index, profile ->
-                        ProfileRow(
-                            name = profile.name,
-                            subtitle = "Saved " + SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
-                                .format(Date(profile.savedAt)),
-                            onLoad = { onLoadProfile(profile.cookies) },
-                            onDelete = {
-                                onDeleteProfile(profile.name)
-                                profiles = ProfileManager.getProfiles(context)
-                            }
-                        )
-                        if (index < profiles.lastIndex) {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-                        }
-                    }
+            }
+        }
+
+        val pkg = remember { WebViewCompat.getCurrentWebViewPackage(context) }
+        val packageInfo = remember {
+            runCatching {
+                context.packageManager.getPackageInfo(context.packageName, 0)
+            }.getOrNull()
+        }
+        val appVersionName = packageInfo?.versionName ?: "1.0.0"
+
+        SettingSectionCard(
+            title = "ABOUT",
+            icon = Icons.Default.Info
+        ) {
+            SettingTile(
+                title = "GitHub Repository",
+                subtitle = "github.com/lyssadev/Spotilol",
+                painter = painterResource(id = R.drawable.ic_github),
+                onClick = {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/lyssadev/Spotilol"))
+                    context.startActivity(intent)
                 }
-            }
-
-            SettingSectionCard(
-                title = "PLAYER",
-                icon = Icons.Default.PlayCircle
-            ) {
-                val autoplayLabel = when (autoplayMode) {
-                    "disabled" -> "Disabled"
-                    "onetime" -> "One time at start"
-                    "permanent" -> "Permanent"
-                    else -> "One time at start"
-                }
-                SettingTile(
-                    title = "AutoPlay Mode",
-                    subtitle = autoplayLabel,
-                    icon = Icons.Default.PlayCircle,
-                    onClick = { showAutoPlayDialog = true }
-                )
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-
-                val playerModeLabel = when (playerMode) {
-                    "spotilol" -> "Spotilol Player"
-                    "original" -> "Spotify Original"
-                    else -> "Spotilol Player"
-                }
-                SettingTile(
-                    title = "Player Mode",
-                    subtitle = playerModeLabel,
-                    icon = Icons.Default.PlayCircle,
-                    onClick = { showPlayerModeDialog = true }
-                )
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-
-                SettingSwitchTile(
-                    title = "Take Player Control",
-                    subtitle = "Auto-accept 'Take Control' prompt",
-                    icon = Icons.Default.TouchApp,
-                    checked = takeControl,
-                    onCheckedChange = {
-                        takeControl = it
-                        prefs.edit().putBoolean("TakeControl", it).apply()
-                    }
-                )
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-
-                SettingSwitchTile(
-                    title = "Android Auto Controls",
-                    subtitle = "Media metadata for notifications",
-                    icon = Icons.Default.DirectionsCar,
-                    checked = andAuto,
-                    onCheckedChange = {
-                        andAuto = it
-                        prefs.edit().putBoolean("AndAuto", it).apply()
-                    }
-                )
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-
-                SettingSwitchTile(
-                    title = "Always Close Now Playing",
-                    subtitle = "Auto-close the Now Playing panel",
-                    icon = Icons.Default.CloseFullscreen,
-                    checked = closeNowPlay,
-                    onCheckedChange = {
-                        closeNowPlay = it
-                        prefs.edit().putBoolean("CloseNowPlay", it).apply()
-                    }
-                )
-            }
-
-            SettingSectionCard(
-                title = "BLUETOOTH",
-                icon = Icons.Default.Smartphone
-            ) {
-                SettingSwitchTile(
-                    title = "Pause on Disconnect",
-                    subtitle = "Pause when BT/headphones disconnect",
-                    icon = Icons.Default.Smartphone,
-                    checked = btAutoPause,
-                    onCheckedChange = {
-                        btAutoPause = it
-                        prefs.edit().putBoolean("BtAutoPause", it).apply()
-                    }
-                )
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-
-                SettingSwitchTile(
-                    title = "Resume on Connect",
-                    subtitle = "Resume when BT device connects",
-                    icon = Icons.Default.Smartphone,
-                    checked = btAutoResume,
-                    onCheckedChange = {
-                        btAutoResume = it
-                        prefs.edit().putBoolean("BtAutoResume", it).apply()
-                    }
-                )
-            }
-
-            SettingSectionCard(
-                title = "APPEARANCE",
-                icon = Icons.Default.Palette
-            ) {
-                val guiLabel = when (guiMode) {
-                    "csshack" -> "Mobile CSS + JS"
-                    "bigwindow" -> "Wide Window"
-                    "none" -> "None"
-                    else -> "Mobile CSS + JS"
-                }
-                SettingTile(
-                    title = "GUI Hack Mode",
-                    subtitle = guiLabel,
-                    icon = Icons.Default.Palette,
-                    onClick = { showGuiModeDialog = true }
-                )
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-
-                SettingTile(
-                    title = "Custom CSS",
-                    subtitle = if (customCss.isBlank()) "None configured" else customCss,
-                    icon = Icons.Default.Code,
-                    onClick = { showCustomCssDialog = true }
-                )
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-
-                SettingSwitchTile(
-                    title = "Material You Theme",
-                    subtitle = "Use Android system dynamic colors",
-                    icon = Icons.Default.ColorLens,
-                    checked = materialYou,
-                    onCheckedChange = { enabled ->
-                        onMaterialYouChange(enabled)
-                        prefs.edit().putBoolean("MaterialYou", enabled).apply()
-                    }
-                )
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-
-                SettingSwitchTile(
-                    title = "AMOLED Theme",
-                    subtitle = "Pure black background (saves battery)",
-                    icon = Icons.Default.DarkMode,
-                    checked = amoledTheme,
-                    onCheckedChange = { enabled ->
-                        amoledTheme = enabled
-                        onAmoledThemeChange(enabled)
-                        prefs.edit().putBoolean("AmoledTheme", enabled).apply()
-                    }
-                )
-            }
-
-            if (connectionMode == "proxy") {
-                SettingSectionCard(
-                    title = "SECURITY & NETWORK",
-                    icon = Icons.Default.Shield
-                ) {
-                    val context = LocalContext.current
-                    SettingTile(
-                        title = "CA Certificate",
-                        subtitle = "Re-export proxy certificate to Downloads",
-                        icon = Icons.Default.Shield,
-                        onClick = {
-                            val path = LocalProxyManager.exportCACert(context)
-                            Toast.makeText(context, "Exported to $path", Toast.LENGTH_LONG).show()
-                        }
-                    )
-                }
-            }
-
-            SettingSectionCard(
-                title = "SYSTEM",
-                icon = Icons.Default.PowerSettingsNew
-            ) {
-                SettingSwitchTile(
-                    title = "Swipe to Stop Service",
-                    subtitle = "Kill background service from recents",
-                    icon = Icons.Default.PowerSettingsNew,
-                    checked = swipeStop,
-                    onCheckedChange = {
-                        swipeStop = it
-                        prefs.edit().putBoolean("SwipeStop", it).apply()
-                    }
-                )
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-
-                SettingTile(
-                    title = "Empty Cache",
-                    subtitle = "Useful if player navigation is slow",
-                    icon = Icons.Default.CleaningServices,
-                    onClick = { showClearCacheDialog = true }
-                )
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-
-                SettingTile(
-                    title = "Empty Cache & Login Data",
-                    subtitle = "Clear everything and log out",
-                    icon = Icons.Default.DeleteForever,
-                    onClick = { showClearDataDialog = true },
-                    isDestructive = true
-                )
-            }
-
-            val context = LocalContext.current
-            val pkg = remember { WebViewCompat.getCurrentWebViewPackage(context) }
-            val packageInfo = remember {
-                runCatching {
-                    context.packageManager.getPackageInfo(context.packageName, 0)
-                }.getOrNull()
-            }
-            val appVersionName = packageInfo?.versionName ?: "1.0.0"
-
-            SettingSectionCard(
-                title = "ABOUT",
-                icon = Icons.Default.Info
-            ) {
-                SettingTile(
-                    title = "GitHub Repository",
-                    subtitle = "github.com/lyssadev/Spotilol",
-                    painter = painterResource(id = R.drawable.ic_github),
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/lyssadev/Spotilol"))
-                        context.startActivity(intent)
-                    }
-                )
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-
-                SettingTile(
-                    title = "Spotilol Version",
-                    subtitle = "v$appVersionName",
-                    icon = Icons.Default.Smartphone,
-                    onClick = {}
-                )
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-
-                SettingTile(
-                    title = "WebView Engine",
-                    subtitle = pkg?.versionName ?: "System WebView",
-                    icon = Icons.Default.Language,
-                    onClick = {}
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            Text(
-                text = "Developed by lyssadev & reversed Spotifuck app by Deviato.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
 
-            Spacer(Modifier.height(8.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingTile(
+                title = "Spotilol Version",
+                subtitle = "v$appVersionName",
+                icon = Icons.Default.Smartphone,
+                onClick = { showChangelogDialog = true }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingTile(
+                title = "WebView Engine",
+                subtitle = pkg?.versionName ?: "System WebView",
+                icon = Icons.Default.Language,
+                onClick = {}
+            )
         }
+
+        Spacer(Modifier.height(8.dp))
+    }
+
+    if (showPaletteDialog) {
+        PaletteDialog(
+            currentSeed = paletteSeed,
+            onSave = { hex ->
+                onPaletteSeedChange(hex)
+                showPaletteDialog = false
+            },
+            onDismiss = { showPaletteDialog = false }
+        )
+    }
+
+    if (showChangelogDialog) {
+        ChangelogDialog(onDismiss = { showChangelogDialog = false })
     }
 
     if (showSaveAccountDialog) {
@@ -757,6 +704,312 @@ fun SettingsScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun PaletteDialog(
+    currentSeed: String?,
+    onSave: (String?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val initial = parsePaletteColor(currentSeed) ?: Color(0xFFE0E0E0)
+    var red by remember { mutableFloatStateOf(initial.red * 255f) }
+    var green by remember { mutableFloatStateOf(initial.green * 255f) }
+    var blue by remember { mutableFloatStateOf(initial.blue * 255f) }
+    var useDefault by remember { mutableStateOf(currentSeed.isNullOrBlank()) }
+    val preview = Color(red / 255f, green / 255f, blue / 255f)
+
+    fun pick(hex: String?) {
+        val c = parsePaletteColor(hex)
+        if (c == null) {
+            useDefault = true
+            red = 224f
+            green = 224f
+            blue = 224f
+        } else {
+            useDefault = false
+            red = c.red * 255f
+            green = c.green * 255f
+            blue = c.blue * 255f
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(28.dp),
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.ColorLens,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = "Accent Color",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(preview)
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                CircleShape
+                            )
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Custom accent color",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = if (useDefault) "Default scheme" else formatHex(preview),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    PalettePresets.forEach { (label, hex) ->
+                        val color = parsePaletteColor(hex) ?: Color(0xFFE0E0E0)
+                        val isSelected = if (hex == null) {
+                            currentSeed.isNullOrBlank()
+                        } else {
+                            hex == currentSeed
+                        }
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.width(52.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(color)
+                                    .border(
+                                        width = if (isSelected) 3.dp else 1.dp,
+                                        color = if (isSelected) {
+                                            MaterialTheme.colorScheme.onSurface
+                                        } else {
+                                            MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+                                        },
+                                        shape = CircleShape
+                                    )
+                                    .clickable { pick(hex) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = if (color.luminance() > 0.5f) {
+                                            Color(0xFF1A1A1A)
+                                        } else {
+                                            Color.White
+                                        },
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isSelected) {
+                                    MaterialTheme.colorScheme.onSurface
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+
+                HorizontalDivider()
+
+                ColorSlider("Red", red, { red = it; useDefault = false }, Color(0xFFF44336))
+                ColorSlider("Green", green, { green = it; useDefault = false }, Color(0xFF4CAF50))
+                ColorSlider("Blue", blue, { blue = it; useDefault = false }, Color(0xFF2196F3))
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                onSave(if (useDefault) null else formatHex(preview))
+            }) {
+                Text("Apply", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    )
+}
+
+@Composable
+private fun ColorSlider(
+    label: String,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    color: Color
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.width(52.dp)
+        )
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = 0f..255f,
+            modifier = Modifier.weight(1f),
+            colors = SliderDefaults.colors(
+                thumbColor = color,
+                activeTrackColor = color,
+                inactiveTrackColor = color.copy(alpha = 0.2f)
+            )
+        )
+        Text(
+            text = value.roundToInt().toString(),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.width(30.dp),
+            textAlign = TextAlign.End
+        )
+    }
+}
+
+@Composable
+private fun ChangelogDialog(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    var release by remember { mutableStateOf<GitHubRelease?>(null) }
+    var loading by remember { mutableStateOf(true) }
+    var failed by remember { mutableStateOf(false) }
+
+    fun fetch() {
+        loading = true
+        failed = false
+        GitHubApi.fetchLatestRelease("lyssadev", "Spotilol") { r ->
+            loading = false
+            if (r == null || r.body.isBlank()) {
+                failed = true
+            } else {
+                release = r
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) { fetch() }
+
+    val publishedLabel = release?.publishedAt?.let { iso ->
+        runCatching {
+            val parsed = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).parse(iso)
+            SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(parsed)
+        }.getOrNull()
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(28.dp),
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = "Changelog",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (release != null) {
+                        Text(
+                            text = listOfNotNull(
+                                "v${release!!.tagName.removePrefix("v")}",
+                                publishedLabel
+                            ).joinToString(" · "),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        },
+        text = {
+            when {
+                loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(160.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+                failed -> {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "Could not load release notes",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        TextButton(onClick = { fetch() }) {
+                            Text("Retry", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+                release != null -> {
+                    val r = release!!
+                    MarkdownText(
+                        markdown = r.body,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = (configuration.screenHeightDp * 0.65f).dp)
+                            .verticalScroll(rememberScrollState()),
+                        onLinkClick = { url ->
+                            runCatching {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                            }
+                        }
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            }
+        }
+    )
+}
+
 @Composable
 fun SettingSectionCard(
     title: String,
@@ -789,7 +1042,7 @@ fun SettingSectionCard(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
             ),
-            border = androidx.compose.foundation.BorderStroke(
+            border = BorderStroke(
                 1.dp,
                 MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
             )
@@ -1170,17 +1423,21 @@ fun ConfirmationDialog(
 
 @Preview(showBackground = true)
 @Composable
-fun SettingsScreenPreview() {
+fun SettingsContentPreview() {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("preview_prefs", Context.MODE_PRIVATE) }
     SpotifyTheme {
-        SettingsScreen(
+        SettingsContent(
+            modifier = Modifier.fillMaxSize(),
             prefs = prefs,
             materialYou = false,
             onMaterialYouChange = {},
             amoledThemeState = false,
             onAmoledThemeChange = {},
-            onBack = {},
+            hideTopBar = false,
+            onHideTopBarChange = {},
+            paletteSeed = null,
+            onPaletteSeedChange = {},
             onConnectionModeChange = {},
             onSaveProfile = { _, _ -> },
             onLoadProfile = {},

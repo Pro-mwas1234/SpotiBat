@@ -1,6 +1,3 @@
--keepclassmembers class com.project.lol.bridge.SpotifyBridge {
-    @android.webkit.JavascriptInterface <methods>;
-}
 -keep class com.project.lol.bridge.SpotifyBridge { *; }
 -keep class com.project.lol.webview.SpotifyWebViewClient { *; }
 -keep class com.project.lol.webview.SpotifyWebChromeClient { *; }
@@ -10,8 +7,6 @@
 -keep class com.project.lol.proxy.LocalProxyManager { *; }
 -keep class com.project.lol.ui.SplashActivity { *; }
 -keep class com.project.lol.ui.MainActivity { *; }
--keep class com.project.lol.ui.SettingsActivity { *; }
--keep class com.project.lol.update.UpdateChecker { *; }
 -keep class org.bouncycastle.** { *; }
 -dontwarn org.bouncycastle.**
 -dontwarn javax.annotation.concurrent.GuardedBy
