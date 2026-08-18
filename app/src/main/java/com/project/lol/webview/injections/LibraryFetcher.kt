@@ -5,7 +5,8 @@ object LibraryFetcher {
             window.fetchAllLibrary = async function(){
                 var limit=50, offset=0, allItems=[], hasMore=true;
                 while(hasMore){
-                    var resp = await (window.mngFetch || oriFetch)('https://api-partner.spotify.com/pathfinder/v2/query',{
+                    window.__splOwnCall=true;
+                    var pFetch = (window.mngFetch || oriFetch)('https://api-partner.spotify.com/pathfinder/v2/query',{
                         method:'POST',
                         headers:{
                             'Authorization':window.spotAuthToken,
@@ -20,9 +21,11 @@ object LibraryFetcher {
                                 folderUri:null,includeFoldersWhenFlattening:true
                             },
                             operationName:'libraryV3',
-                            extensions:{persistedQuery:{version:1,sha256Hash:'0082bf82412db50128add72dbdb73e2961d59100b9cbf41fb25c568bd8bc358b'}}
+                            extensions:{persistedQuery:{version:1,sha256Hash:window.opHash('libraryV3','0082bf82412db50128add72dbdb73e2961d59100b9cbf41fb25c568bd8bc358b')}}
                         })
                     });
+                    window.__splOwnCall=false;
+                    var resp = await pFetch;
                     var data = await resp.json();
                     var items = (data && data.data && data.me && data.me.libraryV3 && data.me.libraryV3.items) || [];
                     allItems = allItems.concat(items);

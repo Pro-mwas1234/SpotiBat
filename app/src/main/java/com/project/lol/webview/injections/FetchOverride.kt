@@ -4,6 +4,7 @@ object FetchOverride {
     const val CONTENT = """
             (function(){
                 if(window.oriFetch) return;
+                window.splOpHashes = window.splOpHashes || {};
                 var orig = window.fetch.bind(window);
                 window.oriFetch = orig;
                 window.fetch = function(input, init) {
@@ -56,6 +57,14 @@ object FetchOverride {
                         }
                     }
                     var method = (init && init.method) ? String(init.method).toUpperCase() : 'GET';
+                    if(!window.__splOwnCall && url && url.indexOf && url.indexOf('api-partner.spotify.com/pathfinder/v2/query') !== -1 && init && init.body) {
+                        try {
+                            var qb = typeof init.body==='string' ? JSON.parse(init.body) : init.body;
+                            if(qb && qb.operationName && qb.extensions && qb.extensions.persistedQuery && qb.extensions.persistedQuery.sha256Hash) {
+                                window.splOpHashes[qb.operationName] = qb.extensions.persistedQuery.sha256Hash;
+                            }
+                        } catch(e){}
+                    }
                     if(!window.__spotilolUseProxy && url && url.indexOf && (url.indexOf('connect-state') !== -1 || url.indexOf('melody/v1/msg') !== -1 || url.indexOf('/track-playback/') !== -1) && window.mngFetch) {
                         return window.mngFetch(input, init);
                     }

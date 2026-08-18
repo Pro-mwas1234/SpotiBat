@@ -76,8 +76,8 @@ object SearchOverlay {
                     st.textContent = [
                         '#global-nav-bar input[data-testid="search-input"]{display:none!important}',
                         '#global-nav-bar form[role="search"]{min-width:48px!important;width:48px!important;max-width:48px!important;height:48px!important;min-height:48px!important;display:flex!important;align-items:center!important}',
-                        '#global-nav-bar form[role="search"] .e-10750-form-input-icon__icon{position:static!important;top:auto!important;transform:none!important}',
-                        '#global-nav-bar form[role="search"] > :not(.e-10750-form-input-icon__icon--leading){display:none!important}',
+                        '#global-nav-bar form[role="search"] [class*="form-input-icon__icon"]{position:static!important;top:auto!important;transform:none!important}',
+                        '#global-nav-bar form[role="search"] > :not([class*="form-input-icon__icon--leading"]){display:none!important}',
                         'html.spl-search-active [data-testid="search-dropdown"],html.spl-search-active [data-testid="search-page-searchbar-searchbar-dropdown"]{display:none!important}',
                         '#splSearchPanel{position:fixed;z-index:99999;background:rgba(24,24,24,.98);border:1px solid rgba(255,255,255,.08);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.6);display:none;flex-direction:column;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#fff}',
                         '#splSearchPanel .spl-sph{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06)}',
@@ -203,19 +203,21 @@ object SearchOverlay {
                     }
                     paint();
                     if(uri && window.spotAuthToken){
+                        window.__splOwnCall=true;
                         fetch('https://api-partner.spotify.com/pathfinder/v2/query', {
                             method:'POST',
                             headers:{'Authorization': window.spotAuthToken,'Client-Token': window.spotCliToken || '','Content-Type':'application/json'},
                             body: JSON.stringify({
                                 variables:{uris:[uri]},
                                 operationName:'areEntitiesInLibrary',
-                                extensions:{persistedQuery:{version:1,sha256Hash:LIB_CHECK_HASH}}
+                                extensions:{persistedQuery:{version:1,sha256Hash:window.opHash('areEntitiesInLibrary',LIB_CHECK_HASH)}}
                             })
                         }).then(function(r){ return r.json(); }).then(function(d){
                             var l = d && d.data && d.data.lookup;
                             if(l && l[0] && l[0].data) saved = !!l[0].data.saved;
                             paint();
                         }).catch(function(){});
+                        window.__splOwnCall=false;
                     }
                     b.addEventListener('mousedown', function(e){ e.preventDefault(); e.stopPropagation(); });
                     b.addEventListener('click', function(e){
@@ -225,15 +227,17 @@ object SearchOverlay {
                         saved = !saved;
                         paint();
                         var op = saved ? 'addToLibrary' : 'removeFromLibrary';
+                        window.__splOwnCall=true;
                         fetch('https://api-partner.spotify.com/pathfinder/v2/query', {
                             method:'POST',
                             headers:{'Authorization': window.spotAuthToken,'Client-Token': window.spotCliToken || '','Content-Type':'application/json'},
                             body: JSON.stringify({
                                 variables:{libraryItemUris:[uri]},
                                 operationName:op,
-                                extensions:{persistedQuery:{version:1,sha256Hash:LIB_TOGGLE_HASH}}
+                                extensions:{persistedQuery:{version:1,sha256Hash:window.opHash(op,LIB_TOGGLE_HASH)}}
                             })
                         }).catch(function(){});
+                        window.__splOwnCall=false;
                     });
                     return b;
                 }
@@ -422,6 +426,7 @@ object SearchOverlay {
                 function doRecent(){
                     var my = ++seq;
                     if(!window.spotAuthToken){ return; }
+                    window.__splOwnCall=true;
                     fetch('https://api-partner.spotify.com/pathfinder/v2/query', {
                         method:'POST',
                         headers:{
@@ -432,7 +437,7 @@ object SearchOverlay {
                         body: JSON.stringify({
                             variables:{limit:50,includeAuthors:true,includeEpisodeContentRatingsV2:true},
                             operationName:'recentSearches',
-                            extensions:{persistedQuery:{version:1,sha256Hash:RECENT_HASH}}
+                            extensions:{persistedQuery:{version:1,sha256Hash:window.opHash('recentSearches',RECENT_HASH)}}
                         })
                     }).then(function(r){ return r.json(); }).then(function(data){
                         if(my !== seq) return;
@@ -443,11 +448,13 @@ object SearchOverlay {
                         }
                         renderRecent(flat);
                     }).catch(function(){});
+                    window.__splOwnCall=false;
                 }
 
                 function doSearch(q){
                     var my = ++seq;
                     if(!window.spotAuthToken){ return; }
+                    window.__splOwnCall=true;
                     fetch('https://api-partner.spotify.com/pathfinder/v2/query', {
                         method:'POST',
                         headers:{
@@ -458,7 +465,7 @@ object SearchOverlay {
                         body: JSON.stringify({
                             variables:{query:q,limit:16,numberOfTopResults:16,offset:0,includeAuthors:true,includeAlbumPreReleases:true,includeEpisodeContentRatingsV2:true},
                             operationName:'searchSuggestions',
-                            extensions:{persistedQuery:{version:1,sha256Hash:HASH}}
+                            extensions:{persistedQuery:{version:1,sha256Hash:window.opHash('searchSuggestions',HASH)}}
                         })
                     }).then(function(r){ return r.json(); }).then(function(data){
                         if(my !== seq) return;
@@ -469,6 +476,7 @@ object SearchOverlay {
                         }
                         renderResults(flat);
                     }).catch(function(){});
+                    window.__splOwnCall=false;
                 }
 
                 function onInput(){
