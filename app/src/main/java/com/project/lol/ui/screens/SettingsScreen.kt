@@ -32,6 +32,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CleaningServices
@@ -49,6 +50,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material.icons.filled.TouchApp
@@ -146,6 +148,10 @@ fun SettingsContent(
     onAmoledThemeChange: (Boolean) -> Unit,
     hideTopBar: Boolean,
     onHideTopBarChange: (Boolean) -> Unit,
+    landscapeMode: Boolean,
+    onLandscapeModeChange: (Boolean) -> Unit,
+    keepScreenOn: Boolean,
+    onKeepScreenOnChange: (Boolean) -> Unit,
     paletteSeed: String?,
     onPaletteSeedChange: (String?) -> Unit,
     onConnectionModeChange: (String) -> Unit,
@@ -267,6 +273,32 @@ fun SettingsContent(
                 onCheckedChange = { enabled ->
                     onHideTopBarChange(enabled)
                     prefs.edit().putBoolean("HideTopBar", enabled).apply()
+                }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingSwitchTile(
+                title = "Landscape Mode",
+                subtitle = "Allow rotating to landscape",
+                icon = Icons.Default.ScreenRotation,
+                checked = landscapeMode,
+                onCheckedChange = { enabled ->
+                    onLandscapeModeChange(enabled)
+                    prefs.edit().putBoolean("LandscapeMode", enabled).apply()
+                }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingSwitchTile(
+                title = "Keep Screen On",
+                subtitle = "Prevent the screen from turning off",
+                icon = Icons.Default.BrightnessHigh,
+                checked = keepScreenOn,
+                onCheckedChange = { enabled ->
+                    onKeepScreenOnChange(enabled)
+                    prefs.edit().putBoolean("KeepScreenOn", enabled).apply()
                 }
             )
         }
@@ -1436,6 +1468,10 @@ fun SettingsContentPreview() {
             onAmoledThemeChange = {},
             hideTopBar = false,
             onHideTopBarChange = {},
+            landscapeMode = false,
+            onLandscapeModeChange = {},
+            keepScreenOn = false,
+            onKeepScreenOnChange = {},
             paletteSeed = null,
             onPaletteSeedChange = {},
             onConnectionModeChange = {},

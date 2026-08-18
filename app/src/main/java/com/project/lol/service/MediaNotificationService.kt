@@ -116,18 +116,23 @@ class MediaNotificationService : Service() {
     override fun onCreate() {
         super.onCreate()
         instance = this
-        createNotificationChannel()
 
         try {
-            setupMediaSession()
+            createNotificationChannel()
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "Failed to setup media session", e)
+            android.util.Log.e(TAG, "Failed to create notification channel", e)
         }
 
         try {
             ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotificationSafe(), getStartForegroundServiceType())
         } catch (e: Throwable) {
             android.util.Log.e(TAG, "Failed to start foreground", e)
+        }
+
+        try {
+            setupMediaSession()
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Failed to setup media session", e)
         }
 
         try {

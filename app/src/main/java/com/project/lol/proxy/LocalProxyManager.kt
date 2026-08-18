@@ -849,12 +849,17 @@ object LocalProxyManager {
                 return "export failed"
             }
         } else {
-            @Suppress("DEPRECATION")
-            val file = File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_DOWNLOADS), "Spotilol_CA.pem")
-            file.writeText(pem)
-            Log.d(TAG, "CA exported to ${file.absolutePath}")
-            return file.absolutePath
+            try {
+                val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+                    ?: context.filesDir
+                val file = File(dir, "Spotilol_CA.pem")
+                file.writeText(pem)
+                Log.d(TAG, "CA exported to ${file.absolutePath}")
+                return file.absolutePath
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to export CA certificate", e)
+                return "export failed"
+            }
         }
 
         Log.e(TAG, "Failed to export CA certificate")

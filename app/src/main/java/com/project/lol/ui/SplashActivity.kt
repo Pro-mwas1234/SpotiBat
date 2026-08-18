@@ -1,6 +1,7 @@
 package com.project.lol.ui
 
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -68,6 +69,15 @@ class SplashActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
+        requestedOrientation = if (
+            getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+                .getBoolean("LandscapeMode", false)
+        ) {
+            ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
 
         val analytics = FirebaseAnalytics.getInstance(this)
         FirebaseCrashlytics.getInstance()
