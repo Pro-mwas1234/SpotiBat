@@ -1,7 +1,6 @@
 package com.project.lol.util
 
 import android.content.Context
-import androidx.core.content.edit
 
 class UpdateChecker(private val context: Context) {
 
@@ -18,7 +17,7 @@ class UpdateChecker(private val context: Context) {
         val lastCheck = prefs.getLong(KEY_LAST_CHECK, 0)
         if (System.currentTimeMillis() - lastCheck < CHECK_INTERVAL_MS) return
 
-        prefs.edit { putLong(KEY_LAST_CHECK, System.currentTimeMillis()) }
+        prefs.edit().putLong(KEY_LAST_CHECK, System.currentTimeMillis()).apply()
         GitHubApi.fetchLatestRelease(OWNER, REPO) { release ->
             val latest = release?.tagName?.removePrefix("v") ?: return@fetchLatestRelease
             val current = runCatching {

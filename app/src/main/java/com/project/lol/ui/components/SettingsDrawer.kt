@@ -59,12 +59,13 @@ fun SettingsDrawer(
     paletteSeed: String?,
     onPaletteSeedChange: (String?) -> Unit,
     onConnectionModeChange: (String) -> Unit,
+    onOfflineModeChange: (Boolean) -> Unit,
     onSaveProfile: (String, String) -> Unit,
     onLoadProfile: (String) -> Unit,
     onDeleteProfile: (String) -> Unit,
     onClearCache: () -> Unit,
     onClearData: () -> Unit,
-    onDebugToggle: (Boolean) -> Unit,
+    onDebugToggle: (Boolean) -> Unit = {},
     content: @Composable () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -107,6 +108,7 @@ fun SettingsDrawer(
                             paletteSeed = paletteSeed,
                             onPaletteSeedChange = onPaletteSeedChange,
                             onConnectionModeChange = onConnectionModeChange,
+                            onOfflineModeChange = onOfflineModeChange,
                             onSaveProfile = onSaveProfile,
                             onLoadProfile = onLoadProfile,
                             onDeleteProfile = onDeleteProfile,

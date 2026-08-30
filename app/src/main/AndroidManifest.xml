@@ -21,9 +21,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Spotilol"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:usesCleartextTraffic="false"
-        android:enableOnBackInvokedCallback="true"
-        tools:targetApi="33">
+        android:usesCleartextTraffic="false">
 
         <activity
             android:name=".ui.SplashActivity"
@@ -46,11 +44,36 @@
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Spotilol" />
 
+        <activity
+            android:name=".ui.OfflineActivity"
+            android:exported="false"
+            android:screenOrientation="fullSensor"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:theme="@style/Theme.Spotilol" />
+
         <service
             android:name=".service.MediaNotificationService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback"
+            tools:targetApi="28">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".service.OfflineMediaService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback"
             tools:targetApi="28" />
+
+        <receiver
+            android:name="androidx.media.session.MediaButtonReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

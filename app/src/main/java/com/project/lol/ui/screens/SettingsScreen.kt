@@ -4,6 +4,10 @@ import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.net.Uri
+import android.webkit.CookieManager
+import android.webkit.WebStorage
+import android.webkit.WebView
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -29,13 +33,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BatterySaver
 import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.CloseFullscreen
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DarkMode
@@ -49,8 +53,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.PowerSettingsNew
-import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.ScreenRotation
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material.icons.filled.TouchApp
@@ -92,11 +96,9 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLocale
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.toClipEntry
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -105,9 +107,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.edit
-import androidx.core.graphics.toColorInt
-import androidx.core.net.toUri
 import androidx.webkit.WebViewCompat
 import com.project.lol.R
 import com.project.lol.profile.ProfileManager
@@ -117,14 +116,12 @@ import com.project.lol.util.DebugLogStore
 import com.project.lol.util.GitHubApi
 import com.project.lol.util.GitHubRelease
 import com.project.lol.util.MarkdownText
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
-import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private val PalettePresets = listOf(
     "Default" to null,
@@ -141,7 +138,7 @@ private val PalettePresets = listOf(
 
 private fun parsePaletteColor(hex: String?): Color? {
     if (hex.isNullOrBlank()) return null
-    return runCatching { Color(hex.toColorInt()) }.getOrNull()
+    return runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull()
 }
 
 private fun formatHex(color: Color): String {
@@ -169,12 +166,13 @@ fun SettingsContent(
     paletteSeed: String?,
     onPaletteSeedChange: (String?) -> Unit,
     onConnectionModeChange: (String) -> Unit,
+    onOfflineModeChange: (Boolean) -> Unit,
     onSaveProfile: (String, String) -> Unit,
     onLoadProfile: (String) -> Unit,
     onDeleteProfile: (String) -> Unit,
     onClearCache: () -> Unit,
     onClearData: () -> Unit,
-    onDebugToggle: (Boolean) -> Unit
+    onDebugToggle: (Boolean) -> Unit = {}
 ) {
     var autoplayMode by remember { mutableStateOf(prefs.getString("APlayMode", "disabled") ?: "disabled") }
     var takeControl by remember { mutableStateOf(prefs.getBoolean("TakeControl", true)) }
@@ -183,18 +181,14 @@ fun SettingsContent(
     var guiMode by remember { mutableStateOf(prefs.getString("GuiMode", "csshack") ?: "csshack") }
     var customCss by remember { mutableStateOf(prefs.getString("CustomCss", "") ?: "") }
     var amoledTheme by remember { mutableStateOf(amoledThemeState) }
-    var dbgOverlay by remember { mutableStateOf(prefs.getBoolean("DebugOverlay", false)) }
-    var showDevlogDialog by remember { mutableStateOf(false) }
     var swipeStop by remember { mutableStateOf(prefs.getBoolean("SwipeStop", true)) }
     var btAutoPause by remember { mutableStateOf(prefs.getBoolean("BtAutoPause", false)) }
     var btAutoResume by remember { mutableStateOf(prefs.getBoolean("BtAutoResume", false)) }
     var playerMode by remember { mutableStateOf(prefs.getString("PlayerMode", "spotilol") ?: "spotilol") }
     var connectionMode by remember { mutableStateOf(prefs.getString("ConnectionMode", "normal") ?: "normal") }
-    var powerSave by remember { mutableStateOf(prefs.getBoolean("PowerSave", false)) }
+    var offlineMode by remember { mutableStateOf(prefs.getBoolean("OfflineMode", false)) }
 
     val context = LocalContext.current
-    val platformLocale = LocalLocale.current.platformLocale
-    val scope = rememberCoroutineScope()
     var profiles by remember { mutableStateOf(ProfileManager.getProfiles(context)) }
 
     var showConnectionModeDialog by remember { mutableStateOf(false) }
@@ -209,6 +203,8 @@ fun SettingsContent(
     var showCustomCssDialog by remember { mutableStateOf(false) }
     var showPaletteDialog by remember { mutableStateOf(false) }
     var showChangelogDialog by remember { mutableStateOf(false) }
+    var dbgOverlay by remember { mutableStateOf(prefs.getBoolean("DebugOverlay", false)) }
+    var showDevlogDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -237,7 +233,7 @@ fun SettingsContent(
 
             SettingTile(
                 title = "Custom CSS",
-                subtitle = customCss.ifBlank { "None configured" },
+                subtitle = if (customCss.isBlank()) "None configured" else customCss,
                 icon = Icons.Default.Code,
                 onClick = { showCustomCssDialog = true }
             )
@@ -251,7 +247,7 @@ fun SettingsContent(
                 checked = materialYou,
                 onCheckedChange = { enabled ->
                     onMaterialYouChange(enabled)
-                    prefs.edit { putBoolean("MaterialYou", enabled) }
+                    prefs.edit().putBoolean("MaterialYou", enabled).apply()
                 }
             )
 
@@ -279,7 +275,7 @@ fun SettingsContent(
                 onCheckedChange = { enabled ->
                     amoledTheme = enabled
                     onAmoledThemeChange(enabled)
-                    prefs.edit { putBoolean("AmoledTheme", enabled)}
+                    prefs.edit().putBoolean("AmoledTheme", enabled).apply()
                 }
             )
 
@@ -292,7 +288,7 @@ fun SettingsContent(
                 checked = hideTopBar,
                 onCheckedChange = { enabled ->
                     onHideTopBarChange(enabled)
-                    prefs.edit { putBoolean("HideTopBar", enabled)}
+                    prefs.edit().putBoolean("HideTopBar", enabled).apply()
                 }
             )
 
@@ -305,7 +301,7 @@ fun SettingsContent(
                 checked = landscapeMode,
                 onCheckedChange = { enabled ->
                     onLandscapeModeChange(enabled)
-                    prefs.edit { putBoolean("LandscapeMode", enabled)}
+                    prefs.edit().putBoolean("LandscapeMode", enabled).apply()
                 }
             )
 
@@ -318,7 +314,7 @@ fun SettingsContent(
                 checked = keepScreenOn,
                 onCheckedChange = { enabled ->
                     onKeepScreenOnChange(enabled)
-                    prefs.edit { putBoolean("KeepScreenOn", enabled)}
+                    prefs.edit().putBoolean("KeepScreenOn", enabled).apply()
                 }
             )
         }
@@ -363,7 +359,7 @@ fun SettingsContent(
                 checked = takeControl,
                 onCheckedChange = {
                     takeControl = it
-                    prefs.edit { putBoolean("TakeControl", it) }
+                    prefs.edit().putBoolean("TakeControl", it).apply()
                 }
             )
 
@@ -376,7 +372,7 @@ fun SettingsContent(
                 checked = andAuto,
                 onCheckedChange = {
                     andAuto = it
-                    prefs.edit { putBoolean("AndAuto", it) }
+                    prefs.edit().putBoolean("AndAuto", it).apply()
                 }
             )
 
@@ -389,20 +385,27 @@ fun SettingsContent(
                 checked = closeNowPlay,
                 onCheckedChange = {
                     closeNowPlay = it
-                    prefs.edit { putBoolean("CloseNowPlay", it) }
+                    prefs.edit().putBoolean("CloseNowPlay", it).apply()
                 }
             )
+        }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-
+        SettingSectionCard(
+            title = "OFFLINE",
+            icon = Icons.Default.CloudOff
+        ) {
             SettingSwitchTile(
-                title = "Power Save Mode",
-                subtitle = "Music only, freezing video, throttles polling",
-                icon = Icons.Default.BatterySaver,
-                checked = powerSave,
-                onCheckedChange = {
-                    powerSave = it
-                    prefs.edit { putBoolean("PowerSave", it) }
+                title = "Offline Mode",
+                subtitle = if (offlineMode) {
+                    "On — playing downloaded songs only"
+                } else {
+                    "Play only downloaded songs — restarts the app"
+                },
+                icon = Icons.Default.CloudOff,
+                checked = offlineMode,
+                onCheckedChange = { enabled ->
+                    offlineMode = enabled
+                    onOfflineModeChange(enabled)
                 }
             )
         }
@@ -418,7 +421,7 @@ fun SettingsContent(
                 checked = btAutoPause,
                 onCheckedChange = {
                     btAutoPause = it
-                    prefs.edit { putBoolean("BtAutoPause", it) }
+                    prefs.edit().putBoolean("BtAutoPause", it).apply()
                 }
             )
 
@@ -431,7 +434,7 @@ fun SettingsContent(
                 checked = btAutoResume,
                 onCheckedChange = {
                     btAutoResume = it
-                    prefs.edit {putBoolean("BtAutoResume", it) }
+                    prefs.edit().putBoolean("BtAutoResume", it).apply()
                 }
             )
         }
@@ -445,7 +448,7 @@ fun SettingsContent(
                 subtitle = "Store the current session as a profile",
                 icon = Icons.Default.PersonAdd,
                 onClick = {
-                    val cookies = ProfileManager.captureSession()
+                    val cookies = ProfileManager.captureSession(context)
                     if (cookies == null) {
                         Toast.makeText(context, "Log in to Spotify first", Toast.LENGTH_SHORT).show()
                     } else {
@@ -460,7 +463,7 @@ fun SettingsContent(
                 profiles.forEachIndexed { index, profile ->
                     ProfileRow(
                         name = profile.name,
-                        subtitle = "Saved " + SimpleDateFormat("MMM d, yyyy", platformLocale)
+                        subtitle = "Saved " + SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
                             .format(Date(profile.savedAt)),
                         onLoad = { onLoadProfile(profile.cookies) },
                         onDelete = {
@@ -486,7 +489,7 @@ fun SettingsContent(
             }
             SettingTile(
                 title = "MITM Proxy Mode",
-                subtitle = "$modeLabel - restarts the app",
+                subtitle = "$modeLabel — restarts the app",
                 icon = Icons.Default.Shield,
                 onClick = { showConnectionModeDialog = true }
             )
@@ -503,7 +506,7 @@ fun SettingsContent(
                 checked = swipeStop,
                 onCheckedChange = {
                     swipeStop = it
-                    prefs.edit {putBoolean("SwipeStop", it) }
+                    prefs.edit().putBoolean("SwipeStop", it).apply()
                 }
             )
 
@@ -537,13 +540,8 @@ fun SettingsContent(
                     subtitle = "Re-export proxy certificate to Downloads",
                     icon = Icons.Default.Shield,
                     onClick = {
-                        scope.launch {
-                            val path = withContext(Dispatchers.IO) { LocalProxyManager.exportCACert(
-                                context
-                            ) }
-                            val msg = if (path == "export failed") "Export failed - try again" else "Exported to $path"
-                            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                        }
+                        val path = LocalProxyManager.exportCACert(context)
+                        Toast.makeText(context, "Exported to $path", Toast.LENGTH_LONG).show()
                     }
                 )
             }
@@ -566,7 +564,7 @@ fun SettingsContent(
                 subtitle = "github.com/lyssadev/Spotilol",
                 painter = painterResource(id = R.drawable.ic_github),
                 onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, "https://github.com/lyssadev/Spotilol".toUri())
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/lyssadev/Spotilol"))
                     context.startActivity(intent)
                 }
             )
@@ -591,17 +589,17 @@ fun SettingsContent(
         }
 
         SettingSectionCard(
-            title = "EXPERIMENTAL",
+            title = "DEBUG",
             icon = Icons.Default.Science
         ) {
             SettingSwitchTile(
                 title = "Collect Debug",
-                subtitle = "Collect debug event throw by JS",
+                subtitle = "Collect debug events thrown by JS",
                 icon = Icons.Default.BugReport,
                 checked = dbgOverlay,
                 onCheckedChange = { enabled ->
                     dbgOverlay = enabled
-                    prefs.edit { putBoolean("DebugOverlay", enabled) }
+                    prefs.edit().putBoolean("DebugOverlay", enabled).apply()
                     onDebugToggle(enabled)
                 }
             )
@@ -610,7 +608,7 @@ fun SettingsContent(
 
             SettingTile(
                 title = "Open Devlog",
-                subtitle = if (dbgOverlay) "Live - JS+native events" else "Enable debug first",
+                subtitle = if (dbgOverlay) "Live - JS + native events" else "Enable debug first",
                 icon = Icons.Default.Code,
                 onClick = { showDevlogDialog = true },
                 enabled = dbgOverlay
@@ -722,7 +720,7 @@ fun SettingsContent(
             selected = autoplayMode,
             onSelect = { value ->
                 autoplayMode = value
-                prefs.edit { putString("APlayMode", value) }
+                prefs.edit().putString("APlayMode", value).apply()
             },
             onDismiss = { showAutoPlayDialog = false }
         )
@@ -738,7 +736,7 @@ fun SettingsContent(
             selected = playerMode,
             onSelect = { value ->
                 playerMode = value
-                prefs.edit { putString("PlayerMode", value) }
+                prefs.edit().putString("PlayerMode", value).apply()
             },
             onDismiss = { showPlayerModeDialog = false }
         )
@@ -755,7 +753,7 @@ fun SettingsContent(
             selected = guiMode,
             onSelect = { value ->
                 guiMode = value
-                prefs.edit { putString("GuiMode", value) }
+                prefs.edit().putString("GuiMode", value).apply()
             },
             onDismiss = { showGuiModeDialog = false }
         )
@@ -766,7 +764,7 @@ fun SettingsContent(
             initialCss = customCss,
             onSave = { css ->
                 customCss = css
-                prefs.edit { putString("CustomCss", css) }
+                prefs.edit().putString("CustomCss", css).apply()
                 showCustomCssDialog = false
             },
             onDismiss = { showCustomCssDialog = false }
@@ -800,7 +798,9 @@ fun SettingsContent(
         )
     }
 
-    if (showDevlogDialog) { DevlogLiveDialog(onDismiss = { showDevlogDialog = false }) }
+    if (showDevlogDialog) {
+        DevlogLiveDialog(onDismiss = { showDevlogDialog = false })
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -998,10 +998,7 @@ private fun ColorSlider(
 @Composable
 private fun ChangelogDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
-    val density = LocalDensity.current
-    val windowInfo = LocalWindowInfo.current
-    val platformLocale = LocalLocale.current.platformLocale
-
+    val configuration = LocalConfiguration.current
     var release by remember { mutableStateOf<GitHubRelease?>(null) }
     var loading by remember { mutableStateOf(true) }
     var failed by remember { mutableStateOf(false) }
@@ -1024,9 +1021,7 @@ private fun ChangelogDialog(onDismiss: () -> Unit) {
     val publishedLabel = release?.publishedAt?.let { iso ->
         runCatching {
             val parsed = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).parse(iso)
-            parsed?.let { date ->
-                SimpleDateFormat("MMM d, yyyy", platformLocale).format(date)
-            }
+            SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(parsed)
         }.getOrNull()
     }
 
@@ -1095,11 +1090,11 @@ private fun ChangelogDialog(onDismiss: () -> Unit) {
                         markdown = r.body,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = with(density) { (windowInfo.containerSize.height * 0.65f).toDp() })
+                            .heightIn(max = (configuration.screenHeightDp * 0.65f).dp)
                             .verticalScroll(rememberScrollState()),
                         onLinkClick = { url ->
                             runCatching {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
                             }
                         }
                     )
@@ -1169,11 +1164,8 @@ fun SettingTile(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .alpha(if (enabled) 1f else 0.4f)
-            .then(
-                if (enabled) Modifier.clickable(onClick = onClick)
-                else Modifier
-            )
+            .then(if (enabled) Modifier else Modifier.alpha(0.38f))
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1530,12 +1522,45 @@ fun ConfirmationDialog(
     )
 }
 
+@Preview(showBackground = true)
+@Composable
+fun SettingsContentPreview() {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("preview_prefs", Context.MODE_PRIVATE) }
+    SpotifyTheme {
+        SettingsContent(
+            modifier = Modifier.fillMaxSize(),
+            prefs = prefs,
+            materialYou = false,
+            onMaterialYouChange = {},
+            amoledThemeState = false,
+            onAmoledThemeChange = {},
+            hideTopBar = false,
+            onHideTopBarChange = {},
+            landscapeMode = false,
+            onLandscapeModeChange = {},
+            keepScreenOn = false,
+            onKeepScreenOnChange = {},
+            paletteSeed = null,
+            onPaletteSeedChange = {},
+            onConnectionModeChange = {},
+            onOfflineModeChange = {},
+            onSaveProfile = { _, _ -> },
+            onLoadProfile = {},
+            onDeleteProfile = {},
+            onClearCache = {},
+            onClearData = {}
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DevlogLiveDialog(onDismiss: () -> Unit) {
     var lines by remember { mutableStateOf(DebugLogStore.snapshot()) }
     LaunchedEffect(Unit) {
         while (true) {
-            kotlinx.coroutines.delay(400.milliseconds)
+            delay(400)
             lines = DebugLogStore.snapshot()
         }
     }
@@ -1577,36 +1602,4 @@ fun DevlogLiveDialog(onDismiss: () -> Unit) {
             }
         }
     )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun SettingsContentPreview() {
-    val context = LocalContext.current
-    val prefs = remember { context.getSharedPreferences("preview_prefs", Context.MODE_PRIVATE) }
-    SpotifyTheme {
-        SettingsContent(
-            modifier = Modifier.fillMaxSize(),
-            prefs = prefs,
-            materialYou = false,
-            onMaterialYouChange = {},
-            amoledThemeState = false,
-            onAmoledThemeChange = {},
-            hideTopBar = false,
-            onHideTopBarChange = {},
-            landscapeMode = false,
-            onLandscapeModeChange = {},
-            keepScreenOn = false,
-            onKeepScreenOnChange = {},
-            paletteSeed = null,
-            onPaletteSeedChange = {},
-            onConnectionModeChange = {},
-            onSaveProfile = { _, _ -> },
-            onLoadProfile = {},
-            onDeleteProfile = {},
-            onClearCache = {},
-            onClearData = {},
-            onDebugToggle = {},
-        )
-    }
 }

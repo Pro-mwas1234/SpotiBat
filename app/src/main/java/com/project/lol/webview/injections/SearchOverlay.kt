@@ -79,7 +79,7 @@ object SearchOverlay {
                         '#global-nav-bar form[role="search"] [class*="form-input-icon__icon"]{position:static!important;top:auto!important;transform:none!important}',
                         '#global-nav-bar form[role="search"] > :not([class*="form-input-icon__icon--leading"]){display:none!important}',
                         'html.spl-search-active [data-testid="search-dropdown"],html.spl-search-active [data-testid="search-page-searchbar-searchbar-dropdown"]{display:none!important}',
-                        '#splSearchPanel{position:fixed;z-index:2147483647;background:rgba(24,24,24,.98);border:1px solid rgba(255,255,255,.08);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.6);display:none;flex-direction:column;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#fff}',
+                        '#splSearchPanel{position:fixed;z-index:99999;background:rgba(24,24,24,.98);border:1px solid rgba(255,255,255,.08);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.6);display:none;flex-direction:column;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#fff}',
                         '#splSearchPanel .spl-sph{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06)}',
                         '#splSearchPanel .spl-spi{flex:1;min-width:0;background:transparent;border:none;outline:none;color:#fff;font-size:14px;height:32px}',
                         '#splSearchPanel .spl-spi::placeholder{color:rgba(255,255,255,.4)}',
@@ -117,7 +117,6 @@ object SearchOverlay {
 
                 function showPanel(){
                     if(!panel || !anchoredBtn) return;
-                    document.body.appendChild(panel);
                     var r = anchoredBtn.getBoundingClientRect();
                     var w = vw();
                     var pw = Math.min(360, w - 24);

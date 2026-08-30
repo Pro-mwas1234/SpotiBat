@@ -14,36 +14,32 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
-import android.os.IBinder
 import android.os.PowerManager
+import android.support.v4.media.MediaBrowserCompat
+import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.webkit.WebView
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
-import androidx.core.content.ContextCompat
+import com.project.lol.R
+import androidx.media.MediaBrowserServiceCompat
 import androidx.media.app.NotificationCompat.MediaStyle
 import androidx.media.session.MediaButtonReceiver
-import com.project.lol.R
 import android.bluetooth.BluetoothDevice
 import android.media.AudioManager
-import android.os.Handler
-import android.os.Looper
-import java.lang.ref.WeakReference
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.math.min
-import androidx.core.graphics.scale
-import java.util.concurrent.Executors
 
-class MediaNotificationService : Service() {
+class MediaNotificationService : MediaBrowserServiceCompat() {
 
     companion object {
         private const val TAG = "MediaNotifService"
         private const val CHANNEL_ID = "spotilol_media_playback"
         private const val NOTIFICATION_ID = 1
-        private val mainHandler = Handler(Looper.getMainLooper())
+        private const val MEDIA_ID_ROOT = "__ROOT__"
 
         const val ACTION_PLAY_PAUSE = "com.project.lol.ACTION_PLAY_PAUSE"
         const val ACTION_NEXT = "com.project.lol.ACTION_NEXT"
@@ -54,38 +50,20 @@ class MediaNotificationService : Service() {
         private const val CUSTOM_ACTION_TOGGLE_FAV = "toggle_fav"
         private const val CUSTOM_ACTION_TOGGLE_SHUFFLE = "toggle_shuffle"
 
-        private const val PLAYBACK_ACTIONS: Long =
+        private val PLAYBACK_ACTIONS: Long =
             PlaybackStateCompat.ACTION_PLAY or
-                    PlaybackStateCompat.ACTION_PAUSE or
-                    PlaybackStateCompat.ACTION_PLAY_PAUSE or
-                    PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
-                    PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
-                    PlaybackStateCompat.ACTION_STOP or
-                    PlaybackStateCompat.ACTION_SEEK_TO
+            PlaybackStateCompat.ACTION_PAUSE or
+            PlaybackStateCompat.ACTION_PLAY_PAUSE or
+            PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
+            PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
+            PlaybackStateCompat.ACTION_STOP or
+            PlaybackStateCompat.ACTION_SEEK_TO
 
         private const val NOTIF_COLOR = 0xFFE0E0E0.toInt()
 
-
-        @Volatile
-        private var instanceRef: WeakReference<MediaNotificationService>? = null
-        @Volatile
-        private var webViewRef: WeakReference<WebView>? = null
-        private var isAndAutoEnabled = true
-
-        var instance: MediaNotificationService?
-            get() = instanceRef?.get()
-            private set(value) {
-                instanceRef = value?.let { WeakReference(it) }
-            }
-
-        var webView: WebView?
-            get() = webViewRef?.get()
-            set(value) {
-                webViewRef = value?.let { WeakReference(it) }
-            }
+        var webView: WebView? = null
+        var instance: MediaNotificationService? = null
     }
-
-    private val coverExecutor = Executors.newSingleThreadExecutor()
 
     private lateinit var mediaSession: MediaSessionCompat
     private var isPlaying = false
@@ -140,7 +118,7 @@ class MediaNotificationService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        instanceRef = WeakReference(this); instance = this
+        instance = this
 
         try {
             createNotificationChannel()
@@ -170,10 +148,9 @@ class MediaNotificationService : Service() {
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Failed to register disconnect receivers", e)
         }
-        isAndAutoEnabled = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
-            .getBoolean("AndAuto", true)
     }
 
+    @Suppress("DEPRECATION")
     private fun getStartForegroundServiceType(): Int {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
@@ -189,16 +166,40 @@ class MediaNotificationService : Service() {
             android.util.Log.e(TAG, "Failed to re-assert foreground", e)
         }
         try {
-            if (::mediaSession.isInitialized) {
-                MediaButtonReceiver.handleIntent(mediaSession, intent)
-            }
+            MediaButtonReceiver.handleIntent(mediaSession, intent)
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Failed to handle media button intent", e)
         }
         return START_STICKY
     }
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    override fun onGetRoot(
+        clientPackageName: String,
+        clientUid: Int,
+        rootHints: Bundle?
+    ): BrowserRoot? = BrowserRoot(MEDIA_ID_ROOT, null)
+
+    override fun onLoadChildren(
+        parentId: String,
+        result: Result<MutableList<MediaBrowserCompat.MediaItem>>
+    ) {
+        if (parentId != MEDIA_ID_ROOT) {
+            result.sendResult(null)
+            return
+        }
+        result.sendResult(
+            mutableListOf(
+                MediaBrowserCompat.MediaItem(
+                    MediaDescriptionCompat.Builder()
+                        .setMediaId(MEDIA_ID_ROOT)
+                        .setTitle("Spotilol")
+                        .setDescription("Now playing")
+                        .build(),
+                    MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                )
+            )
+        )
+    }
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
@@ -210,8 +211,7 @@ class MediaNotificationService : Service() {
 
     override fun onDestroy() {
         releaseWakeLock()
-        coverExecutor.shutdown()
-        instanceRef = null
+        instance = null
         try { unregisterReceiver(actionReceiver) } catch (_: Exception) {}
         try { unregisterReceiver(bluetoothReceiver) } catch (_: Exception) {}
         try { unregisterReceiver(audioBecomingNoisyReceiver) } catch (_: Exception) {}
@@ -237,10 +237,12 @@ class MediaNotificationService : Service() {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun setupMediaSession() {
         mediaSession = MediaSessionCompat(this, "SpotilolSession").apply {
             setFlags(
-                MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS
+                MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or
+                MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS
             )
             setCallback(object : MediaSessionCompat.Callback() {
                 override fun onPlay() {
@@ -276,31 +278,42 @@ class MediaNotificationService : Service() {
             })
             isActive = true
         }
+        sessionToken = mediaSession.sessionToken
     }
 
     private fun registerReceivers() {
-        val customFilter = IntentFilter().apply {
+        val filter = IntentFilter().apply {
             addAction(ACTION_PLAY_PAUSE)
             addAction(ACTION_NEXT)
             addAction(ACTION_PREV)
             addAction(ACTION_SHUFFLE)
             addAction(ACTION_FAVORITE)
+            addAction(Intent.ACTION_MEDIA_BUTTON)
         }
-        ContextCompat.registerReceiver(this, actionReceiver, customFilter, ContextCompat.RECEIVER_NOT_EXPORTED)
-
-        val mediaButtonFilter = IntentFilter(Intent.ACTION_MEDIA_BUTTON)
-        ContextCompat.registerReceiver(this, actionReceiver, mediaButtonFilter, ContextCompat.RECEIVER_EXPORTED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(actionReceiver, filter, RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(actionReceiver, filter)
+        }
     }
 
     private fun registerDisconnectReceivers() {
         val noisyFilter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
-        ContextCompat.registerReceiver(this, audioBecomingNoisyReceiver, noisyFilter, ContextCompat.RECEIVER_EXPORTED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(audioBecomingNoisyReceiver, noisyFilter, RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(audioBecomingNoisyReceiver, noisyFilter)
+        }
 
         val btFilter = IntentFilter().apply {
             addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
             addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
         }
-        ContextCompat.registerReceiver(this, bluetoothReceiver, btFilter, ContextCompat.RECEIVER_EXPORTED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(bluetoothReceiver, btFilter, RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(bluetoothReceiver, btFilter)
+        }
     }
 
     private fun pausePlayback() {
@@ -365,11 +378,9 @@ class MediaNotificationService : Service() {
 
             if (isPlaying) acquireWakeLock() else releaseWakeLock()
 
-            mainHandler.post {
-                updatePlaybackState()
-                updateMetadata()
-                showNotification()
-            }
+            updatePlaybackState()
+            updateMetadata()
+            showNotification()
         } catch (_: Exception) {}
     }
 
@@ -429,38 +440,29 @@ class MediaNotificationService : Service() {
     }
 
     private fun loadCoverArt(url: String) {
-        // FIX: was a raw Thread per cover - album-flipping machine-gunned the
-        // scheduler. Single-thread executor serializes fetches (covers arrive in
-        // order, no stale-bitmap race between back-to-back track changes) and
-        // keeps exactly one worker alive for the service's lifetime.
-        coverExecutor.execute {
-            var conn: HttpURLConnection? = null
+        Thread {
             try {
-                conn = URL(url).openConnection() as HttpURLConnection
+                val conn = URL(url).openConnection() as HttpURLConnection
                 conn.connectTimeout = 5000
                 conn.readTimeout = 5000
                 conn.connect()
                 val stream = conn.inputStream
                 val raw = BitmapFactory.decodeStream(stream)
                 stream.close()
+                conn.disconnect()
                 if (raw != null) {
-                    val powerSave = getSharedPreferences("spotilol_prefs", MODE_PRIVATE).getBoolean("PowerSave", false)
-                    val target = if (powerSave) 192 else 512
+                    val target = 512
                     val scale = min(target.toFloat() / raw.width, target.toFloat() / raw.height)
                     val w = (raw.width * scale).toInt()
                     val h = (raw.height * scale).toInt()
-                    val scaled = raw.scale(w, h)
+                    val scaled = Bitmap.createScaledBitmap(raw, w, h, true)
                     if (scaled != raw) raw.recycle()
                     coverBitmap = scaled
-                    mainHandler.post {
-                        updateMetadata()
-                        showNotification()
-                    }
+                    updateMetadata()
+                    showNotification()
                 }
-            } catch (_: Exception) {
-                try { conn?.disconnect() } catch (_: Exception) {}
-            }
-        }
+            } catch (_: Exception) {}
+        }.start()
     }
 
     private fun showNotification() {
@@ -481,9 +483,10 @@ class MediaNotificationService : Service() {
         }
     }
 
-    private fun buildMediaStyle(): MediaStyle {
+    private fun buildMediaStyle(showShuffle: Boolean): MediaStyle {
+        val compact = if (showShuffle) intArrayOf(0, 1, 2, 3) else intArrayOf(0, 1, 2)
         val style = MediaStyle()
-            .setShowActionsInCompactView(0, 1, 2)
+            .setShowActionsInCompactView(*compact)
             .setShowCancelButton(true)
             .setCancelButtonIntent(getActionPendingIntent(ACTION_PLAY_PAUSE))
         if (::mediaSession.isInitialized) {
@@ -551,7 +554,7 @@ class MediaNotificationService : Service() {
             .setShowWhen(false)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setColor(NOTIF_COLOR)
-            .setStyle(buildMediaStyle())
+            .setStyle(buildMediaStyle(isShuffleAvailable))
         actions.forEach { builder.addAction(it) }
 
         coverBitmap?.let { builder.setLargeIcon(it) }
@@ -560,6 +563,15 @@ class MediaNotificationService : Service() {
     }
 
     private fun getActionPendingIntent(action: String): PendingIntent {
+        val mediaButtonAction = when (action) {
+            ACTION_PLAY_PAUSE -> PlaybackStateCompat.ACTION_PLAY_PAUSE
+            ACTION_NEXT -> PlaybackStateCompat.ACTION_SKIP_TO_NEXT
+            ACTION_PREV -> PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+            else -> null
+        }
+        if (mediaButtonAction != null) {
+            return MediaButtonReceiver.buildMediaButtonPendingIntent(this, mediaButtonAction)
+        }
         val intent = Intent(action).setPackage(packageName)
         return PendingIntent.getBroadcast(
             this, action.hashCode(), intent,
@@ -569,7 +581,7 @@ class MediaNotificationService : Service() {
 
     private fun acquireWakeLock() {
         if (wakeLock == null) {
-            val pm = getSystemService(POWER_SERVICE) as PowerManager
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
             wakeLock = pm.newWakeLock(
                 PowerManager.PARTIAL_WAKE_LOCK,
                 "spotilol:media_playback"

@@ -78,7 +78,28 @@ object FetchOverride {
                             }
                         } catch(e){}
                     }
-                    return orig.call(window, input, init);
+                    var p = orig.call(window, input, init);
+                    if(url && url.indexOf && url.indexOf('/metadata/4/track/') !== -1) {
+                        p.then(function(resp){
+                            try {
+                                resp.clone().text().then(function(t){
+                                    try {
+                                        var j = JSON.parse(t);
+                                        if(j && j.canonical_uri) {
+                                            window.__curTrackUri = j.canonical_uri;
+                                            window.__curTrackId = j.canonical_uri.replace('spotify:track:','');
+                                            window.__curTrackName = j.name || null;
+                                            window.__curTrackArtist = (j.artist && j.artist.length) ? j.artist[0].name : null;
+                                            window.__curTrackAlbum = (j.album) ? j.album.name : null;
+                                            var cg = j.album && j.album.cover_group && j.album.cover_group.image;
+                                            if(cg && cg.length) window.__curTrackCover = 'https://i.scdn.co/image/' + cg[0].file_id;
+                                        }
+                                    } catch(e){}
+                                });
+                            } catch(e){}
+                        });
+                    }
+                    return p;
                 };
             })();
         

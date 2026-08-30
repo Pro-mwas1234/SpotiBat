@@ -1,6 +1,5 @@
 package com.project.lol.ui
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.os.Bundle
@@ -8,17 +7,10 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.keyframes
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,6 +23,14 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -61,12 +61,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.time.Duration.Companion.milliseconds
-import androidx.core.content.edit
 
 private val MonochromeAccent = Color(0xFFE0E0E0)
 
-@SuppressLint("CustomSplashScreen")
 class SplashActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -99,22 +96,25 @@ class SplashActivity : ComponentActivity() {
             val scope = rememberCoroutineScope()
 
             LaunchedEffect(Unit) {
+                if (getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+                        .getBoolean("OfflineMode", false)
+                ) {
+                    startActivity(Intent(this@SplashActivity, OfflineActivity::class.java))
+                    overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                    finish()
+                    return@LaunchedEffect
+                }
                 withContext(Dispatchers.IO) {
                     val useProxy = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
                         .getString("ConnectionMode", "normal") == "proxy"
                     if (useProxy) {
                         LocalProxyManager.init(this@SplashActivity)
                         LocalProxyManager.start()
-                        delay(800.milliseconds)
-                        // Was isCAInstalled() - keystore enumeration, which lies about a
-                        // freshly-installed cert until process restart. The combined check
-                        // does a real TLS handshake through the default trust pipeline -
-                        // same verdict source as the manual Check button. Costs one
-                        // localhost handshake, and we're sleeping 800ms here anyway.
-                        certInstalled = LocalProxyManager.isCAEffectivelyInstalled()
+                        delay(800)
+                        certInstalled = LocalProxyManager.isCAInstalled()
                     } else {
                         LocalProxyManager.stop()
-                        delay(600.milliseconds)
+                        delay(600)
                         certInstalled = true
                     }
                     checkDone = true
@@ -141,7 +141,7 @@ class SplashActivity : ComponentActivity() {
                     when {
                         checking -> LoadingScreen()
                         !certInstalled -> {
-                            var certAlpha by remember { mutableFloatStateOf(0f) }
+                            var certAlpha by remember { mutableStateOf(0f) }
                             LaunchedEffect(Unit) {
                                 animate(
                                     initialValue = 0f,
@@ -156,34 +156,23 @@ class SplashActivity : ComponentActivity() {
                                     .graphicsLayer { alpha = certAlpha },
                                 onSwitchNormal = {
                                     getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
-                                        .edit {
-                                            putString("ConnectionMode", "normal")
-                                                .putBoolean("ServiceOn", false)
-                                        }
+                                        .edit()
+                                        .putString("ConnectionMode", "normal")
+                                        .putBoolean("ServiceOn", false)
+                                        .apply()
                                     LocalProxyManager.stop()
                                     recreate()
                                 },
                                 onCheck = {
                                     checking = true
                                     scope.launch {
-                                        val passed = withContext(Dispatchers.IO) {
-                                            var ok = false
-                                            var attempts = 0
-                                            while (!ok && attempts < 4) {
-                                                attempts++
-                                                if (!LocalProxyManager.isRunning) {
-                                                    LocalProxyManager.start()
-                                                    delay(300.milliseconds)
-                                                }
-                                                ok = LocalProxyManager.isCAEffectivelyInstalled()
-                                                if (!ok) delay(600.milliseconds)
+                                        withContext(Dispatchers.IO) {
+                                            if (!LocalProxyManager.isRunning) {
+                                                LocalProxyManager.start()
+                                                delay(500)
                                             }
-                                            android.util.Log.d(
-                                                "Splash", "cert check: passed=$ok after $attempts attempt(s)"
-                                            )
-                                            ok
+                                            certInstalled = LocalProxyManager.isCAInstalled()
                                         }
-                                        certInstalled = passed
                                         checking = false
                                     }
                                 },
@@ -192,9 +181,11 @@ class SplashActivity : ComponentActivity() {
                                         val path = withContext(Dispatchers.IO) {
                                             LocalProxyManager.exportCACert(this@SplashActivity)
                                         }
-                                        val msg = if (path == "export failed") "Export failed - try again"
-                                        else "Exported to: $path"
-                                        Toast.makeText(this@SplashActivity, msg, Toast.LENGTH_LONG).show()
+                                        Toast.makeText(
+                                            this@SplashActivity,
+                                            "Exported to: $path",
+                                            Toast.LENGTH_LONG
+                                        ).show()
                                     }
                                 }
                             )
