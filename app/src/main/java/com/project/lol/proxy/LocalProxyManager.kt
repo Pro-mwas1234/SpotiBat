@@ -9,6 +9,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.util.Base64
 import android.util.Log
+import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 import org.bouncycastle.asn1.x500.X500Name
@@ -19,12 +20,13 @@ import org.bouncycastle.asn1.x509.GeneralNames
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
+import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 import java.math.BigInteger
-import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.security.KeyPair
@@ -37,7 +39,10 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.Future
 import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
@@ -53,11 +58,14 @@ object LocalProxyManager {
     private const val CA_ALIAS = "spotilol-ca"
     private const val KEYSTORE_TYPE = "PKCS12"
 
-    private var serverSocket: ServerSocket? = null
+    @Volatile private var serverSocket: ServerSocket? = null
+    @Volatile private var acceptorFuture: Future<*>? = null
     @Volatile private var caKeyPair: KeyPair? = null
     @Volatile private var caCert: X509Certificate? = null
-	@Volatile private var leafKeyPair: KeyPair? = null
-    private val threadPool = Executors.newFixedThreadPool(32)
+    @Volatile private var leafKeyPair: KeyPair? = null
+    @Volatile private var threadPool: ExecutorService? = null
+    @Volatile private var pipeExecutor: ExecutorService? = null
+    @Volatile private var acceptorExecutor: ExecutorService? = null
 
     private val sslContextCache = Collections.synchronizedMap(HashMap<String, SSLContext>())
 
@@ -82,7 +90,7 @@ object LocalProxyManager {
             random.nextBytes(bytes)
             password = Base64.encodeToString(bytes, Base64.NO_WRAP)
             try {
-                prefs.edit().putString(KEY_PASSWORD, password).apply()
+                prefs.edit { putString(KEY_PASSWORD, password) }
             } catch (_: Exception) {}
         }
         return password
@@ -130,13 +138,12 @@ object LocalProxyManager {
             try {
                 Log.d(TAG, "Loading existing CA certificate")
                 loadCA(ksFile, password)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 try {
                     Log.d(TAG, "Migrating keystore to new password")
                     val ks = KeyStore.getInstance(KEYSTORE_TYPE)
                     ksFile.inputStream().use { ks.load(it, "".toCharArray()) }
-                    val entry = ks.getEntry(CA_ALIAS, KeyStore.PasswordProtection("".toCharArray()))
-                        as KeyStore.PrivateKeyEntry
+                    val entry = ks.getEntry(CA_ALIAS, KeyStore.PasswordProtection("".toCharArray())) as KeyStore.PrivateKeyEntry
                     caKeyPair = KeyPair(entry.certificate.publicKey, entry.privateKey)
                     caCert = entry.certificate as X509Certificate
                     val newKs = KeyStore.getInstance(KEYSTORE_TYPE)
@@ -203,26 +210,76 @@ object LocalProxyManager {
         val ks = KeyStore.getInstance(KEYSTORE_TYPE)
         ksFile.inputStream().use { ks.load(it, password.toCharArray()) }
 
-        val entry = ks.getEntry(CA_ALIAS, KeyStore.PasswordProtection(password.toCharArray()))
-            as KeyStore.PrivateKeyEntry
+        val entry = ks.getEntry(CA_ALIAS, KeyStore.PasswordProtection(password.toCharArray())) as KeyStore.PrivateKeyEntry
         caKeyPair = KeyPair(entry.certificate.publicKey, entry.privateKey)
         caCert = entry.certificate as X509Certificate
 
         Log.d(TAG, "CA certificate loaded")
     }
 
-    fun start() {
-        if (serverSocket != null) return
-        threadPool.execute {
-            try {
-                serverSocket = ServerSocket(0, 128, java.net.InetAddress.getByName("127.0.0.1"))
-                Log.d(TAG, "Proxy started on port ${serverSocket!!.localPort}")
+    /**
+     * Lazily (re)create the connection-handling pool so every start() gets a live one.
+     */
+    private fun pool(): ExecutorService {
+        val p = threadPool
+        if (p != null && !p.isShutdown) return p
+        synchronized(this) {
+            val p2 = threadPool
+            if (p2 != null && !p2.isShutdown) return p2
+            return Executors.newFixedThreadPool(32) { r -> Thread(r, "LocalProxy-Worker").apply { isDaemon = true }
+            }.also { threadPool = it }
+        }
+    }
 
-                while (!serverSocket!!.isClosed) {
-                    try {
-                        val client = serverSocket!!.accept()
-                        threadPool.execute { handleConnection(client) }
-                    } catch (_: Exception) {}
+    /**
+     * Cached thread pool for bidirectional pipe tasks and the CA trust probe.
+     * Unbounded like raw Threads, but reuses idle threads instead of churning.
+     * Idle threads are cleaned up after 60s.
+     */
+    private fun pipePool(): ExecutorService {
+        val p = pipeExecutor
+        if (p != null && !p.isShutdown) return p
+        synchronized(this) {
+            val p2 = pipeExecutor
+            if (p2 != null && !p2.isShutdown) return p2
+            return Executors.newCachedThreadPool { r ->
+                Thread(r, "LocalProxy-Pipe").apply { isDaemon = true }
+            }.also { pipeExecutor = it }
+        }
+    }
+
+    /**
+     * Single-thread executor for the acceptor loop.
+     * Replaces the raw acceptorThread - same semantics, managed lifecycle.
+     */
+    private fun acceptorPool(): ExecutorService {
+        val p = acceptorExecutor
+        if (p != null && !p.isShutdown) return p
+        synchronized(this) {
+            val p2 = acceptorExecutor
+            if (p2 != null && !p2.isShutdown) return p2
+            return Executors.newSingleThreadExecutor { r ->
+                Thread(r, "LocalProxy-Acceptor").apply { isDaemon = true }
+            }.also { acceptorExecutor = it }
+        }
+    }
+
+    @Synchronized
+    fun start() {
+        if (acceptorFuture?.isDone == false) return
+        acceptorFuture = acceptorPool().submit {
+            try {
+                val ss = ServerSocket(0, 128, java.net.InetAddress.getByName("127.0.0.1"))
+                serverSocket = ss
+                Log.d(TAG, "Proxy started on port ${ss.localPort} (dedicated acceptor)")
+
+                while (!ss.isClosed) {
+                    val client = try {
+                        ss.accept()
+                    } catch (_: Exception) {
+                        break
+                    }
+                    pool().execute { handleConnection(client) }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to start proxy", e)
@@ -230,15 +287,23 @@ object LocalProxyManager {
         }
     }
 
+    @Synchronized
     fun stop() {
         try {
             serverSocket?.close()
-            serverSocket = null
-            closeAllPooledUpstreamSockets()
             Log.d(TAG, "Proxy stopped")
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping proxy", e)
+        } finally {
+            serverSocket = null
         }
+        // Shut down all executors. Pending connections finish their current work;
+        // idle workers exit. pool()/pipePool()/acceptorPool() rebuild on next start().
+        try { threadPool?.shutdown() } catch (_: Exception) {}
+        try { pipeExecutor?.shutdown() } catch (_: Exception) {}
+        try { acceptorExecutor?.shutdownNow() } catch (_: Exception) {}
+        acceptorFuture = null
+        closeAllPooledUpstreamSockets()
     }
 
     private fun poolKey(host: String, port: Int) = "$host:$port"
@@ -280,8 +345,8 @@ object LocalProxyManager {
         }
         upstreamPool.clear()
     }
-	
-	    /**
+
+    /**
      * Pre-check a pooled socket before writing anything to it.
      * Similar to how Chromium handles its socket pool.
      * If the peer already closed the connection, it returns EOF immediately;
@@ -291,7 +356,8 @@ object LocalProxyManager {
         val original = try { socket.soTimeout } catch (_: Exception) { return true }
         return try {
             socket.soTimeout = 1
-            socket.inputStream.read() == -1  // EOF = peer already closed it
+            socket.inputStream.read()
+            true
         } catch (_: java.net.SocketTimeoutException) {
             false // nothing waiting - healthy, idle connection, the common case
         } catch (_: Exception) {
@@ -304,6 +370,7 @@ object LocalProxyManager {
     /** Opens and fully verifies a brand-new upstream TLS connection. */
     private fun openUpstreamSocket(host: String, port: Int, useHttp2: Boolean): SSLSocket {
         val socket = (SSLSocketFactory.getDefault().createSocket(host, port) as SSLSocket).also {
+            it.tcpNoDelay = true
             if (Build.VERSION.SDK_INT >= 29) {
                 val params = it.sslParameters
                 params.applicationProtocols = if (useHttp2) arrayOf("h2") else arrayOf("http/1.1")
@@ -325,6 +392,7 @@ object LocalProxyManager {
 
     private fun handleConnection(client: Socket) {
         client.soTimeout = 30000
+        client.tcpNoDelay = true
         try {
             val requestLine = readLine(client.inputStream) ?: return
 
@@ -396,10 +464,15 @@ object LocalProxyManager {
             }
             upstreamSSLSocket = upstream
 
-            val clientIn = clientSocket.inputStream
-            val clientOut = clientSocket.outputStream
-            var upstreamIn = upstream.inputStream
-            var upstreamOut = upstream.outputStream
+            // FIX (perf): raw SSL streams cost one syscall per byte in readLine()'s
+            // single-byte read loop. Buffering both sides turns every HTTP head
+            // from ~150 syscalls into a handful. Existing flush discipline in
+            // writeHead/pipeExactBytes/pipeChunkedBody already covers every
+            // write path, so nothing stalls.
+            val clientIn = BufferedInputStream(clientSocket.inputStream, 16384)
+            val clientOut = BufferedOutputStream(clientSocket.outputStream, 16384)
+            var upstreamIn = BufferedInputStream(upstream.inputStream, 16384)
+            var upstreamOut = BufferedOutputStream(upstream.outputStream, 16384)
 
             if (useHttp2) {
                 reuseUpstream = false
@@ -418,11 +491,11 @@ object LocalProxyManager {
                         if (!fromPool) throw e
                         Log.d(TAG, "Pooled upstream for $host was stale, reconnecting")
                         try { upstream.close() } catch (_: Exception) {}
-                        upstream = openUpstreamSocket(host, targetPort, useHttp2)
+                        upstream = openUpstreamSocket(host, targetPort, false)
                         upstreamSSLSocket = upstream
                         fromPool = false
-                        upstreamIn = upstream.inputStream
-                        upstreamOut = upstream.outputStream
+                        upstreamIn = BufferedInputStream(upstream.inputStream, 16384)
+                        upstreamOut = BufferedOutputStream(upstream.outputStream, 16384)
                         writeHead(reqHead, upstreamOut)
                     }
                     // outside the retry to reduce chance of truncated body
@@ -451,7 +524,10 @@ object LocalProxyManager {
                         break
                     }
 
-                    if (statusCode == 100 || statusCode == 101) {
+                    if (statusCode == 101) {
+                        // FIX: 100 Continue is NOT a protocol switch - the real response
+                        // follows it and must go through the normal framing path. Only
+                        // 101 (Switching Protocols) upgrades to a raw tunnel.
                         clientSocket.soTimeout = 0
                         upstream.soTimeout = 0
                         reuseUpstream = false
@@ -463,7 +539,7 @@ object LocalProxyManager {
                     val respConnection = getHeaderValue(respHead, "Connection")
 
                     val keepAlive = !reqConnection.equals("close", ignoreCase = true) &&
-                        !respConnection.equals("close", ignoreCase = true)
+                            !respConnection.equals("close", ignoreCase = true)
 
                     reuseUpstream = keepAlive
                     if (!keepAlive) break
@@ -507,12 +583,11 @@ object LocalProxyManager {
 
         if (isResponse) {
             val code = extractStatusCodeFromLine(statusLine)
-            noBody = code / 100 == 1 || code == 204 || code == 304 ||
-                methodHint.equals("HEAD", ignoreCase = true)
+            noBody = code / 100 == 1 || code == 204 || code == 304 || methodHint.equals("HEAD", ignoreCase = true)
         } else {
             noBody = false
         }
-        
+
         if (!noBody) {
             for ((k, v) in headers) {
                 if (k.equals("Content-Length", ignoreCase = true)) {
@@ -570,7 +645,7 @@ object LocalProxyManager {
     }
 
     private fun pipeExactBytes(input: InputStream, output: OutputStream, count: Long) {
-        val buf = ByteArray(8192)
+        val buf = ByteArray(32768)
         var remaining = count
         while (remaining > 0) {
             val n = input.read(buf, 0, minOf(buf.size.toLong(), remaining).toInt())
@@ -585,10 +660,10 @@ object LocalProxyManager {
         while (true) {
             val sizeLine = readLine(input) ?: return true
             if (sizeLine.isBlank()) continue
-            
+
             output.write((sizeLine + "\r\n").toByteArray(Charsets.ISO_8859_1))
             val chunkSize = sizeLine.split(";")[0].trim().toLongOrNull(16) ?: return true
-            
+
             if (chunkSize == 0L) {
                 // Zero-or-more trailer header lines can follow the final chunk, terminated
                 // by a blank line. Consume all of them so
@@ -601,7 +676,7 @@ object LocalProxyManager {
                 output.flush()
                 return false
             }
-            
+
             pipeExactBytes(input, output, chunkSize)
             val crlf = readLine(input) ?: return true
             output.write((crlf + "\r\n").toByteArray(Charsets.ISO_8859_1))
@@ -635,6 +710,7 @@ object LocalProxyManager {
 
         synchronized(this) {
             sslContextCache[hostname]?.let { return it }
+            if (sslContextCache.size >= 128) sslContextCache.clear()
 
             val (domainCert, domainKeyPair) = generateDomainCert(hostname)
 
@@ -704,166 +780,256 @@ object LocalProxyManager {
     private fun modifyRequestHeaders(msg: HttpHead) {
         msg.headers.removeAll { it.first.equals("X-Requested-With", ignoreCase = true) }
 
-        msg.headers.removeAll { it.first.equals("sec-ch-ua", ignoreCase = true) }
-        msg.headers.removeAll { it.first.equals("sec-ch-ua-mobile", ignoreCase = true) }
-        msg.headers.removeAll { it.first.equals("sec-ch-ua-platform", ignoreCase = true) }
+        // Strip ALL sec-ch-ua-* headers - basic AND extended.
+        // The basic 3 we replaced; the extended ones (full-version-list,
+        // platform-version, arch, bitness, model) we just nuke. They
+        // leak device model, ARM architecture, and Android version -
+        // dead giveaway it's a mobile WebView, not a Windows desktop.
+        msg.headers.removeAll { it.first.lowercase().startsWith("sec-ch-ua") }
 
         msg.headers.add("sec-ch-ua" to "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Google Chrome\";v=\"150\"")
         msg.headers.add("sec-ch-ua-mobile" to "?0")
         msg.headers.add("sec-ch-ua-platform" to "\"Windows\"")
     }
 
+    /**
+     * Migrated from raw Threads to pipePool() with CountDownLatch.
+     * Same semantics: two concurrent pipes, wait for both to finish.
+     * The cached pool reuses idle threads instead of churning new ones
+     * for every WebSocket upgrade / h2 tunnel.
+     *
+     * If pipePool() rejects a task (during shutdown), we count down
+     * the latch ourselves so await() doesn't deadlock.
+     */
     private fun bidirectionalPipe(
         clientIn: InputStream, clientOut: OutputStream,
         upstreamIn: InputStream, upstreamOut: OutputStream
     ) {
-        val t1 = Thread {
+        val latch = CountDownLatch(2)
+
+        fun submitPipe(input: InputStream, output: OutputStream) {
             try {
-                val buf = ByteArray(8192)
-                var n: Int
-                while (clientIn.read(buf).also { n = it } != -1) {
-                    upstreamOut.write(buf, 0, n)
-                    upstreamOut.flush()
+                pipePool().execute {
+                    try {
+                        val buf = ByteArray(8192)
+                        var n: Int
+                        while (input.read(buf).also { n = it } != -1) {
+                            output.write(buf, 0, n)
+                            output.flush()
+                        }
+                    } catch (_: Exception) {}
+                    try { output.close() } catch (_: Exception) {}
+                    latch.countDown()
                 }
-            } catch (_: Exception) {}
-            try { upstreamOut.close() } catch (_: Exception) {}
+            } catch (_: Exception) {
+                try { output.close() } catch (_: Exception) {}
+                latch.countDown()
+            }
         }
-        val t2 = Thread {
-            try {
-                val buf = ByteArray(8192)
-                var n: Int
-                while (upstreamIn.read(buf).also { n = it } != -1) {
-                    clientOut.write(buf, 0, n)
-                    clientOut.flush()
-                }
-            } catch (_: Exception) {}
-            try { clientOut.close() } catch (_: Exception) {}
-        }
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
+
+        submitPipe(clientIn, upstreamOut)
+        submitPipe(upstreamIn, clientOut)
+        latch.await()
     }
 
     fun isCAInstalled(): Boolean {
-        if (!isRunning) return false
+        val ourCa = caCert ?: run {
+            Log.e(TAG, "CA cert not loaded yet - cannot check installation")
+            return false
+        }
 
-        return try {
-            val sock = Socket()
-            sock.connect(InetSocketAddress("127.0.0.1", port), 5000)
-            sock.soTimeout = 5000
+        try {
+            val ourEncoded = ourCa.encoded
+            val ks = KeyStore.getInstance("AndroidCAStore")
+            ks.load(null, null)
 
-            sock.outputStream.write(
-                "CONNECT open.spotify.com:443 HTTP/1.1\r\nHost: open.spotify.com\r\n\r\n".toByteArray()
-            )
-            sock.outputStream.flush()
-
-            val reader = sock.inputStream.bufferedReader()
-            val status = reader.readLine() ?: run {
-                sock.close()
-                return false
+            val aliases = ks.aliases()
+            while (aliases.hasMoreElements()) {
+                val alias = aliases.nextElement()
+                val cert = ks.getCertificate(alias) as? X509Certificate ?: continue
+                try {
+                    if (cert.encoded.contentEquals(ourEncoded)) {
+                        Log.d(TAG, "CA found in trust store under alias: $alias")
+                        return true
+                    }
+                } catch (_: Exception) {}
             }
-
-            if (!status.contains("200")) {
-                sock.close()
-                return false
-            }
-
-            var line: String
-            do {
-                line = reader.readLine() ?: break
-            } while (line.isNotEmpty())
-
-            val sslContext = SSLContext.getDefault()
-            val ssl = sslContext.socketFactory.createSocket(
-                sock, "open.spotify.com", 443, true
-            ) as SSLSocket
-            ssl.useClientMode = true
-            ssl.startHandshake()
-
-            val peerCerts = ssl.session.peerCertificates
-            ssl.close()
-
-            Log.d(TAG, "CA is installed (${peerCerts.size} peer certs verified)")
-            true
-        } catch (e: javax.net.ssl.SSLHandshakeException) {
-            Log.d(TAG, "CA not installed: SSL handshake failed")
-            false
+            Log.d(TAG, "CA not found in Android trust store")
+            return false
         } catch (e: Exception) {
-            Log.e(TAG, "CA check error", e)
-            false
+            Log.e(TAG, "Failed to query AndroidCAStore", e)
+            return false
         }
     }
 
-    private fun getPEMContent(): String {
-        val base64 = Base64.encodeToString(caCert!!.encoded, Base64.DEFAULT or Base64.NO_WRAP)
-        return "-----BEGIN CERTIFICATE-----\n$base64\n-----END CERTIFICATE-----\n"
-    }
-
+    /**
+     * FIX: MediaStore.Downloads rows from a previous installation survive
+     * uninstallation (public Downloads = user files). After reinstall we
+     * no longer own those rows - the old delete-by-name sweep threw
+     * SecurityException and export failed forever. Now: per-row best-effort
+     * cleanup, unique-name fallback, real filename reporting, app-dir
+     * last resort, and no NPE when the CA isn't loaded.
+     */
     fun exportCACert(context: Context): String {
-        val pem = getPEMContent()
+        val ourCa = caCert ?: run {
+            Log.e(TAG, "CA cert not loaded - cannot export")
+            return "export failed"
+        }
+        val pem = try {
+            val base64 = Base64.encodeToString(ourCa.encoded, Base64.DEFAULT or Base64.NO_WRAP)
+            "-----BEGIN CERTIFICATE-----\n$base64\n-----END CERTIFICATE-----\n"
+        } catch (_: Exception) {
+            return "export failed"
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val resolver = context.contentResolver
+
+            // Best-effort sweep. Orphaned rows throw SecurityException -
+            // swallow PER-ROW and keep going; they must not abort the export.
             try {
-                val existing = resolver.query(
+                resolver.query(
                     MediaStore.Downloads.EXTERNAL_CONTENT_URI,
                     arrayOf(MediaStore.MediaColumns._ID),
                     "${MediaStore.MediaColumns.DISPLAY_NAME} = ?",
                     arrayOf("Spotilol_CA.pem"),
                     null
-                )
-                existing?.use { cursor ->
-                    while (cursor.moveToNext()) {
-                        val id = cursor.getLong(0)
-                        resolver.delete(
-                            ContentUris.withAppendedId(
-                                MediaStore.Downloads.EXTERNAL_CONTENT_URI, id
-                            ),
-                            null,
-                            null
-                        )
+                )?.use { cursor ->
+                    val stale = mutableListOf<Long>()
+                    while (cursor.moveToNext()) stale.add(cursor.getLong(0))
+                    stale.forEach { id ->
+                        try {
+                            resolver.delete(
+                                ContentUris.withAppendedId(MediaStore.Downloads.EXTERNAL_CONTENT_URI, id),
+                                null, null
+                            )
+                        } catch (_: Exception) {}
                     }
                 }
+            } catch (_: Exception) {}
 
-                val values = ContentValues().apply {
-                    put(MediaStore.Downloads.DISPLAY_NAME, "Spotilol_CA.pem")
-                    put(MediaStore.Downloads.MIME_TYPE, "application/x-pem-file")
-                    put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-                    put(MediaStore.Downloads.IS_PENDING, 1)
-                }
-                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-                if (uri != null) {
-                    resolver.openOutputStream(uri)?.use { os ->
-                        os.write(pem.toByteArray())
-                    }
-                    val clearPending = ContentValues().apply {
-                        put(MediaStore.Downloads.IS_PENDING, 0)
-                    }
-                    resolver.update(uri, clearPending, null, null)
-                    Log.d(TAG, "CA exported to Downloads via MediaStore")
-                    return "/sdcard/Download/Spotilol_CA.pem"
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to export CA certificate", e)
-                return "export failed"
+            var displayName = "Spotilol_CA.pem"
+            var uri = try {
+                resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, pendingValues(displayName))
+            } catch (_: Exception) { null }
+
+            if (uri == null) {
+                // Canonical name is stuck behind an undeletable orphan -
+                // export under a unique name instead of failing.
+                displayName = "Spotilol_CA_${System.currentTimeMillis()}.pem"
+                uri = try {
+                    resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, pendingValues(displayName))
+                } catch (_: Exception) { null }
             }
-        } else {
-            try {
-                val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
-                    ?: context.filesDir
-                val file = File(dir, "Spotilol_CA.pem")
-                file.writeText(pem)
-                Log.d(TAG, "CA exported to ${file.absolutePath}")
-                return file.absolutePath
+
+            if (uri == null) return exportToFileDir(context, pem)
+
+            return try {
+                val out = resolver.openOutputStream(uri)
+                    ?: throw java.io.IOException("null output stream")
+                out.use { it.write(pem.toByteArray()) }
+                resolver.update(uri, ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) }, null, null)
+
+                // MediaProvider may auto-rename on duplicate names - report
+                // the REAL filename so the toast points at the right file.
+                val realName = try {
+                    resolver.query(uri, arrayOf(MediaStore.MediaColumns.DISPLAY_NAME), null, null, null)
+                        ?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+                } catch (_: Exception) { null }
+                val name = realName ?: displayName
+                Log.d(TAG, "CA exported to Downloads as $name")
+                File(File(Environment.getExternalStorageDirectory(), Environment.DIRECTORY_DOWNLOADS), name).absolutePath
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to export CA certificate", e)
-                return "export failed"
+                Log.e(TAG, "MediaStore export failed, falling back to app dir", e)
+                try { resolver.delete(uri, null, null) } catch (_: Exception) {}
+                exportToFileDir(context, pem)
             }
         }
 
-        Log.e(TAG, "Failed to export CA certificate")
-        return "export failed"
+        return exportToFileDir(context, pem)
     }
 
+    private fun pendingValues(name: String): ContentValues = ContentValues().apply {
+        put(MediaStore.Downloads.DISPLAY_NAME, name)
+        put(MediaStore.Downloads.MIME_TYPE, "application/x-pem-file")
+        put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+        put(MediaStore.Downloads.IS_PENDING, 1)
+    }
+
+    /** Last resort: app-specific dir. No permissions needed on any API level. */
+    private fun exportToFileDir(context: Context, pem: String): String {
+        return try {
+            val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.filesDir
+            val file = File(dir, "Spotilol_CA.pem")
+            file.writeText(pem)
+            Log.d(TAG, "CA exported to app dir: ${file.absolutePath}")
+            file.absolutePath
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to export CA certificate", e)
+            "export failed"
+        }
+    }
+
+    /**
+     * TRUE iff the system's DEFAULT trust pipeline accepts our CA *right now*.
+     *
+     * We serve a one-shot TLS endpoint signed by our CA on localhost, connect
+     * with the platform-default SSLSocketFactory, and require the full
+     * handshake + hostname verification to succeed. That exercises the real
+     * trust decision (freshly constructed TrustManagerImpl), so it cannot be
+     * fooled by stale keystore-enumeration views - the exact staleness that
+     * made isCAInstalled() lie to us mid-session until an app restart.
+     */
+    fun isCATrustedLive(): Boolean {
+        if (caCert == null) return false
+        var listener: ServerSocket? = null
+        var serverTls: SSLSocket? = null
+        var accepted: Socket? = null
+        var client: SSLSocket? = null
+
+        return try {
+            val ctx = getOrCreateSSLContext("localhost")
+
+            listener = ServerSocket(0, 1, java.net.InetAddress.getByName("127.0.0.1"))
+            val port = listener.localPort
+
+            // Migrated from raw Thread to pipePool(). Fire-and-forget,
+            // same as before - the finally block closes everything.
+            try {
+                pipePool().execute {
+                    try {
+                        accepted = listener.accept()
+                        val tls = ctx.socketFactory.createSocket(
+                            accepted, "localhost", port, true
+                        ) as SSLSocket
+                        serverTls = tls
+                        tls.useClientMode = false
+                        tls.startHandshake()
+                        tls.outputStream.write(0x01)
+                    } catch (_: Exception) {}
+                }
+            } catch (_: Exception) {}
+
+            client = SSLSocketFactory.getDefault()
+                .createSocket("127.0.0.1", port) as SSLSocket
+            client.soTimeout = 3000
+            client.startHandshake()
+
+            HttpsURLConnection.getDefaultHostnameVerifier()
+                .verify("localhost", client.session)
+
+            true
+        } catch (_: Exception) {
+            false
+        } finally {
+            try { client?.close() } catch (_: Exception) {}
+            try { serverTls?.close() } catch (_: Exception) {}
+            try { accepted?.close() } catch (_: Exception) {}
+            try { listener?.close() } catch (_: Exception) {}
+        }
+    }
+
+    /** Combined verdict: fast path first, live handshake as the tiebreaker. */
+    fun isCAEffectivelyInstalled(): Boolean =
+        isCAInstalled() || isCATrustedLive()
 }

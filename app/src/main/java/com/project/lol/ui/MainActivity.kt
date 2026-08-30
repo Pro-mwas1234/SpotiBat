@@ -14,29 +14,32 @@ import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.drawable.Icon
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
 import android.util.Rational
-import android.widget.Toast
 import android.view.LayoutInflater
 import android.view.View
-import android.view.WindowManager
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.webkit.CookieManager
 import android.webkit.WebStorage
 import android.webkit.WebView
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
+import android.net.Uri
+import android.webkit.ValueCallback
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -54,10 +57,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -67,45 +77,39 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.webkit.ProxyConfig
 import androidx.webkit.ProxyController
+import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
-import androidx.webkit.WebSettingsCompat
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.project.lol.R
 import com.project.lol.bridge.SpotifyBridge
@@ -120,17 +124,27 @@ import com.project.lol.webview.SpotifyWebViewClient
 import com.project.lol.webview.helpers.buildAmoledJs
 import com.project.lol.webview.helpers.buildCustomCssJs
 import com.project.lol.webview.injections.LogoutCheck
+import org.json.JSONObject
 import java.lang.ref.WeakReference
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.Executors
 import kotlin.math.min
-import org.json.JSONObject
+import androidx.core.content.edit
+import androidx.core.graphics.scale
+import androidx.core.graphics.toColorInt
+import com.project.lol.ui.components.ErrorScreen
+import com.project.lol.ui.components.mapWebViewError
+import com.project.lol.webview.helpers.DevLogPrelude
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
 
     private var webView: WebView? = null
+    private var activeWebViewClient: SpotifyWebViewClient? = null
+    private var activeChromeClient: SpotifyWebChromeClient? = null
+    private val webViewGen = mutableIntStateOf(0)
     private var serviceStarted = false
     @Volatile private var pipCoverBitmap: Bitmap? = null
     @Volatile private var pipPlaying = false
@@ -142,8 +156,10 @@ class MainActivity : ComponentActivity() {
     private var pipVideoCallback: android.webkit.WebChromeClient.CustomViewCallback? = null
     private var pipVideoAspect: Rational? = null
     private var pipVideoPending = false
-    private val pipVideoTimeout = Handler(Looper.getMainLooper())
+    @Volatile
+    private var filePathCallback: ValueCallback<Array<Uri>>? = null
 
+    private val pipVideoTimeout = Handler(Looper.getMainLooper())
     private val serviceEnabledState = mutableStateOf(true)
     private val materialYouState = mutableStateOf(false)
     private val amoledState = mutableStateOf(false)
@@ -160,6 +176,10 @@ class MainActivity : ComponentActivity() {
 
     private val loadingProgress = mutableIntStateOf(100)
 
+    private val canGoBackState = mutableStateOf(false)
+    private val webViewError = mutableStateOf<Pair<Int, String>?>(null)
+    private val pipCoverExecutor = Executors.newSingleThreadExecutor()
+
     private val notifPermLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { _ -> }
@@ -168,20 +188,22 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestPermission()
     ) { _ -> requestNotificationPermission() }
 
+    private val filePickerLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        val callback = filePathCallback
+        filePathCallback = null
+        callback?.onReceiveValue(uri?.let { arrayOf(it) })
+    }
+
     private lateinit var prefs: SharedPreferences
 
     private val analytics: FirebaseAnalytics by lazy { FirebaseAnalytics.getInstance(this) }
 
-    @SuppressLint("SetJavaScriptEnabled")
+    @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface", "RequiresFeature", "InflateParams")
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-
-        // Track screen view
-        analytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, Bundle().apply {
-            putString(FirebaseAnalytics.Param.SCREEN_NAME, "MainActivity")
-            putString(FirebaseAnalytics.Param.SCREEN_CLASS, "MainActivity")
-        })
 
         prefs = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
         val useProxy = prefs.getString("ConnectionMode", "normal") == "proxy"
@@ -203,7 +225,7 @@ class MainActivity : ComponentActivity() {
             Toast.makeText(this, "A new update is available", Toast.LENGTH_SHORT).show()
             Handler(Looper.getMainLooper()).postDelayed({
                 try {
-                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
                 } catch (_: Exception) {}
             }, 2000)
         }
@@ -231,6 +253,7 @@ class MainActivity : ComponentActivity() {
             val showDialog = showSleepTimerDialog.value
             val timerActive = sleepTimerActive.value
             val loadProgress = loadingProgress.intValue
+            val canGoBack = canGoBackState.value
 
             var settingsDrawerOpen by remember { mutableStateOf(false) }
             var showMiniMenu by remember { mutableStateOf(false) }
@@ -239,10 +262,10 @@ class MainActivity : ComponentActivity() {
                     .getOrNull() ?: ""
             }
             val seedColor = paletteSeed?.let { hex ->
-                runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull()
+                runCatching { Color(hex.toColorInt()) }.getOrNull()
             }
 
-            BackHandler(enabled = settingsDrawerOpen || webView?.canGoBack() == true) {
+            BackHandler(enabled = settingsDrawerOpen || canGoBack) {
                 if (settingsDrawerOpen) {
                     settingsDrawerOpen = false
                 } else {
@@ -258,37 +281,37 @@ class MainActivity : ComponentActivity() {
                     materialYou = materialYou,
                     onMaterialYouChange = { enabled ->
                         materialYouState.value = enabled
-                        prefs.edit().putBoolean("MaterialYou", enabled).apply()
+                        prefs.edit { putBoolean("MaterialYou", enabled) }
                     },
                     amoledThemeState = amoled,
                     onAmoledThemeChange = { enabled ->
                         amoledState.value = enabled
-                        prefs.edit().putBoolean("AmoledTheme", enabled).apply()
+                        prefs.edit { putBoolean("AmoledTheme", enabled) }
                     },
                     hideTopBar = hideTopBar,
                     onHideTopBarChange = { enabled ->
                         hideTopBarState.value = enabled
-                        prefs.edit().putBoolean("HideTopBar", enabled).apply()
+                        prefs.edit { putBoolean("HideTopBar", enabled) }
                     },
                     landscapeMode = landscapeMode,
                     onLandscapeModeChange = { enabled ->
                         landscapeModeState.value = enabled
-                        prefs.edit().putBoolean("LandscapeMode", enabled).apply()
+                        prefs.edit { putBoolean("LandscapeMode", enabled) }
                         applyOrientation()
                     },
                     keepScreenOn = keepScreenOn,
                     onKeepScreenOnChange = { enabled ->
                         keepScreenOnState.value = enabled
-                        prefs.edit().putBoolean("KeepScreenOn", enabled).apply()
+                        prefs.edit { putBoolean("KeepScreenOn", enabled) }
                         applyKeepScreenOn()
                     },
                     paletteSeed = paletteSeed,
                     onPaletteSeedChange = { hex ->
                         paletteSeedState.value = hex
                         if (hex.isNullOrBlank()) {
-                            prefs.edit().remove("PaletteSeed").apply()
+                            prefs.edit { remove("PaletteSeed") }
                         } else {
-                            prefs.edit().putString("PaletteSeed", hex).apply()
+                            prefs.edit { putString("PaletteSeed", hex) }
                         }
                     },
                     onConnectionModeChange = { switchConnectionMode(it) },
@@ -296,7 +319,14 @@ class MainActivity : ComponentActivity() {
                     onLoadProfile = { cookies -> loadProfile(cookies) },
                     onDeleteProfile = { name -> deleteProfile(name) },
                     onClearCache = { clearWebViewCache() },
-                    onClearData = { clearAllData() }
+                    onClearData = { clearAllData() },
+                    onDebugToggle = { enabled ->
+                        webView?.evaluateJavascript(
+                            if (enabled) DevLogPrelude.js()
+                            else "window.dbg=null;window.dbgw=null;window.dbge=null;",
+                            null
+                        )
+                    },
                 ) {
                     Scaffold(
                         topBar = {
@@ -382,92 +412,174 @@ class MainActivity : ComponentActivity() {
                                 handleMediaStatus(json)
                             }
 
+                            bridge.onPlayLoaded = {
+                                // Autoplay is now a native decision. JS self-triggering deadlocked on
+                                // the unlock flag - the only thing that could set the flag was a play
+                                // click, and the only play clicker was waiting on the flag. Native
+                                // breaks the circle: playLoaded fires, we evaluate, done.
+                                val mode = prefs.getString("APlayMode", "disabled") ?: "disabled"
+                                if (mode == "onetime" || mode == "permanent") {
+                                    webView?.evaluateJavascript(
+                                        "if(typeof splAutoPlay==='function') splAutoPlay();",
+                                        null
+                                    )
+                                }
+                            }
 
 
-                            AndroidView(
-                                factory = { context ->
-                                    WebView(context).apply {
-                                        layoutParams = ViewGroup.LayoutParams(
-                                            ViewGroup.LayoutParams.MATCH_PARENT,
-                                            ViewGroup.LayoutParams.MATCH_PARENT
-                                        )
-
-                                        webView = this
-
-                                        setLayerType(View.LAYER_TYPE_HARDWARE, null)
-
-                                        settings.apply {
-                                            userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
-                                            javaScriptEnabled = true
-                                            domStorageEnabled = true
-                                            useWideViewPort = true
-                                            loadWithOverviewMode = true
-                                            setSupportZoom(true)
-                                            builtInZoomControls = true
-                                            displayZoomControls = false
-                                            allowFileAccess = false
-                                            allowContentAccess = false
-                                            mediaPlaybackRequiresUserGesture = false
-                                            setSupportMultipleWindows(true)
-                                            javaScriptCanOpenWindowsAutomatically = true
-                                            cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
-                                            setGeolocationEnabled(false)
-                                            @Suppress("DEPRECATION")
-                                            saveFormData = false
-                                            mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                                        }
-
-                                        setInitialScale(100)
-                                        setBackgroundColor(0xFF000000.toInt())
-
-                                        if (WebViewFeature.isFeatureSupported(WebViewFeature.BACK_FORWARD_CACHE)) {
-                                            WebSettingsCompat.setBackForwardCacheEnabled(settings, true)
-                                        }
-
-                                        addJavascriptInterface(bridge, "AndBridge")
-                                        webChromeClient = SpotifyWebChromeClient(
-                                            onProgressChanged = { progress ->
-                                                loadingProgress.intValue = progress
-                                            },
-                                            onShowCustomView = { view, callback ->
-                                                handleCustomViewShown(view, callback)
-                                            },
-                                            onHideCustomView = {
-                                                handleCustomViewHidden()
-                                            }
-                                        )
-
-                                        webViewClient = SpotifyWebViewClient(
-                                            onLoginRequired = {
-                                                loadUrl("https://accounts.spotify.com/login")
-                                            }
-                                        )
-
-                                        val executor = Executors.newSingleThreadExecutor()
-                                        if (useProxy && LocalProxyManager.isRunning) {
-                                            val proxyConfig = ProxyConfig.Builder()
-                                                .addProxyRule("localhost:${LocalProxyManager.port}")
-                                                .build()
-                                            ProxyController.getInstance().setProxyOverride(
-                                                proxyConfig,
-                                                executor,
-                                                { }
+                            key(webViewGen.intValue) {
+                                AndroidView(
+                                    factory = { context ->
+                                        WebView(context).apply {
+                                            layoutParams = ViewGroup.LayoutParams(
+                                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                                ViewGroup.LayoutParams.MATCH_PARENT
                                             )
-                                        } else {
-                                            ProxyController.getInstance().clearProxyOverride(executor, { })
-                                        }
 
-                                        if (loggedIn) {
-                                            loadUrl("https://open.spotify.com/")
-                                        } else {
-                                            loadUrl("https://accounts.spotify.com/login")
+                                            webView = this
+
+                                            setLayerType(View.LAYER_TYPE_HARDWARE, null)
+
+                                            settings.apply {
+                                                userAgentString =
+                                                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
+                                                javaScriptEnabled = true
+                                                domStorageEnabled = true
+                                                useWideViewPort = true
+                                                loadWithOverviewMode = true
+                                                setSupportZoom(true)
+                                                builtInZoomControls = true
+                                                displayZoomControls = false
+                                                allowFileAccess = false
+                                                allowContentAccess = false
+                                                mediaPlaybackRequiresUserGesture = false
+                                                setSupportMultipleWindows(true)
+                                                javaScriptCanOpenWindowsAutomatically = true
+                                                cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+                                                setGeolocationEnabled(false)
+                                                @Suppress("DEPRECATION")
+                                                saveFormData = false
+                                                mixedContentMode =
+                                                    android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                                            }
+
+                                            setInitialScale(100)
+                                            setBackgroundColor(0xFF000000.toInt())
+
+                                            if (WebViewFeature.isFeatureSupported(WebViewFeature.BACK_FORWARD_CACHE)) {
+                                                WebSettingsCompat.setBackForwardCacheEnabled(
+                                                    settings,
+                                                    true
+                                                )
+                                            }
+
+                                            addJavascriptInterface(bridge, "AndBridge")
+                                            webChromeClient = SpotifyWebChromeClient(
+                                                onProgressChanged = { progress ->
+                                                    loadingProgress.intValue = progress
+                                                },
+                                                onShowCustomView = { view, callback ->
+                                                    handleCustomViewShown(view, callback)
+                                                },
+                                                onHideCustomView = {
+                                                    handleCustomViewHidden()
+                                                },
+                                                onFileChooser = { callback, _ ->
+                                                    filePathCallback?.onReceiveValue(null)
+                                                    filePathCallback = callback
+                                                    filePickerLauncher.launch("image/*")
+                                                    true
+                                                }
+                                            ).also { activeChromeClient = it }
+
+                                            webViewClient = SpotifyWebViewClient(
+                                                onLoginRequired = {
+                                                    loadUrl("https://accounts.spotify.com/login")
+                                                },
+                                                onNavStateChanged = { backable ->
+                                                    canGoBackState.value = backable
+                                                },
+                                                onRenderProcessGone = {
+                                                    // Bumping the key makes Compose dispose the old AndroidView and run
+                                                    // the factory again. destroyWebView() clears every reference first
+                                                    // so the new factory starts from a clean slate.
+                                                    runOnUiThread {
+                                                        webViewError.value = null   // stale error would block the rebuilt webview
+                                                        destroyWebView()
+                                                        webViewGen.intValue += 1
+                                                    }
+                                                },
+                                                onWebViewError = { code, desc ->
+                                                    webViewError.value = code to desc
+                                                }
+                                            ).also { activeWebViewClient = it }
+
+                                            // ---- Proxy override + first navigation (race-free) ----
+                                            // WebView is multiprocess: the override reaches the renderer over IPC and
+                                            // only goes live once the callback fires. Navigating before that lets the
+                                            // first main-frame request slip out un-proxied (or, right after a mode
+                                            // switch, hit a stale override pointing at a dead proxy). So: navigate
+                                            // FROM the callback, never right after the call.
+                                            val targetUrl = if (loggedIn) "https://open.spotify.com/"
+                                                else "https://accounts.spotify.com/login"
+
+                                            if (WebViewFeature.isFeatureSupported(WebViewFeature.PROXY_OVERRIDE)) {
+                                                val proxyExecutor = Executors.newSingleThreadExecutor { r ->
+                                                    Thread(r, "ProxyOverride").apply { isDaemon = true }
+                                                }
+                                                if (useProxy && LocalProxyManager.isRunning) {
+                                                    // ProxyController requires a scheme (http://, socks://, or direct).
+                                                    // A bare "host:port" is parsed as scheme="host" and silently falls
+                                                    // back to DIRECT, so MITM never actually happens.
+                                                    val proxyConfig = ProxyConfig.Builder()
+                                                        .addProxyRule("http://localhost:${LocalProxyManager.port}")
+                                                        .build()
+                                                    try {
+                                                        ProxyController.getInstance().setProxyOverride(proxyConfig, proxyExecutor) {
+                                                            android.util.Log.d(
+                                                                "MainActivity",
+                                                                "Proxy override applied: http://localhost:${LocalProxyManager.port}"
+                                                            )
+                                                            post { loadUrl(targetUrl) }
+                                                            proxyExecutor.shutdown()
+                                                        }
+                                                    } catch (e: Exception) {
+                                                        // Sync throw (e.g. WebView already torn down mid-race) - the
+                                                        // callback will never fire; fall back to a direct load.
+                                                        android.util.Log.e("MainActivity", "setProxyOverride failed", e)
+                                                        loadUrl(targetUrl)
+                                                        proxyExecutor.shutdown()
+                                                    }
+                                                } else {
+                                                    // Normal mode: clear any stale override left over from a previous
+                                                    // proxy session. The override is process-wide and SURVIVES the mode
+                                                    // switch (switchConnectionMode restarts activities, not the process),
+                                                    // so without this clear the first load could try a dead localhost
+                                                    // port and faceplant into the error screen.
+                                                    ProxyController.getInstance().clearProxyOverride(proxyExecutor) {
+                                                        proxyExecutor.shutdown()
+                                                        post { loadUrl(targetUrl) }
+                                                    }
+                                                }
+                                            } else {
+                                                // Ancient WebView without PROXY_OVERRIDE: ProxyController would throw.
+                                                // Load direct; in proxy mode MITM simply won't engage (UA spoofing via
+                                                // settings.userAgentString still holds, so it degrades, doesn't break).
+                                                if (useProxy) {
+                                                    android.util.Log.e(
+                                                        "MainActivity",
+                                                        "PROXY_OVERRIDE unsupported on this WebView - loading direct, MITM inactive"
+                                                    )
+                                                }
+                                                loadUrl(targetUrl)
+                                            }
                                         }
-                                    }
-                                },
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(MaterialTheme.colorScheme.background)
-                            )
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(MaterialTheme.colorScheme.background)
+                                )
+                            }
 
                             LaunchedEffect(webView) {
                                 webView?.let { startMediaService() }
@@ -488,6 +600,18 @@ class MainActivity : ComponentActivity() {
                                         .alpha(progressAlpha),
                                     color = Color(0xFF22DD66),
                                     trackColor = Color.Transparent,
+                                )
+                            }
+
+                            webViewError.value?.let { (code, desc) ->
+                                ErrorScreen(
+                                    errorType = mapWebViewError(code),
+                                    errorCode = code,
+                                    errorDescription = desc,
+                                    onRetry = {
+                                        webViewError.value = null
+                                        webView?.reload()
+                                    }
                                 )
                             }
 
@@ -551,7 +675,7 @@ class MainActivity : ComponentActivity() {
 
     private fun setServiceEnabled(newValue: Boolean) {
         serviceEnabledState.value = newValue
-        prefs.edit().putBoolean("ServiceOn", newValue).apply()
+        prefs.edit { putBoolean("ServiceOn", newValue) }
         if (!newValue) {
             analytics.logEvent("service_toggle", Bundle().apply {
                 putString("enabled", "off")
@@ -567,8 +691,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun switchConnectionMode(mode: String) {
-        prefs.edit().putString("ConnectionMode", mode).apply()
-        prefs.edit().putBoolean("ServiceOn", false).apply()
+        prefs.edit { putString("ConnectionMode", mode)}
+        prefs.edit { putBoolean("ServiceOn", false) }
         stopService(Intent(this, MediaNotificationService::class.java))
         LocalProxyManager.stop()
         val intent = Intent(this, SplashActivity::class.java).apply {
@@ -584,15 +708,17 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun loadProfile(cookies: String) {
-        if (!ProfileManager.applyProfile(this, cookies)) {
-            Toast.makeText(this, "Profile could not be loaded", Toast.LENGTH_SHORT).show()
-            return
+        ProfileManager.applyProfile(this, cookies) { ok ->
+            if (!ok) {
+                Toast.makeText(this, "Profile could not be loaded", Toast.LENGTH_SHORT).show()
+                return@applyProfile
+            }
+            val intent = Intent(this, SplashActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+            startActivity(intent)
+            finish()
         }
-        val intent = Intent(this, SplashActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
-        startActivity(intent)
-        finish()
     }
 
     private fun deleteProfile(name: String) {
@@ -617,7 +743,7 @@ class MainActivity : ComponentActivity() {
         WebStorage.getInstance().deleteAllData()
         CookieManager.getInstance().removeAllCookies(null)
         CookieManager.getInstance().flush()
-        prefs.edit().putBoolean("LoggedIn", false).apply()
+        prefs.edit { putBoolean("LoggedIn", false) }
         Toast.makeText(this, "All data cleared, please login again", Toast.LENGTH_SHORT).show()
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -684,7 +810,7 @@ class MainActivity : ComponentActivity() {
             val remainingSecs = timerRemainingMs / 1000
             val mins = remainingSecs / 60
             val secs = remainingSecs % 60
-            val timeStr = String.format("%d:%02d min remaining", mins, secs)
+            val timeStr = String.format(Locale.ROOT, "%d:%02d min remaining", mins, secs)
 
             AlertDialog(
                 onDismissRequest = onDismiss,
@@ -835,7 +961,8 @@ class MainActivity : ComponentActivity() {
                 Popup(
                     alignment = Alignment.TopCenter,
                     offset = IntOffset(0, with(LocalDensity.current) { 64.dp.toPx() }.toInt()),
-                    onDismissRequest = onDismissMenu
+                    onDismissRequest = onDismissMenu,
+                    properties = PopupProperties(focusable = true)
                 ) {
                     Card(
                         shape = RoundedCornerShape(16.dp),
@@ -1019,7 +1146,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun updatePipParams() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isInPictureInPictureMode) {
+        if (isInPictureInPictureMode) {
             setPictureInPictureParams(buildPipParams())
         }
     }
@@ -1103,7 +1230,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun fetchPipCover(url: String) {
-        Thread {
+        pipCoverExecutor.execute {
             var conn: HttpURLConnection? = null
             try {
                 conn = URL(url).openConnection() as HttpURLConnection
@@ -1112,11 +1239,11 @@ class MainActivity : ComponentActivity() {
                 conn.connect()
                 val raw = BitmapFactory.decodeStream(conn.inputStream)
                 if (raw != null) {
-                    val target = 1024
+                    val target = if (prefs.getBoolean("PowerSave", false)) 384 else 1024
                     val scale = min(target.toFloat() / raw.width, target.toFloat() / raw.height)
                     val w = (raw.width * scale).toInt().coerceAtLeast(1)
                     val h = (raw.height * scale).toInt().coerceAtLeast(1)
-                    val scaled = Bitmap.createScaledBitmap(raw, w, h, true)
+                    val scaled = raw.scale(w, h)
                     if (scaled != raw) raw.recycle()
                     pipCoverBitmap = scaled
                     runOnUiThread {
@@ -1125,22 +1252,38 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             } catch (_: Exception) {
-            } finally {
                 try { conn?.disconnect() } catch (_: Exception) {}
             }
-        }.start()
+        }
     }
 
+    /**
+     * Tear down the current WebView entirely so a fresh one can be created by
+     * composition. Called on renderer death (webViewGen bump triggers a new
+     * AndroidView factory run) and from onDestroy.
+     */
     private fun destroyWebView() {
+        canGoBackState.value = false
         pipVideoTimeout.removeCallbacksAndMessages(null)
         pipVideoView = null
         pipVideoCallback = null
         pipVideoPending = false
         hidePipOverlay()
+        activeChromeClient?.cleanup()
+        activeChromeClient = null
+        activeWebViewClient?.release()
+        activeWebViewClient = null
         webView?.let {
             it.stopLoading()
             it.removeJavascriptInterface("AndBridge")
-            if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_VIEW_RENDERER_TERMINATE)) {
+            // Two separate feature flags guard this call:
+            //  - GET_WEB_VIEW_RENDERER -> required by WebViewCompat.getWebViewRenderProcess()
+            //  - WEB_VIEW_RENDERER_TERMINATE -> required by WebViewRenderProcess.terminate()
+            // Checking only the terminate flag would still let getWebViewRenderProcess()
+            // throw on WebView versions that don't expose it.
+            if (WebViewFeature.isFeatureSupported(WebViewFeature.GET_WEB_VIEW_RENDERER) &&
+                WebViewFeature.isFeatureSupported(WebViewFeature.WEB_VIEW_RENDERER_TERMINATE)
+            ) {
                 try {
                     WebViewCompat.getWebViewRenderProcess(it)?.terminate()
                 } catch (_: Exception) {}
@@ -1180,11 +1323,7 @@ class MainActivity : ComponentActivity() {
         serviceStarted = true
         MediaNotificationService.webView = webView
         val intent = Intent(this, MediaNotificationService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent)
-        } else {
-            startService(intent)
-        }
+        startForegroundService(intent)
     }
 
     private fun requestNotificationPermission() {
@@ -1214,16 +1353,13 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         webView?.evaluateJavascript("""
-            try {
-                document.querySelectorAll('video').forEach(function(v) {
-                    if(v.muted || v.hasAttribute('loop') || v.style.objectFit === 'cover') {
-                        v.pause();
-                        v.removeAttribute('src');
-                        v.load();
-                    }
-                });
-            } catch(e) {}
-        """.trimIndent(), null)
+        try {
+            window.__splBg = true;
+            if(typeof pfint !== 'undefined' && pfint) { clearInterval(pfint); pfint = null; window.__splWasPfint = true; }
+            if(typeof afint !== 'undefined' && afint) { clearInterval(afint); afint = null; window.__splWasAfint = true; }
+            if(typeof cssint !== 'undefined' && cssint) { clearInterval(cssint); cssint = null; window.__splWasCssint = true; }
+        } catch(e) {}
+    """.trimIndent(), null)
     }
 
     override fun onResume() {
@@ -1250,17 +1386,25 @@ class MainActivity : ComponentActivity() {
         val closeNowPlay = prefs.getBoolean("CloseNowPlay", true)
 
         webView?.let { view ->
+            view.evaluateJavascript("""
+                try {
+                    window.__splBg = false;
+                    if(window.__splWasPfint) { window.__splWasPfint = false; firstFuck(); }
+                    if(window.__splWasAfint) { window.__splWasAfint = false; addAutoFeatures(); }
+                    if(window.__splWasCssint) { window.__splWasCssint = false; addCSSJSHack(); }
+                } catch(e) {}
+            """.trimIndent(), null)
+
             val js = buildString {
                 append("window.closeNpPref=$closeNowPlay;\n")
                 append(buildAmoledJs(amoledEnabled))
-                append("\n")
                 append(buildCustomCssJs(customCss))
             }
             view.evaluateJavascript(js, null)
 
             view.evaluateJavascript(LogoutCheck.CONTENT) { result ->
                 if (result == "\"out\"") {
-                    prefs.edit().putBoolean("LoggedIn", false).apply()
+                    prefs.edit {putBoolean("LoggedIn", false)}
                     view.loadUrl("https://accounts.spotify.com/login")
                 }
             }
@@ -1279,6 +1423,8 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         cancelSleepTimer()
         pipVideoTimeout.removeCallbacksAndMessages(null)
+        pipCoverExecutor.shutdown()
+        destroyWebView()
         pipVideoView = null
         pipVideoCallback = null
         pipVideoPending = false

@@ -5,6 +5,8 @@ import android.os.Looper
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 data class GitHubRelease(
     val tagName: String,
@@ -16,12 +18,17 @@ data class GitHubRelease(
 
 object GitHubApi {
 
+    private val executor: ExecutorService =
+        Executors.newSingleThreadExecutor { r ->
+            Thread(r, "GitHubApi-Worker").apply { isDaemon = true }
+        }
+
     fun fetchLatestRelease(
         owner: String,
         repo: String,
         onResult: (GitHubRelease?) -> Unit
     ) {
-        Thread {
+        executor.execute {
             try {
                 val url = URL("https://api.github.com/repos/$owner/$repo/releases/latest")
                 val conn = url.openConnection() as HttpURLConnection
@@ -49,6 +56,6 @@ object GitHubApi {
             } catch (_: Exception) {
                 Handler(Looper.getMainLooper()).post { onResult(null) }
             }
-        }.start()
+        }
     }
 }

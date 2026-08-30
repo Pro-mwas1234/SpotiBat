@@ -1,20 +1,25 @@
 [versions]
-agp = "9.3.1"
-kotlin = "2.4.0"
+agp = "9.3.2"
+firebaseBom = "34.18.0"
+kotlin = "2.4.10"
 coreKtx = "1.19.0"
-appcompat = "1.7.1"
+appcompat = "1.8.0"
 material = "1.14.0"
-webkit = "1.13.0"
-composeBom = "2026.06.01"
-activityCompose = "1.10.0"
-lifecycleRuntime = "2.9.0"
-media = "1.7.1"
-securityCrypto = "1.0.0"
+webkit = "1.17.0"
+composeBom = "2026.08.00"
+activityCompose = "1.13.0"
+lifecycleRuntime = "2.11.0"
+media = "1.8.0"
+securityCrypto = "1.1.0"
 bouncycastle = "1.70"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
+firebase-perf = { module = "com.google.firebase:firebase-perf" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
 androidx-media = { group = "androidx.media", name = "media", version.ref = "media" }
@@ -37,4 +42,3 @@ lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-ru
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-

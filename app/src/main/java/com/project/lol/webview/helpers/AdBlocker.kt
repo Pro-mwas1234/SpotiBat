@@ -1,5 +1,7 @@
 package com.project.lol.webview.helpers
 
+import java.util.Locale
+
 fun isAnalyticsDomain(url: String): Boolean {
     return url.contains("doubleclick.net") ||
             url.contains("googlesyndication.com") ||
@@ -8,9 +10,17 @@ fun isAnalyticsDomain(url: String): Boolean {
             url.contains("t.6sc.co") ||
             url.contains("tracker.samplicio.us") ||
             url.contains("adsrvr.org") ||
-            url.contains("aet.spotify.com")
+            url.contains("aet.spotify.com") ||
+            url.contains("retargeting-pixels") ||
+            url.contains("spotify.com/gabo-receiver-service/public/v3/events")
+            // workbox-window REMOVED: Spotify now loads it as a lazy webpack chunk
+            // (chunk 6201) during web-player init. Blocking it caused ChunkLoadError
+            // -> React error boundary -> "Something wrong with page". The service
+            // worker itself is already neutralized by WorkerNeutralize injecting
+            // before Spotify's code runs, so this block was redundant anyway.
 }
 
+@Suppress("unused")
 fun isAdAudioUrl(url: String): Boolean {
     return url.contains("akamaized.net/audio/") ||
             url.contains("scdn.co/audio/") ||
@@ -20,6 +30,15 @@ fun isAdAudioUrl(url: String): Boolean {
             url.contains("2mdn.net") ||
             url.contains("adxcel.com") ||
             url.contains("adstudio-assets.scdn.co")
+}
+
+fun isPowerHogUrl(url: String): Boolean {
+    if (url.contains("canvasset.scdn.co")) return true
+    if (url.contains("video-ak.spotify.com")) return true
+    if (url.contains("video-provider.net")) return true
+    if (url.contains("/audio/")) return false
+    val path = url.substringBefore('?').substringBefore('#').lowercase(Locale.ROOT)
+    return path.endsWith(".mp4") || path.endsWith(".m4s") || path.endsWith(".m3u8") || path.endsWith(".webm")
 }
 
 fun matchAdCdn(url: String): String? {

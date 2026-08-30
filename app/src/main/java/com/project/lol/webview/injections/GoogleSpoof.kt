@@ -86,6 +86,24 @@ object GoogleSpoof {
                         Object.defineProperty(window,'chrome',{value:chromeStub,configurable:true,writable:true});
                     }
                 } catch(e){}
+                try {
+                    var getParameter = WebGLRenderingContext.prototype.getParameter;
+                    WebGLRenderingContext.prototype.getParameter = function(param) {
+                        if (param === 37445) return 'Google Inc. (NVIDIA)';
+                        if (param === 37446) return 'ANGLE (NVIDIA, NVIDIA GeForce RTX 3050 (0x00002584) Direct3D11 vs_5_0 ps_5_0, D3D11)';
+                        return getParameter.call(this, param);
+                    };
+                    if (window.WebGL2RenderingContext) {
+                        var getParameter2 = WebGL2RenderingContext.prototype.getParameter;
+                        WebGL2RenderingContext.prototype.getParameter = function(param) {
+                            if (param === 37445) return 'Google Inc. (NVIDIA)';
+                            if (param === 37446) return 'ANGLE (NVIDIA, NVIDIA GeForce RTX 3050 (0x00002584) Direct3D11 vs_5_0 ps_5_0, D3D11)';
+                            return getParameter2.call(this, param);
+                        };
+                    }
+                } catch(e){}
+                safeDefine(navigator, 'hardwareConcurrency', function(){ return 16; });
+                safeDefine(navigator, 'deviceMemory', function(){ return 16; });
             })();
         
     """

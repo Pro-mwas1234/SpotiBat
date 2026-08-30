@@ -2,9 +2,12 @@ package com.project.lol.profile
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Handler
+import android.os.Looper
 import android.webkit.CookieManager
+import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKeys
+import androidx.security.crypto.MasterKey
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -29,39 +32,58 @@ object ProfileManager {
         "https://www.spotify.com"
     )
 
+    @Volatile
+    private var cachedPrefs: SharedPreferences? = null
+    private val prefsLock = Any()
+
     private fun prefs(context: Context): SharedPreferences {
-        try {
-            val masterKey = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-            return EncryptedSharedPreferences.create(
-                PREFS,
-                masterKey,
-                context,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-            )
-        } catch (e: Exception) {
-            try {
-                val ks = java.security.KeyStore.getInstance("AndroidKeyStore")
-                ks.load(null)
-                ks.deleteEntry(MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC))
-            } catch (_: Exception) {}
-            return try {
-                val masterKey = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-                EncryptedSharedPreferences.create(
-                    PREFS,
-                    masterKey,
-                    context,
-                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-                )
-            } catch (_: Exception) {
-                context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            }
+        cachedPrefs?.let { return it }
+        return synchronized(prefsLock) {
+            cachedPrefs ?: createPrefs(context.applicationContext).also { cachedPrefs = it }
         }
     }
 
+    private fun createPrefs(appContext: Context): SharedPreferences {
+        try {
+            return createEncryptedPrefs(appContext)
+        } catch (_: Exception) {
+        }
+
+        try {
+            val ks = java.security.KeyStore.getInstance("AndroidKeyStore")
+            ks.load(null)
+            ks.deleteEntry(MasterKey.DEFAULT_MASTER_KEY_ALIAS)
+        } catch (_: Exception) {
+        }
+
+        return try {
+            createEncryptedPrefs(appContext)
+        } catch (_: Exception) {
+            appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        }
+    }
+
+    private fun createEncryptedPrefs(context: Context): SharedPreferences {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+
+        return EncryptedSharedPreferences.create(
+            context,
+            PREFS,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
+
     fun getProfiles(context: Context): List<Profile> {
-        val raw = prefs(context).getString(KEY_PROFILES, null) ?: return emptyList()
+        val raw = try {
+            prefs(context).getString(KEY_PROFILES, null)
+        } catch (_: Exception) {
+            null
+        } ?: return emptyList()
+
         return try {
             val arr = JSONArray(raw)
             (0 until arr.length()).mapNotNull { i ->
@@ -98,10 +120,10 @@ object ProfileManager {
                     .put("savedAt", p.savedAt)
             )
         }
-        prefs(context).edit().putString(KEY_PROFILES, arr.toString()).apply()
+        prefs(context).edit { putString(KEY_PROFILES, arr.toString()) }
     }
 
-    fun captureSession(context: Context): String? {
+    fun captureSession(): String? {
         val map = JSONObject()
         var hasSpDc = false
         for (domain in COOKIE_DOMAINS) {
@@ -115,7 +137,7 @@ object ProfileManager {
         return map.toString()
     }
 
-    fun applyProfile(context: Context, json: String): Boolean {
+    fun applyProfile(context: Context, json: String, onComplete: (Boolean) -> Unit) {
         val entries = try {
             val map = JSONObject(json)
             val out = mutableListOf<Pair<String, String>>()
@@ -128,23 +150,36 @@ object ProfileManager {
         } catch (_: Exception) {
             emptyList()
         }
-        if (entries.isEmpty()) return false
+        if (entries.isEmpty()) {
+            postComplete(onComplete, false)
+            return
+        }
 
         CookieManager.getInstance().removeAllCookies {
-            for ((domain, cookies) in entries) {
-                for (pair in cookies.split(";")) {
-                    val cookie = pair.trim()
-                    if (cookie.contains("=")) {
-                        CookieManager.getInstance().setCookie(domain, cookie)
+            try {
+                for ((domain, cookies) in entries) {
+                    for (pair in cookies.split(";")) {
+                        val cookie = pair.trim()
+                        if (cookie.contains("=")) {
+                            CookieManager.getInstance().setCookie(domain, cookie)
+                        }
                     }
                 }
+                CookieManager.getInstance().flush()
+                context.getSharedPreferences("spotilol_prefs", Context.MODE_PRIVATE)
+                    .edit { putBoolean("LoggedIn", true) }
+                postComplete(onComplete, true)
+            } catch (_: Exception) {
+                postComplete(onComplete, false)
             }
-            CookieManager.getInstance().flush()
-            context.getSharedPreferences("spotilol_prefs", Context.MODE_PRIVATE)
-                .edit()
-                .putBoolean("LoggedIn", true)
-                .apply()
         }
-        return true
+    }
+
+    private fun postComplete(onComplete: (Boolean) -> Unit, result: Boolean) {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            onComplete(result)
+        } else {
+            Handler(Looper.getMainLooper()).post { onComplete(result) }
+        }
     }
 }

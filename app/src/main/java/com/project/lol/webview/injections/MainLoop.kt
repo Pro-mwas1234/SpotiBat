@@ -32,42 +32,67 @@ object MainLoop {
                     }
 
                     var pb = document.querySelector('aside button[data-testid=control-button-playpause]:not(.fuckd)');
-                    if(pb) {
-                        AndBridge.playLoaded();
-                        pb.classList.add('fuckd');
-                        window.pBtn = pb;
-
-                        pBtn.addEventListener('click', function(){
-                            if(pBtn.getAttribute('aria-label')!=='Play') {
-                                reqPause=true;
-                                ulFlag=false;
-                                AndBridge.wakeOff();
-                            } else if(!ulFlag) {
-                                reqPause=false;
-                                AndBridge.wakeUp();
-                                ulFlag=true;
-                                setTimeout(function(){
-                                    if(ulFlag && pBtn.getAttribute('aria-label')==='Play') {
-                                        AndBridge.deferMessage('unlock');
-                                        actSkipForward();
-                                    } else if(ulFlag) { ulFlag=false; }
-                                },10000);
-                            }
-                        });
-
-                        if(!ffDone){
-                            ffDone=true;
-                            AndBridge.manageTShut(true);
-                            AndBridge.manageTSleep(false);
-                            addAndAuto();
-                            setTimeout(addAutoFeatures, 1667);
-                            setTimeout(addCSSJSHack, 3333);
-                            setTimeout(function(){ if(window.autoPlayMode!=='disabled' && playing) actPlayPause(true); },10000);
-                        }
-                    }
+                    if(pb) wirePlayBtn(pb);
                 },5000);
+
+                var tries = 0;
+                var bootIv = setInterval(function(){
+                    tries++;
+                    var pb = document.querySelector('aside button[data-testid=control-button-playpause]:not(.fuckd)');
+                    if(pb){ clearInterval(bootIv); wirePlayBtn(pb); }
+                    else if(tries > 100){ clearInterval(bootIv); }
+                },300);
+            };
+
+            window.wirePlayBtn = function(pb){
+                window.pBtn = pb;
+                pb.classList.add('fuckd');
+
+                pBtn.addEventListener('click', function(e){
+                    if(pBtn.getAttribute('aria-label')!=='Play') {
+                        reqPause=true;
+                        ulFlag=false;
+                        AndBridge.wakeOff();
+                        return;
+                    }
+                    reqPause=false;
+                    if(e.isTrusted && !ulFlag){
+                        AndBridge.wakeUp();
+                        ulFlag=true;
+                        setTimeout(function(){
+                            if(ulFlag && pBtn.getAttribute('aria-label')==='Play') {
+                                AndBridge.deferMessage('unlock');
+                                actSkipForward();
+                                var uTries=0;
+                                var uIv=setInterval(function(){
+                                    uTries++;
+                                    if(pBtn.getAttribute('aria-label')!=='Play'){
+                                        window.__splUnlocked=true;
+                                        ulFlag=false;
+                                        clearInterval(uIv);
+                                    } else if(uTries>5){
+                                        clearInterval(uIv);
+                                        ulFlag=false;
+                                    }
+                                },1000);
+                            } else if(ulFlag) {
+                                ulFlag=false;
+                                window.__splUnlocked=true;
+                            }
+                        },10000);
+                    }
+                });
+
+                if(!ffDone){
+                    ffDone=true;
+                    AndBridge.manageTShut(true);
+                    AndBridge.manageTSleep(false);
+                    addAndAuto();
+                    addAutoFeatures();
+                    addCSSJSHack();
+                }
+                AndBridge.playLoaded();
             };
             firstFuck();
-        
     """
 }

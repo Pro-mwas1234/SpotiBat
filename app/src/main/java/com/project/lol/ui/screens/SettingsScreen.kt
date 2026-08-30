@@ -1,12 +1,9 @@
 package com.project.lol.ui.screens
 
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.net.Uri
-import android.webkit.CookieManager
-import android.webkit.WebStorage
-import android.webkit.WebView
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -32,7 +29,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BatterySaver
 import androidx.compose.material.icons.filled.BrightnessHigh
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CleaningServices
@@ -50,6 +49,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Smartphone
@@ -81,16 +81,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.toClipEntry
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -99,18 +105,26 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.edit
+import androidx.core.graphics.toColorInt
+import androidx.core.net.toUri
 import androidx.webkit.WebViewCompat
 import com.project.lol.R
 import com.project.lol.profile.ProfileManager
 import com.project.lol.proxy.LocalProxyManager
 import com.project.lol.ui.theme.SpotifyTheme
+import com.project.lol.util.DebugLogStore
 import com.project.lol.util.GitHubApi
 import com.project.lol.util.GitHubRelease
 import com.project.lol.util.MarkdownText
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
 
 private val PalettePresets = listOf(
     "Default" to null,
@@ -127,7 +141,7 @@ private val PalettePresets = listOf(
 
 private fun parsePaletteColor(hex: String?): Color? {
     if (hex.isNullOrBlank()) return null
-    return runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull()
+    return runCatching { Color(hex.toColorInt()) }.getOrNull()
 }
 
 private fun formatHex(color: Color): String {
@@ -159,7 +173,8 @@ fun SettingsContent(
     onLoadProfile: (String) -> Unit,
     onDeleteProfile: (String) -> Unit,
     onClearCache: () -> Unit,
-    onClearData: () -> Unit
+    onClearData: () -> Unit,
+    onDebugToggle: (Boolean) -> Unit
 ) {
     var autoplayMode by remember { mutableStateOf(prefs.getString("APlayMode", "disabled") ?: "disabled") }
     var takeControl by remember { mutableStateOf(prefs.getBoolean("TakeControl", true)) }
@@ -168,13 +183,18 @@ fun SettingsContent(
     var guiMode by remember { mutableStateOf(prefs.getString("GuiMode", "csshack") ?: "csshack") }
     var customCss by remember { mutableStateOf(prefs.getString("CustomCss", "") ?: "") }
     var amoledTheme by remember { mutableStateOf(amoledThemeState) }
+    var dbgOverlay by remember { mutableStateOf(prefs.getBoolean("DebugOverlay", false)) }
+    var showDevlogDialog by remember { mutableStateOf(false) }
     var swipeStop by remember { mutableStateOf(prefs.getBoolean("SwipeStop", true)) }
     var btAutoPause by remember { mutableStateOf(prefs.getBoolean("BtAutoPause", false)) }
     var btAutoResume by remember { mutableStateOf(prefs.getBoolean("BtAutoResume", false)) }
     var playerMode by remember { mutableStateOf(prefs.getString("PlayerMode", "spotilol") ?: "spotilol") }
     var connectionMode by remember { mutableStateOf(prefs.getString("ConnectionMode", "normal") ?: "normal") }
+    var powerSave by remember { mutableStateOf(prefs.getBoolean("PowerSave", false)) }
 
     val context = LocalContext.current
+    val platformLocale = LocalLocale.current.platformLocale
+    val scope = rememberCoroutineScope()
     var profiles by remember { mutableStateOf(ProfileManager.getProfiles(context)) }
 
     var showConnectionModeDialog by remember { mutableStateOf(false) }
@@ -217,7 +237,7 @@ fun SettingsContent(
 
             SettingTile(
                 title = "Custom CSS",
-                subtitle = if (customCss.isBlank()) "None configured" else customCss,
+                subtitle = customCss.ifBlank { "None configured" },
                 icon = Icons.Default.Code,
                 onClick = { showCustomCssDialog = true }
             )
@@ -231,7 +251,7 @@ fun SettingsContent(
                 checked = materialYou,
                 onCheckedChange = { enabled ->
                     onMaterialYouChange(enabled)
-                    prefs.edit().putBoolean("MaterialYou", enabled).apply()
+                    prefs.edit { putBoolean("MaterialYou", enabled) }
                 }
             )
 
@@ -259,7 +279,7 @@ fun SettingsContent(
                 onCheckedChange = { enabled ->
                     amoledTheme = enabled
                     onAmoledThemeChange(enabled)
-                    prefs.edit().putBoolean("AmoledTheme", enabled).apply()
+                    prefs.edit { putBoolean("AmoledTheme", enabled)}
                 }
             )
 
@@ -272,7 +292,7 @@ fun SettingsContent(
                 checked = hideTopBar,
                 onCheckedChange = { enabled ->
                     onHideTopBarChange(enabled)
-                    prefs.edit().putBoolean("HideTopBar", enabled).apply()
+                    prefs.edit { putBoolean("HideTopBar", enabled)}
                 }
             )
 
@@ -285,7 +305,7 @@ fun SettingsContent(
                 checked = landscapeMode,
                 onCheckedChange = { enabled ->
                     onLandscapeModeChange(enabled)
-                    prefs.edit().putBoolean("LandscapeMode", enabled).apply()
+                    prefs.edit { putBoolean("LandscapeMode", enabled)}
                 }
             )
 
@@ -298,7 +318,7 @@ fun SettingsContent(
                 checked = keepScreenOn,
                 onCheckedChange = { enabled ->
                     onKeepScreenOnChange(enabled)
-                    prefs.edit().putBoolean("KeepScreenOn", enabled).apply()
+                    prefs.edit { putBoolean("KeepScreenOn", enabled)}
                 }
             )
         }
@@ -343,7 +363,7 @@ fun SettingsContent(
                 checked = takeControl,
                 onCheckedChange = {
                     takeControl = it
-                    prefs.edit().putBoolean("TakeControl", it).apply()
+                    prefs.edit { putBoolean("TakeControl", it) }
                 }
             )
 
@@ -356,7 +376,7 @@ fun SettingsContent(
                 checked = andAuto,
                 onCheckedChange = {
                     andAuto = it
-                    prefs.edit().putBoolean("AndAuto", it).apply()
+                    prefs.edit { putBoolean("AndAuto", it) }
                 }
             )
 
@@ -369,7 +389,20 @@ fun SettingsContent(
                 checked = closeNowPlay,
                 onCheckedChange = {
                     closeNowPlay = it
-                    prefs.edit().putBoolean("CloseNowPlay", it).apply()
+                    prefs.edit { putBoolean("CloseNowPlay", it) }
+                }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingSwitchTile(
+                title = "Power Save Mode",
+                subtitle = "Music only, freezing video, throttles polling",
+                icon = Icons.Default.BatterySaver,
+                checked = powerSave,
+                onCheckedChange = {
+                    powerSave = it
+                    prefs.edit { putBoolean("PowerSave", it) }
                 }
             )
         }
@@ -385,7 +418,7 @@ fun SettingsContent(
                 checked = btAutoPause,
                 onCheckedChange = {
                     btAutoPause = it
-                    prefs.edit().putBoolean("BtAutoPause", it).apply()
+                    prefs.edit { putBoolean("BtAutoPause", it) }
                 }
             )
 
@@ -398,7 +431,7 @@ fun SettingsContent(
                 checked = btAutoResume,
                 onCheckedChange = {
                     btAutoResume = it
-                    prefs.edit().putBoolean("BtAutoResume", it).apply()
+                    prefs.edit {putBoolean("BtAutoResume", it) }
                 }
             )
         }
@@ -412,7 +445,7 @@ fun SettingsContent(
                 subtitle = "Store the current session as a profile",
                 icon = Icons.Default.PersonAdd,
                 onClick = {
-                    val cookies = ProfileManager.captureSession(context)
+                    val cookies = ProfileManager.captureSession()
                     if (cookies == null) {
                         Toast.makeText(context, "Log in to Spotify first", Toast.LENGTH_SHORT).show()
                     } else {
@@ -427,7 +460,7 @@ fun SettingsContent(
                 profiles.forEachIndexed { index, profile ->
                     ProfileRow(
                         name = profile.name,
-                        subtitle = "Saved " + SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
+                        subtitle = "Saved " + SimpleDateFormat("MMM d, yyyy", platformLocale)
                             .format(Date(profile.savedAt)),
                         onLoad = { onLoadProfile(profile.cookies) },
                         onDelete = {
@@ -453,7 +486,7 @@ fun SettingsContent(
             }
             SettingTile(
                 title = "MITM Proxy Mode",
-                subtitle = "$modeLabel — restarts the app",
+                subtitle = "$modeLabel - restarts the app",
                 icon = Icons.Default.Shield,
                 onClick = { showConnectionModeDialog = true }
             )
@@ -470,7 +503,7 @@ fun SettingsContent(
                 checked = swipeStop,
                 onCheckedChange = {
                     swipeStop = it
-                    prefs.edit().putBoolean("SwipeStop", it).apply()
+                    prefs.edit {putBoolean("SwipeStop", it) }
                 }
             )
 
@@ -504,8 +537,13 @@ fun SettingsContent(
                     subtitle = "Re-export proxy certificate to Downloads",
                     icon = Icons.Default.Shield,
                     onClick = {
-                        val path = LocalProxyManager.exportCACert(context)
-                        Toast.makeText(context, "Exported to $path", Toast.LENGTH_LONG).show()
+                        scope.launch {
+                            val path = withContext(Dispatchers.IO) { LocalProxyManager.exportCACert(
+                                context
+                            ) }
+                            val msg = if (path == "export failed") "Export failed - try again" else "Exported to $path"
+                            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                        }
                     }
                 )
             }
@@ -528,7 +566,7 @@ fun SettingsContent(
                 subtitle = "github.com/lyssadev/Spotilol",
                 painter = painterResource(id = R.drawable.ic_github),
                 onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/lyssadev/Spotilol"))
+                    val intent = Intent(Intent.ACTION_VIEW, "https://github.com/lyssadev/Spotilol".toUri())
                     context.startActivity(intent)
                 }
             )
@@ -549,6 +587,33 @@ fun SettingsContent(
                 subtitle = pkg?.versionName ?: "System WebView",
                 icon = Icons.Default.Language,
                 onClick = {}
+            )
+        }
+
+        SettingSectionCard(
+            title = "EXPERIMENTAL",
+            icon = Icons.Default.Science
+        ) {
+            SettingSwitchTile(
+                title = "Collect Debug",
+                subtitle = "Collect debug event throw by JS",
+                icon = Icons.Default.BugReport,
+                checked = dbgOverlay,
+                onCheckedChange = { enabled ->
+                    dbgOverlay = enabled
+                    prefs.edit { putBoolean("DebugOverlay", enabled) }
+                    onDebugToggle(enabled)
+                }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingTile(
+                title = "Open Devlog",
+                subtitle = if (dbgOverlay) "Live - JS+native events" else "Enable debug first",
+                icon = Icons.Default.Code,
+                onClick = { showDevlogDialog = true },
+                enabled = dbgOverlay
             )
         }
 
@@ -657,7 +722,7 @@ fun SettingsContent(
             selected = autoplayMode,
             onSelect = { value ->
                 autoplayMode = value
-                prefs.edit().putString("APlayMode", value).apply()
+                prefs.edit { putString("APlayMode", value) }
             },
             onDismiss = { showAutoPlayDialog = false }
         )
@@ -673,7 +738,7 @@ fun SettingsContent(
             selected = playerMode,
             onSelect = { value ->
                 playerMode = value
-                prefs.edit().putString("PlayerMode", value).apply()
+                prefs.edit { putString("PlayerMode", value) }
             },
             onDismiss = { showPlayerModeDialog = false }
         )
@@ -690,7 +755,7 @@ fun SettingsContent(
             selected = guiMode,
             onSelect = { value ->
                 guiMode = value
-                prefs.edit().putString("GuiMode", value).apply()
+                prefs.edit { putString("GuiMode", value) }
             },
             onDismiss = { showGuiModeDialog = false }
         )
@@ -701,7 +766,7 @@ fun SettingsContent(
             initialCss = customCss,
             onSave = { css ->
                 customCss = css
-                prefs.edit().putString("CustomCss", css).apply()
+                prefs.edit { putString("CustomCss", css) }
                 showCustomCssDialog = false
             },
             onDismiss = { showCustomCssDialog = false }
@@ -734,6 +799,8 @@ fun SettingsContent(
             onDismiss = { showClearDataDialog = false }
         )
     }
+
+    if (showDevlogDialog) { DevlogLiveDialog(onDismiss = { showDevlogDialog = false }) }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -931,7 +998,10 @@ private fun ColorSlider(
 @Composable
 private fun ChangelogDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
-    val configuration = LocalConfiguration.current
+    val density = LocalDensity.current
+    val windowInfo = LocalWindowInfo.current
+    val platformLocale = LocalLocale.current.platformLocale
+
     var release by remember { mutableStateOf<GitHubRelease?>(null) }
     var loading by remember { mutableStateOf(true) }
     var failed by remember { mutableStateOf(false) }
@@ -954,7 +1024,9 @@ private fun ChangelogDialog(onDismiss: () -> Unit) {
     val publishedLabel = release?.publishedAt?.let { iso ->
         runCatching {
             val parsed = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).parse(iso)
-            SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(parsed)
+            parsed?.let { date ->
+                SimpleDateFormat("MMM d, yyyy", platformLocale).format(date)
+            }
         }.getOrNull()
     }
 
@@ -1023,11 +1095,11 @@ private fun ChangelogDialog(onDismiss: () -> Unit) {
                         markdown = r.body,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = (configuration.screenHeightDp * 0.65f).dp)
+                            .heightIn(max = with(density) { (windowInfo.containerSize.height * 0.65f).toDp() })
                             .verticalScroll(rememberScrollState()),
                         onLinkClick = { url ->
                             runCatching {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
                             }
                         }
                     )
@@ -1091,12 +1163,17 @@ fun SettingTile(
     icon: ImageVector? = null,
     painter: Painter? = null,
     onClick: () -> Unit,
-    isDestructive: Boolean = false
+    isDestructive: Boolean = false,
+    enabled: Boolean = true
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .alpha(if (enabled) 1f else 0.4f)
+            .then(
+                if (enabled) Modifier.clickable(onClick = onClick)
+                else Modifier
+            )
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1453,6 +1530,55 @@ fun ConfirmationDialog(
     )
 }
 
+@Composable
+fun DevlogLiveDialog(onDismiss: () -> Unit) {
+    var lines by remember { mutableStateOf(DebugLogStore.snapshot()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(400.milliseconds)
+            lines = DebugLogStore.snapshot()
+        }
+    }
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(28.dp),
+        title = { Text("Devlog", fontWeight = FontWeight.Bold) },
+        text = {
+            Column {
+                Text(
+                    text = if (lines.isEmpty()) "(empty - waiting for activity)"
+                    else lines.joinToString("\n"),
+                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                    modifier = Modifier.height(320.dp).verticalScroll(rememberScrollState())
+                )
+            }
+        },
+        confirmButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = {
+                    DebugLogStore.clear()
+                    lines = emptyList()
+                }) { Text("Clear") }
+
+                TextButton(onClick = {
+                    val text = lines.joinToString("\n")
+                    scope.launch {
+                        clipboard.setClipEntry(
+                            ClipData.newPlainText("spotilol_devlog", text).toClipEntry()
+                        )
+                    }
+                }) { Text("Copy") }
+
+                TextButton(onClick = onDismiss) {
+                    Text("Close", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    )
+}
+
 @Preview(showBackground = true)
 @Composable
 fun SettingsContentPreview() {
@@ -1479,7 +1605,8 @@ fun SettingsContentPreview() {
             onLoadProfile = {},
             onDeleteProfile = {},
             onClearCache = {},
-            onClearData = {}
+            onClearData = {},
+            onDebugToggle = {},
         )
     }
 }
