@@ -31,20 +31,26 @@
 </p>
 
 <p align="center">
-  a lil Android app that wraps Spotify's web player with built-in adblocking.
+  an Android app that wraps Spotify's web player with built-in adblocking — no root, no shady mods, just your Spotify account on a slick WebView.
 </p>
 
 <p align="center">
-  it's a fork of <strong>Spotifuck</strong> by <strong>deviato</strong>, ported from smali to clean Kotlin. all free, all open-source.
+  ported from smali to clean Kotlin by <strong>lyssadev</strong>, based on deviato's <strong>Spotifuck</strong>. free, open-source, and it just works.
 </p>
 
-<p align="center">
-  runs in two modes: <strong>normal</strong> (no certificate, works out of the box - the default) or <strong>proxy MITM</strong> (local proxy with a custom CA cert) so Spotify doesn't clock you're on a WebView. everything else passes through untouched.
-</p>
+---
 
-<p align="center">
-  📖 documented at <a href="https://deepwiki.com/lyssadev/Spotilol">deepwiki.com/lyssadev/Spotilol</a>
-</p>
+
+
+## Download
+
+<div align="center">
+  <a href="https://github.com/lyssadev/Spotilol/releases/latest">
+    <img src="https://img.shields.io/github/v/release/lyssadev/Spotilol?style=for-the-badge&logo=github&labelColor=0d0d0d&color=1DB954" alt="Download APK"/>
+  </a>
+</div>
+
+download the `.apk` and install it on your device. you may need to toggle **"Install from unknown sources"** in your Settings.
 
 ---
 
@@ -58,26 +64,22 @@
 
 ---
 
-## Download
-
-grab the latest APK from the [releases page](https://github.com/lyssadev/spotilol/releases/latest).
-
-download the `.apk` file and install it on your device. you may need to toggle **"Install from unknown sources"** in your Settings.
-
----
-
 ## Features
 
-- blocks audio ads 🚫
-- works with or without a certificate: **normal mode** (default) & **proxy MITM**
-- media notification with play/pause, skip, seek, like/unlike
-- works with lock screen, Bluetooth, Wear OS
+- blocks audio ads & telemetry
+- media notification: play/pause, skip, seek, like/unlike, shuffle, repeat with custom actions
+- **Android Auto**: browse your playlists, albums, artists, and podcasts; search and play from the car dashboard
+- **offline downloads**: download songs and play them offline — audio is sourced via the InnerTube API
+- lock screen, Bluetooth, and Wear OS controls
 - autoplay modes: off, once at start, or permanent
 - mobile-friendly CSS/JS layout tweaks
 - AMOLED dark mode (pure black)
-- keeps screen on while you're vibing
-- browse your library through Spotify's API
+- sleep timer
 - update checker (auto & manual)
+- multiple account profiles
+- browse your library through Spotify's pathfinder API
+- picture-in-picture (PiP) support
+- wake lock controls & power save mode
 
 ---
 
@@ -91,13 +93,15 @@ download the `.apk` file and install it on your device. you may need to toggle *
 
 ## Quick Start
 
-install the APK, open it, done. Spotilol runs in **normal mode** by default - no certificate, no setup, no "Certificate Required" screen. it just works out of the box.
+install the APK, open it, done. Spotilol runs in **normal mode** by default — no certificate, no setup, no "Certificate Required" screen. it just works out of the box.
 
-### Switching to Proxy MITM Mode
+---
+
+## Proxy MITM Mode (optional)
 
 want the full fingerprint treatment? flip the mode in **Settings → Connection Mode → "MITM Proxy (Certificate)"**. the app restarts and walks you through the cert install.
 
-### The Certificate Thing (proxy mode only)
+### The Certificate Thing
 
 Spotilol generates a local CA cert so Spotify doesn't know you're in a WebView. it lives on your device, stays on your device.
 
@@ -140,6 +144,6 @@ contributions are welcome. open issues, throw PRs, suggest stuff — free for al
 
 ## Credits
 
-Spotilol exists because deviato did the reverse-engineering work on Spotifuck. this ports the core logic from smali to Kotlin with extra features and maintenance.
+**deviato** reverse-engineered the original Spotifuck. **lyssadev** ported the core logic from smali to Kotlin and maintains this project.
 
-**Open-sourced by lyssadev <3 deviato**
+all rights reserved — lyssadev & deviato.

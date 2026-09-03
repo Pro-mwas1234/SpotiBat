@@ -1,6 +1,5 @@
 package com.project.lol.ui.screens
 
-import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Bitmap
@@ -9,8 +8,6 @@ import android.media.MediaMetadataRetriever
 import android.media.MediaPlayer
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.core.content.ContextCompat
-import com.project.lol.service.OfflineMediaService
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -48,11 +45,11 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -65,6 +62,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import com.project.lol.searchEngine.GenericSearchEngine
+import com.project.lol.searchEngine.SearchableFieldExtractor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -91,14 +94,17 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import androidx.core.content.ContextCompat
 import com.project.lol.R
 import com.project.lol.offline.OfflineSong
 import com.project.lol.offline.OfflineStore
+import com.project.lol.service.OfflineMediaService
 import com.project.lol.ui.components.SettingsDrawer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -143,6 +149,28 @@ fun OfflineScreen(
     var scrubMs by remember { mutableIntStateOf(-1) }
 
     val mediaPlayer = remember { MediaPlayer() }
+    var searchQuery by remember { mutableStateOf("") }
+    var searchResults by remember { mutableStateOf<List<OfflineSong>?>(null) }
+
+    val searchEngine = remember { GenericSearchEngine<OfflineSong>(maxResult = 100) }
+    val songExtractor = remember {
+        SearchableFieldExtractor<OfflineSong> { song ->
+            arrayOf(song.title, song.artist, song.album, song.ytAlbum, song.ytArtist)
+        }
+    }
+
+    LaunchedEffect(searchQuery, songs) {
+        val q = searchQuery.trim()
+        if (q.isEmpty()) {
+            searchResults = null
+        } else {
+            delay(300.milliseconds)
+            searchResults = withContext(Dispatchers.Default) {
+                searchEngine.filter(songs, q, songExtractor)
+            }
+        }
+    }
+    val visibleSongs = searchResults ?: songs
 
     val versionName = remember {
         runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }
@@ -157,6 +185,7 @@ fun OfflineScreen(
                 Intent(context, OfflineMediaService::class.java).apply {
                     putExtra("title", song.title)
                     putExtra("artist", song.artist)
+                    putExtra("album", song.album.ifBlank { "Spotilol" })
                     putExtra("duration", durationMs.toLong())
                     putExtra("playing", isPlaying)
                     putExtra("position", positionMs.toLong())
@@ -226,8 +255,11 @@ fun OfflineScreen(
         }
     }
 
-    BackHandler(enabled = settingsDrawerOpen) {
-        settingsDrawerOpen = false
+    BackHandler(enabled = settingsDrawerOpen || searchQuery.isNotBlank()) {
+        when {
+            settingsDrawerOpen -> settingsDrawerOpen = false
+            else -> searchQuery = ""
+        }
     }
 
     DisposableEffect(Unit) {
@@ -273,7 +305,7 @@ fun OfflineScreen(
         while (isPlaying) {
             runCatching { positionMs = mediaPlayer.currentPosition }
             OfflineMediaService.instance?.updatePosition(positionMs.toLong())
-            delay(500)
+            delay(500.milliseconds)
         }
     }
 
@@ -299,7 +331,12 @@ fun OfflineScreen(
         onLoadProfile = onLoadProfile,
         onDeleteProfile = onDeleteProfile,
         onClearCache = onClearCache,
-        onClearData = onClearData
+        onClearData = onClearData,
+        onDebugToggle = {},
+        blockServiceWorker = prefs.getBoolean("BlockServiceWorker", true),
+        onBlockServiceWorkerChange = { enabled ->
+            prefs.edit().putBoolean("BlockServiceWorker", enabled).apply()
+        }
     ) {
         Scaffold(
             modifier = modifier,
@@ -357,12 +394,18 @@ fun OfflineScreen(
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     Text(
-                        text = if (loading) {
-                            "Loading…"
-                        } else if (songs.isEmpty()) {
-                            "No downloads yet"
-                        } else {
-                            "${songs.size} song${if (songs.size == 1) "" else "s"} available offline"
+                        text = when {
+                            loading -> "Loading…"
+                            searchQuery.isNotBlank() -> {
+                                val n = visibleSongs.size
+                                if (n == 0) {
+                                    "No results for \"${searchQuery.trim()}\""
+                                } else {
+                                    "$n result${if (n == 1) "" else "s"} for \"${searchQuery.trim()}\""
+                                }
+                            }
+                            songs.isEmpty() -> "No downloads yet"
+                            else -> "${songs.size} song${if (songs.size == 1) "" else "s"} available offline"
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -370,6 +413,49 @@ fun OfflineScreen(
                             .padding(horizontal = 20.dp)
                             .padding(top = if (hideTopBar) 60.dp else 12.dp, bottom = 8.dp)
                     )
+
+                    if (!loading && songs.isNotEmpty()) {
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                                .padding(bottom = 8.dp),
+                            placeholder = { Text("Search your downloads") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { searchQuery = "" }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Clear search",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            },
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                cursorColor = MaterialTheme.colorScheme.primary,
+                                focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
+                    }
 
                     when {
                         loading -> Box(
@@ -379,6 +465,34 @@ fun OfflineScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             CircularProgressIndicator()
+                        }
+                        searchQuery.isNotBlank() && visibleSongs.isEmpty() -> Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(56.dp)
+                                )
+                                Spacer(Modifier.height(16.dp))
+                                Text(
+                                    text = "No results",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    text = "Nothing in your downloads matches \"${searchQuery.trim()}\"",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                         songs.isEmpty() -> Box(
                             modifier = Modifier
@@ -415,7 +529,7 @@ fun OfflineScreen(
                             contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 130.dp),
                             verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
-                            items(songs, key = { "${it.id}-${it.uri}" }) { song ->
+                            items(visibleSongs, key = { "${it.id}-${it.uri}" }) { song ->
                                 val index = songs.indexOfFirst { it.id == song.id && it.uri == song.uri }
                                 OfflineSongRow(
                                     song = song,
@@ -656,13 +770,41 @@ private fun OfflineSongRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+            val subtitle = buildString {
+                append(song.artist.ifBlank { "Unknown artist" })
+                song.album.ifBlank { "" }.takeIf { it.isNotBlank() }?.let {
+                    append(" • $it")
+                }
+            }
             Text(
-                text = song.artist.ifBlank { "Unknown artist" },
+                text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+            val metaLine = buildString {
+                if (song.explicit) append("Explicit")
+                song.durationSec?.let {
+                    if (it > 0) {
+                        if (isNotEmpty()) append(" • ")
+                        append(formatSeconds(it))
+                    }
+                }
+                song.videoId?.let {
+                    if (isNotEmpty()) append(" • ")
+                    append("YouTube")
+                }
+            }
+            if (metaLine.isNotEmpty()) {
+                Text(
+                    text = metaLine,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
         IconButton(onClick = onDelete) {
             Icon(
@@ -833,4 +975,11 @@ private fun NowPlayingBar(
 private fun formatTime(ms: Int): String {
     val totalSec = ms / 1000
     return "%d:%02d".format(totalSec / 60, totalSec % 60)
+}
+
+private fun formatSeconds(sec: Int): String {
+    val h = sec / 3600
+    val m = (sec % 3600) / 60
+    val s = sec % 60
+    return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
 }

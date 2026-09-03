@@ -120,6 +120,7 @@ import com.project.lol.util.UpdateChecker
 import com.project.lol.webview.SpotifyWebChromeClient
 import com.project.lol.webview.SpotifyWebViewClient
 import com.project.lol.webview.helpers.DevLogPrelude
+import com.project.lol.webview.helpers.LyricsTheme
 import com.project.lol.webview.helpers.buildAmoledJs
 import com.project.lol.webview.helpers.buildCustomCssJs
 import com.project.lol.webview.injections.LogoutCheck
@@ -129,6 +130,13 @@ import java.net.URL
 import java.util.concurrent.Executors
 import kotlin.math.min
 import org.json.JSONObject
+import androidx.core.content.edit
+import androidx.core.graphics.scale
+import androidx.core.graphics.toColorInt
+import com.project.lol.ui.components.ErrorScreen
+import com.project.lol.ui.components.mapWebViewError
+import com.project.lol.webview.helpers.AccentTheme
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
@@ -162,6 +170,7 @@ class MainActivity : ComponentActivity() {
     private val sleepTimerActive = mutableStateOf(false)
 
     private val loadingProgress = mutableIntStateOf(100)
+    private val blockServiceWorkerState = mutableStateOf(true)
     private val webViewError = mutableStateOf<Pair<Int, String>?>(null)
 
     private val notifPermLauncher = registerForActivityResult(
@@ -221,6 +230,7 @@ class MainActivity : ComponentActivity() {
         landscapeModeState.value = prefs.getBoolean("LandscapeMode", false)
         keepScreenOnState.value = prefs.getBoolean("KeepScreenOn", false)
         paletteSeedState.value = prefs.getString("PaletteSeed", null)
+        blockServiceWorkerState.value = prefs.getBoolean("BlockServiceWorker", true)
         applyOrientation()
         applyKeepScreenOn()
 
@@ -235,6 +245,7 @@ class MainActivity : ComponentActivity() {
             val showDialog = showSleepTimerDialog.value
             val timerActive = sleepTimerActive.value
             val loadProgress = loadingProgress.intValue
+            val blockServiceWorker = blockServiceWorkerState.value
 
             var settingsDrawerOpen by remember { mutableStateOf(false) }
             var showMiniMenu by remember { mutableStateOf(false) }
@@ -244,6 +255,9 @@ class MainActivity : ComponentActivity() {
             }
             val seedColor = paletteSeed?.let { hex ->
                 runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull()
+            }
+            val accentColor = remember(materialYou, paletteSeed) {
+                AccentTheme.resolveColor(this@MainActivity)
             }
 
             BackHandler(enabled = settingsDrawerOpen || webView?.canGoBack() == true) {
@@ -308,7 +322,12 @@ class MainActivity : ComponentActivity() {
                             else "window.dbg=null;window.dbgw=null;window.dbge=null;window.DevLog=null;",
                             null
                         )
-                    }
+                    },
+                    blockServiceWorker = blockServiceWorker,
+                    onBlockServiceWorkerChange = { enabled ->
+                        blockServiceWorkerState.value = enabled
+                        prefs.edit { putBoolean("BlockServiceWorker", enabled) }
+                    },
                 ) {
                     Scaffold(
                         topBar = {
@@ -396,18 +415,16 @@ class MainActivity : ComponentActivity() {
 
                             bridge.onDownloadTrack = { payload ->
                                 Log.d("Spl-DL", "bridge.onDownloadTrack: payload=$payload")
-                                DownloadManager.onStatus = { msg ->
-                                    runOnUiThread {
-                                        Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
-                                    }
-                                }
-                                DownloadManager.onProgress = { pct, label ->
-                                    runOnUiThread {
-                                        val safe = label.replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ")
-                                        webView?.evaluateJavascript("window.splDownloadProgress($pct, '$safe')", null)
-                                    }
-                                }
+                                wireDownloadCallbacks()
+                                startDownloadService()
                                 DownloadManager.downloadCurrentTrack(this@MainActivity, payload)
+                            }
+
+                            bridge.onDownloadCollection = { payload ->
+                                Log.d("Spl-DL", "bridge.onDownloadCollection: payload=${payload.take(300)}")
+                                wireDownloadCallbacks()
+                                startDownloadService()
+                                DownloadManager.downloadCollection(this@MainActivity, payload)
                             }
 
 
@@ -523,7 +540,7 @@ class MainActivity : ComponentActivity() {
                                         .height(2.dp)
                                         .align(Alignment.TopCenter)
                                         .alpha(progressAlpha),
-                                    color = Color(0xFF22DD66),
+                                    color = accentColor,   // was Color(0xFF22DD66)
                                     trackColor = Color.Transparent,
                                 )
                             }
@@ -696,10 +713,11 @@ class MainActivity : ComponentActivity() {
             putString("minutes", minutes.toString())
         })
 
-        webView?.evaluateJavascript(
-            "if(window.timerBtn) timerBtn.style.color='#2d6';",
-            null
-        )
+        webView?.evaluateJavascript("""
+            if(window.timerBtn) timerBtn.style.color='var(--spl-accent,#2d6)';
+            var t=document.getElementById('spl-timer');
+            if(t) t.classList.add('spl-active');
+        """.trimIndent(), null)
 
         sleepTimer = object : CountDownTimer(totalMs, 1000) {
             override fun onTick(millisUntilFinished: Long) {
@@ -709,10 +727,11 @@ class MainActivity : ComponentActivity() {
             override fun onFinish() {
                 sleepTimerActive.value = false
                 sleepTimerRemainingMs.longValue = 0L
-                webView?.evaluateJavascript(
-                    "if(window.timerBtn) timerBtn.style.color='';",
-                    null
-                )
+                webView?.evaluateJavascript("""
+                    if(window.timerBtn) timerBtn.style.color='';
+                    var t=document.getElementById('spl-timer');
+                    if(t) t.classList.remove('spl-active');
+                """.trimIndent(), null)
                 webView?.evaluateJavascript("actPlayPause(false)", null)
             }
         }.start()
@@ -723,10 +742,11 @@ class MainActivity : ComponentActivity() {
         sleepTimer = null
         sleepTimerActive.value = false
         sleepTimerRemainingMs.longValue = 0L
-        webView?.evaluateJavascript(
-            "if(window.timerBtn) timerBtn.style.color='';",
-            null
-        )
+        webView?.evaluateJavascript("""
+            if(window.timerBtn) timerBtn.style.color='';
+            var t=document.getElementById('spl-timer');
+            if(t) t.classList.remove('spl-active');
+        """.trimIndent(), null)
     }
 
     @Composable
@@ -1191,6 +1211,32 @@ class MainActivity : ComponentActivity() {
         }.start()
     }
 
+    private fun wireDownloadCallbacks() {
+        DownloadManager.onStatus = { msg ->
+            runOnUiThread {
+                Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+            }
+        }
+        DownloadManager.onProgress = { pct, label ->
+            runOnUiThread {
+                val safe = label.replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ")
+                val batch = DownloadManager.isBatchActive()
+                webView?.evaluateJavascript(
+                    "window.__splDlBatch=$batch;window.splDownloadProgress($pct, '$safe')",
+                    null
+                )
+            }
+        }
+    }
+
+    private fun startDownloadService() {
+        runCatching {
+            ContextCompat.startForegroundService(
+                this, Intent(this, com.project.lol.service.DownloadService::class.java)
+            )
+        }
+    }
+
     private fun destroyWebView() {
         pipVideoTimeout.removeCallbacksAndMessages(null)
         pipVideoView = null
@@ -1299,6 +1345,7 @@ class MainActivity : ComponentActivity() {
         landscapeModeState.value = prefs.getBoolean("LandscapeMode", false)
         keepScreenOnState.value = prefs.getBoolean("KeepScreenOn", false)
         paletteSeedState.value = prefs.getString("PaletteSeed", null)
+        blockServiceWorkerState.value = prefs.getBoolean("BlockServiceWorker", true)
         applyOrientation()
         applyKeepScreenOn()
 
@@ -1313,14 +1360,20 @@ class MainActivity : ComponentActivity() {
                     if(window.__splWasPfint) { window.__splWasPfint = false; firstFuck(); }
                     if(window.__splWasAfint) { window.__splWasAfint = false; addAutoFeatures(); }
                     if(window.__splWasCssint) { window.__splWasCssint = false; addCSSJSHack(); }
+                    if(window.autoPlayMode === 'onetime') {
+                        window.__splApDone = false;
+                        window.__splApActive = false;
+                        if(typeof splAutoPlay === 'function') splAutoPlay();
+                    }
                 } catch(e) {}
             """.trimIndent(), null)
 
             val js = buildString {
                 append("window.closeNpPref=$closeNowPlay;\n")
                 append(buildAmoledJs(amoledEnabled))
-                append("\n")
+                append(AccentTheme.buildAccentJs(this@MainActivity))
                 append(buildCustomCssJs(customCss))
+                append(LyricsTheme.buildLyricsStyleJs(prefs.getString("LyricsStyle", LyricsTheme.DEFAULT_STYLE) ?: LyricsTheme.DEFAULT_STYLE))
             }
             view.evaluateJavascript(js, null)
 

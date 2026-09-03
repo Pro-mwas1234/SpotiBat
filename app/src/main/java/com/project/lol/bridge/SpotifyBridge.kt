@@ -11,6 +11,7 @@ import java.lang.ref.WeakReference
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
+import com.project.lol.offline.DownloadManager
 
 class SpotifyBridge(activityRef: WeakReference<Activity>) {
 
@@ -37,6 +38,7 @@ class SpotifyBridge(activityRef: WeakReference<Activity>) {
     var onEnterPipRequest: (() -> Unit)? = null
     var onEnterPipVideoRequest: ((Int, Int) -> Unit)? = null
     var onDownloadTrack: ((String) -> Unit)? = null
+    var onDownloadCollection: ((String) -> Unit)? = null
 
     @JavascriptInterface
     fun loginDetected() {
@@ -120,6 +122,16 @@ class SpotifyBridge(activityRef: WeakReference<Activity>) {
     }
 
     @JavascriptInterface
+    fun onMediaItemsLoaded(parentId: String?, json: String?) {
+        parentId?.let { MediaNotificationService.onMediaItemsLoaded(it, json ?: "[]") }
+    }
+
+    @JavascriptInterface
+    fun onSearchCompleted(query: String?, json: String?) {
+        query?.let { MediaNotificationService.onSearchCompleted(it, json ?: "[]") }
+    }
+
+    @JavascriptInterface
     fun manageTShut(enabled: Boolean) {
     }
 
@@ -168,6 +180,25 @@ class SpotifyBridge(activityRef: WeakReference<Activity>) {
         json?.let { onDownloadTrack?.invoke(it) }
     }
 
+    @Suppress("unused")
+    @JavascriptInterface
+    fun downloadCollection(json: String?) {
+        json?.let { onDownloadCollection?.invoke(it) }
+    }
+
+    @Suppress("unused")
+    @JavascriptInterface
+    fun skipDownload() {
+        DownloadManager.skipCurrent()
+    }
+
+    @Suppress("unused")
+    @JavascriptInterface
+    fun cancelDownload() {
+        DownloadManager.cancelAll()
+    }
+
+    @Suppress("unused")
     @JavascriptInterface
     fun nFetch(url: String, optsJson: String?): String {
         val errorResult = { e: Exception ->

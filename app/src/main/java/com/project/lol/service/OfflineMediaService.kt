@@ -68,6 +68,7 @@ class OfflineMediaService : Service() {
     private var coverBitmap: Bitmap? = null
     private var currentTitle = ""
     private var currentArtist = ""
+    private var currentAlbum = "Spotilol"
     private var currentPosition: Long = 0L
     private var currentDuration: Long = 0L
 
@@ -135,6 +136,7 @@ class OfflineMediaService : Service() {
         if (intent?.hasExtra("title") == true) {
             currentTitle = intent.getStringExtra("title") ?: ""
             currentArtist = intent.getStringExtra("artist") ?: ""
+            currentAlbum = intent.getStringExtra("album")?.ifBlank { "Spotilol" } ?: "Spotilol"
             currentDuration = intent.getLongExtra("duration", 0L)
             isPlaying = intent.getBooleanExtra("playing", false)
             currentPosition = intent.getLongExtra("position", 0L)
@@ -245,9 +247,10 @@ class OfflineMediaService : Service() {
         }
     }
 
-    fun updateTrack(title: String, artist: String, coverFile: File?, duration: Long) {
+    fun updateTrack(title: String, artist: String, album: String, coverFile: File?, duration: Long) {
         currentTitle = title
         currentArtist = artist
+        currentAlbum = album.ifBlank { "Spotilol" }
         currentDuration = duration
         coverBitmap = null
         coverFile?.let { loadCoverArt(it) }
@@ -299,7 +302,7 @@ class OfflineMediaService : Service() {
         val builder = MediaMetadataCompat.Builder()
             .putString(MediaMetadataCompat.METADATA_KEY_TITLE, currentTitle)
             .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, currentArtist)
-            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, "Spotilol")
+            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, currentAlbum)
             .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, currentDuration)
         coverBitmap?.let { bmp ->
             builder.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bmp)

@@ -1,66 +1,101 @@
 {
   "repo_notes": [
     {
-      "content": "This is an Android app (Spotilol) that wraps the Spotify Web Player in a WebView with a local MITM proxy to inject custom JS/CSS, bypass GDPR dialogs, spoof browser fingerprint, add custom playback controls, and block ads/analytics. The project is written in Kotlin using Jetpack Compose.",
+      "content": "This is an Android app (Spotilol) that wraps the Spotify Web Player in a WebView. It injects custom JS/CSS to block ads/analytics, spoof the browser fingerprint, bypass GDPR dialogs, add custom player controls, and expose a library browser. Written in Kotlin using Jetpack Compose. The project is a clean-Kotlin port of deviato's Spotifuck. Priority areas: webview/ (JS injection engine), service/ (media + offline playback), offline/ + innertube/ + yt/ (YouTube-backed offline downloads), and bridge/ (JS <-> Kotlin).",
       "author": "Maintainer"
     },
     {
-      "content": "The webview/ directory contains the core logic: SpotifyWebViewClient handles page loading and JS injection orchestration, SpotifyWebChromeClient handles child windows and progress. Under webview/injections/ there are 16 Kotlin objects each holding a const val CONTENT with raw JavaScript (browser spoofing, fetch override, player controls, library fetcher, CSS hacks, etc.). Under webview/helpers/ there are utility functions: JsUtils (strip console logs), AmoledTheme (build AMOLED JS), CssInjector (build custom CSS JS), AdBlocker (analytics domain blocking).",
+      "content": "webview/ holds the core engine. SpotifyWebViewClient orchestrates per-page JS injection and request interception; SpotifyWebChromeClient handles fullscreen/custom view and progress. webview/injections/ contains 32 Kotlin objects, each exposing a const val CONTENT with raw JavaScript (BrowserSpoof, FetchOverride, PlayerCore, TrackObserver, MediaUpdater, LibraryFetcher, LibraryParser, PlaybackControls, AndroidAuto, MainLoop, AutoFeatures, AndroidTracker, PowerSave, SearchOverlay, DownloadButton, DownloadProgress, CssHack, SpotilolPlayer, FbGdprBypass, ClassicLoginButton, LogoutCheck, LoginDetection, GoogleSpoof, WorkerNeutralize, AdStateHook, GaBlocker, SettingsFix, ModalFix, ErrorDialogRestyle, ToastFix, LyricsSyncFix, ClassicBridge). Order of injection in injectPlayerControl matters (PlayerCore defines globals first). webview/helpers/ has JsUtils (console log stripping), AmoledTheme, CssInjector, AdBlocker, AdIdStore, DevLogPrelude. AndroidAuto.kt is the Android Auto media-browser/search JS (fetchMediaItems, searchMediaItems, checkMediaLib, ensureAuthToken, playFromUri with contextUri).",
       "author": "Maintainer"
     },
     {
-      "content": "The bridge/ package contains SpotifyBridge which uses @JavascriptInterface to expose Kotlin methods to the WebView JS context (login detection, media position, playback state, sleep timer). The proxy/ package contains LocalProxyManager which implements a local MITM proxy with dynamic certificate generation (RSA 2048-bit leaf keypair caching) for intercepting Spotify API traffic.",
+      "content": "service/ contains MediaNotificationService (a MediaBrowserServiceCompat providing lock-screen controls and Android Auto browsing/search/playback via MediaSessionCompat, wakeAndRun to resume a backgrounded WebView, Bluetooth/noisy audio routing, custom actions for favorite/shuffle/repeat) and OfflineMediaService (foreground player for downloaded tracks). bridge/ contains SpotifyBridge which exposes @JavascriptInterface methods to the WebView JS context (AndBridge): media status/position, media items + search results for Android Auto, download track payloads, PiP requests, login/playLoaded signals, and a native fetch fallback (nFetch) used by ClassicBridge.",
       "author": "Maintainer"
     },
     {
-      "content": "The ui/ package has MainActivity (Jetpack Compose, holds the WebView and playback UI), SettingsActivity (Jetpack Compose settings screen), SplashActivity (animated splash screen), and theme/ (Saira font family, dark AMOLED theme). The service/ package has MediaNotificationService for notification/ lock screen controls. The update/ package has UpdateChecker for GitHub release checking.",
+      "content": "offline/ (DownloadManager, OfflineStore) implements YouTube-backed offline downloads. It resolves Spotify track metadata, searches YouTube via a custom InnerTube API client under innertube/ (InnerTube, YouTube, NetworkConfig, YouTubeConstants, models/, pages/, utils/), then extracts streamable audio under yt/ (YTPlayerUtils, AudioQuality, CandidateScorer, cipher/ with PlayerJsFetcher + CipherDeobfuscator, potoken/ PoToken generation, sabr/ streaming parser). profile/ has ProfileManager for account profiles. util/ has UpdateChecker + GitHubApi (release checking), DebugLogStore, Markdown. proxy/ has LocalProxyManager (optional MITM local proxy with generated CA cert). ui/ has Compose screens: SplashActivity, MainActivity (WebView host + player overlay), OfflineActivity, screens/SettingsScreen, plus theme/.",
       "author": "Maintainer"
     }
   ],
   "pages": [
     {
       "title": "Architecture Overview",
-      "purpose": "High-level architecture of Spotilol: how the WebView, MITM proxy, JS injection, and Android services interact to wrap and enhance the Spotify Web Player",
+      "purpose": "High-level architecture of Spotilol: how the WebView, JS injection engine, Android services, Android Auto integration, and the YouTube-backed offline downloader interact to wrap and enhance the Spotify Web Player",
       "parent": null
     },
     {
       "title": "WebView & JS Injection System",
-      "purpose": "How SpotifyWebViewClient orchestrates JS injection at page load, the 16 injection objects in webview/injections/, and how they modify Spotify's web app behavior",
+      "purpose": "How SpotifyWebViewClient orchestrates JS injection on each page load (onPageStarted vs onPageFinished vs injectPlayerControl), which injections are gated on login state, and how SpotifyWebChromeClient handles child windows and fullscreen video",
       "parent": "Architecture Overview"
     },
     {
       "title": "JS Injection Objects Reference",
-      "purpose": "Detailed reference for each of the 16 JS injection objects (BrowserSpoof, FetchOverride, PlayerCore, MediaUpdater, LibraryFetcher, LibraryParser, PlaybackControls, MainLoop, AutoFeatures, AndroidTracker, CssHack, SpotilolPlayer, FbGdprBypass, ClassicLoginButton, LogoutCheck, LoginDetection) — what each one does and when it's injected",
+      "purpose": "Detailed reference for each of the 32 JS injection objects in webview/injections/ - what each one does, its key exported window functions/variables, and when it is injected. Cover ad-blocking (AdStateHook, GaBlocker, WorkerNeutralize, FetchOverride), spoofing (BrowserSpoof, GoogleSpoof, desktop fingerprint), player core + globals (PlayerCore, TrackObserver, MediaUpdater, PlaybackControls), Android Auto JS (AndroidAuto), UI features (CssHack, SpotilolPlayer, AutoFeatures, AndroidTracker, PowerSave, SearchOverlay, DownloadButton, DownloadProgress), and page helpers (ClassicLoginButton, FbGdprBypass, LoginDetection, LogoutCheck, ClassicBridge, SettingsFix, ModalFix, ErrorDialogRestyle, ToastFix, LyricsSyncFix, MainLoop)",
       "parent": "WebView & JS Injection System"
     },
     {
       "title": "Helper Utilities",
-      "purpose": "Documentation of webview/helpers/: JsUtils (console log stripping), AmoledTheme (AMOLED CSS builder), CssInjector (custom CSS injection), AdBlocker (analytics/ad CDN domain blocking)",
+      "purpose": "Documentation of webview/helpers/: JsUtils (console.log stripping algorithm + cache), AmoledTheme (AMOLED CSS builder), CssInjector (custom CSS injection), AdBlocker + AdIdStore (analytics/ad CDN blocking and request-id tracking), DevLogPrelude (debug overlay logging hooks)",
       "parent": "WebView & JS Injection System"
     },
     {
-      "title": "MITM Proxy System",
-      "purpose": "How LocalProxyManager implements a local man-in-the-middle proxy to intercept Spotify API calls, including certificate generation (RSA keypair caching), request interception, and ad-blocking logic",
+      "title": "Kotlin-JS Bridge (SpotifyBridge)",
+      "purpose": "Document every @JavascriptInterface method exposed to the WebView as window.AndBridge: loginDetected, playLoaded, deferMessage, isWoke/wakeUp/wakeOff, cssInjected, recMediaStatus/recMediaPosition, recAccountName, onMediaItemsLoaded/onSearchCompleted (Android Auto), downloadTrack, enterPip/enterPipVideo, openTimerDialog, manageTShut/manageTSleep, dbg, and the nFetch native-fetch fallback used by ClassicBridge in normal (non-proxy) mode",
       "parent": "Architecture Overview"
     },
     {
-      "title": "Kotlin-JS Bridge (SpotifyBridge)",
-      "purpose": "Document the @JavascriptInterface methods exposed to the WebView: login detection, media position updates, sleep timer, play loaded callbacks, and CSS injection acknowledgment",
+      "title": "Media Notification & Android Auto Service",
+      "purpose": "How MediaNotificationService (a MediaBrowserServiceCompat) provides: the foreground media notification, lock-screen/Bluetooth/Wear controls via MediaSessionCompat, Android Auto root categories (playlists/albums/artists/podcasts) + async onLoadChildren/onSearch with pendingCallbacks and timeouts, onPlayFromMediaId + wakeAndRun (resumeTimers/onResume/visibility) to execute JS while the WebView is backgrounded, custom actions (favorite/shuffle/repeat), Bluetooth/noisy audio auto pause/resume, and metadata/cover art loading",
+      "parent": "Architecture Overview"
+    },
+    {
+      "title": "Android Auto Media Browsing Flow",
+      "purpose": "End-to-end flow for Android Auto: onGetRoot extras, root categories, JS fetchMediaItems/checkMediaLib/pendingMediaRequests draining via window.mediaLib, JSON payload parsing (name/id/image/artists/browsable flags) back in Kotlin onMediaItemsLoaded, onSearch (searchDesktop GQL), and playback via playFromUri(mediaId, contextId) -> connect-state command",
+      "parent": "Media Notification & Android Auto Service"
+    },
+    {
+      "title": "Offline Playback Service",
+      "purpose": "How OfflineMediaService plays downloaded tracks as a foreground service with its own MediaSession, and how it relates to the offline/ store (OfflineStore) and the main webview player",
+      "parent": "Architecture Overview"
+    },
+    {
+      "title": "Offline Downloads (YouTube-backed)",
+      "purpose": "How the offline downloader works: DownloadManager consumes a Spotify track payload from JS (DownloadButton/DownloadProgress), resolves metadata, searches YouTube, extracts an audio stream, downloads it, and stores it via OfflineStore for OfflineMediaService",
+      "parent": "Architecture Overview"
+    },
+    {
+      "title": "YouTube InnerTube Client",
+      "purpose": "Documentation of innertube/: the custom InnerTube API client (InnerTube.kt, YouTube.kt, NetworkConfig.kt, YouTubeConstants.kt), its serialized models under models/, pagination/search under pages/, and utils/ - including how search and player responses are parsed for the offline downloader",
+      "parent": "Offline Downloads (YouTube-backed)"
+    },
+    {
+      "title": "YouTube Audio Extraction & Cipher",
+      "purpose": "Documentation of yt/: YTPlayerUtils, AudioQuality selection, CandidateScorer, and the signature-cipher deobfuscation (cipher/ with PlayerJsFetcher + CipherDeobfuscator), PoToken/anti-bot generation (potoken/), and SABR streaming (sabr/) used to resolve playable audio streams",
+      "parent": "Offline Downloads (YouTube-backed)"
+    },
+    {
+      "title": "MITM Proxy System",
+      "purpose": "How LocalProxyManager implements an optional local man-in-the-middle proxy with generated CA certificates (RSA 2048-bit leaf keypair caching) to intercept Spotify API traffic, plus the network_security_config and why this mode is optional vs the default normal mode",
       "parent": "Architecture Overview"
     },
     {
       "title": "UI Layer",
-      "purpose": "Documentation of ui/ package: MainActivity (Jetpack Compose UI with WebView, custom player controls, settings), SettingsActivity (preferences for AMOLED mode, custom CSS, sleep timer, Bluetooth auto-pause), SplashActivity (animated splash), and theme/ (Saira font, AMOLED dark theme)",
+      "purpose": "Documentation of ui/: MainActivity (Jetpack Compose host for the WebView, custom player overlay, PiP handling, service start/stop), SplashActivity (animated splash), OfflineActivity (downloaded tracks UI), screens/SettingsScreen (all preferences: AndAuto/Android Auto, APlayMode, ConnectionMode normal/proxy, AmoledTheme, CustomCss, BtAutoPause/Resume, sleep timer, PlayerMode spotilol/original, profiles), and theme/ (Saira font family, AMOLED dark theme)",
       "parent": "Architecture Overview"
     },
     {
-      "title": "Media Notification & Lock Screen",
-      "purpose": "How MediaNotificationService handles media playback notifications, lock screen controls, Bluetooth auto-pause/resume, and memory management (onTrimMemory)",
+      "title": "Profile Manager",
+      "purpose": "How ProfileManager stores, switches, saves, and deletes user account profiles (cookies/auth state per profile) and how it interacts with the account name detection in the JS bridge",
+      "parent": "Architecture Overview"
+    },
+    {
+      "title": "Utilities",
+      "purpose": "Documentation of util/: UpdateChecker + GitHubApi (release version checking against GitHub releases), DebugLogStore (in-memory ring buffer surfaced in the debug overlay), and Markdown (rendering helper)",
       "parent": "Architecture Overview"
     },
     {
       "title": "Build & Configuration",
-      "purpose": "Build system (Gradle Kotlin DSL), dependency management (libs.versions.toml), ProGuard rules (minification keep rules for JS bridge, injections, BouncyCastle), and network security config for the proxy CA certificate",
+      "purpose": "Build system (Gradle Kotlin DSL + version catalog gradle/libs.versions.toml), module structure (app/), ProGuard keep rules for JS bridge and BouncyCastle, Firebase google-services.json requirement, AndroidManifest declarations (services, Android Auto automotive_app_desc meta-data), and network security config",
       "parent": null
     }
   ]

@@ -33,6 +33,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Check
@@ -116,6 +117,7 @@ import com.project.lol.util.DebugLogStore
 import com.project.lol.util.GitHubApi
 import com.project.lol.util.GitHubRelease
 import com.project.lol.util.MarkdownText
+import com.project.lol.webview.helpers.LyricsTheme
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -172,7 +174,9 @@ fun SettingsContent(
     onDeleteProfile: (String) -> Unit,
     onClearCache: () -> Unit,
     onClearData: () -> Unit,
-    onDebugToggle: (Boolean) -> Unit = {}
+    onDebugToggle: (Boolean) -> Unit = {},
+    blockServiceWorker: Boolean,
+    onBlockServiceWorkerChange: (Boolean) -> Unit
 ) {
     var autoplayMode by remember { mutableStateOf(prefs.getString("APlayMode", "disabled") ?: "disabled") }
     var takeControl by remember { mutableStateOf(prefs.getBoolean("TakeControl", true)) }
@@ -184,9 +188,13 @@ fun SettingsContent(
     var swipeStop by remember { mutableStateOf(prefs.getBoolean("SwipeStop", true)) }
     var btAutoPause by remember { mutableStateOf(prefs.getBoolean("BtAutoPause", false)) }
     var btAutoResume by remember { mutableStateOf(prefs.getBoolean("BtAutoResume", false)) }
+    var hpAutoResume by remember { mutableStateOf(prefs.getBoolean("HpAutoResume", false)) }
     var playerMode by remember { mutableStateOf(prefs.getString("PlayerMode", "spotilol") ?: "spotilol") }
     var connectionMode by remember { mutableStateOf(prefs.getString("ConnectionMode", "normal") ?: "normal") }
     var offlineMode by remember { mutableStateOf(prefs.getBoolean("OfflineMode", false)) }
+    var blockSW by remember { mutableStateOf(blockServiceWorker) }
+    var hideEmptyPlayer by remember { mutableStateOf(prefs.getBoolean("HideEmptyPlayer", false)) }
+    var lyricsStyle by remember { mutableStateOf(prefs.getString("LyricsStyle", LyricsTheme.DEFAULT_STYLE) ?: LyricsTheme.DEFAULT_STYLE) }
 
     val context = LocalContext.current
     var profiles by remember { mutableStateOf(ProfileManager.getProfiles(context)) }
@@ -205,6 +213,7 @@ fun SettingsContent(
     var showChangelogDialog by remember { mutableStateOf(false) }
     var dbgOverlay by remember { mutableStateOf(prefs.getBoolean("DebugOverlay", false)) }
     var showDevlogDialog by remember { mutableStateOf(false) }
+    var showLyricsStyleDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -353,6 +362,30 @@ fun SettingsContent(
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
 
             SettingSwitchTile(
+                title = "Hide Empty Mini Player",
+                subtitle = "Hide the mini player until a track is loaded",
+                icon = Icons.Default.VisibilityOff,
+                checked = hideEmptyPlayer,
+                onCheckedChange = {
+                    hideEmptyPlayer = it
+                    prefs.edit().putBoolean("HideEmptyPlayer", it).apply()
+                }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            val lyricsStyleLabel = LyricsTheme.STYLE_OPTIONS
+                .firstOrNull { it.first == lyricsStyle }?.second ?: "Fullscreen (Album Colors)"
+            SettingTile(
+                title = "Lyrics Style",
+                subtitle = lyricsStyleLabel,
+                icon = Icons.AutoMirrored.Filled.QueueMusic,
+                onClick = { showLyricsStyleDialog = true }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingSwitchTile(
                 title = "Take Player Control",
                 subtitle = "Auto-accept 'Take Control' prompt",
                 icon = Icons.Default.TouchApp,
@@ -408,6 +441,19 @@ fun SettingsContent(
                     onOfflineModeChange(enabled)
                 }
             )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingSwitchTile(
+                title = "Block Service Worker",
+                subtitle = "Prevent Spotify's SW from intercepting requests",
+                icon = Icons.Default.Shield,
+                checked = blockSW,
+                onCheckedChange = { enabled ->
+                    blockSW = enabled
+                    onBlockServiceWorkerChange(enabled)
+                }
+            )
         }
 
         SettingSectionCard(
@@ -435,6 +481,19 @@ fun SettingsContent(
                 onCheckedChange = {
                     btAutoResume = it
                     prefs.edit().putBoolean("BtAutoResume", it).apply()
+                }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingSwitchTile(
+                title = "Resume on Headphone Plug",
+                subtitle = "Resume when wired headphones connect",
+                icon = Icons.Default.Smartphone,
+                checked = hpAutoResume,
+                onCheckedChange = {
+                    hpAutoResume = it
+                    prefs.edit().putBoolean("HpAutoResume", it).apply()
                 }
             )
         }
@@ -739,6 +798,19 @@ fun SettingsContent(
                 prefs.edit().putString("PlayerMode", value).apply()
             },
             onDismiss = { showPlayerModeDialog = false }
+        )
+    }
+
+    if (showLyricsStyleDialog) {
+        SingleChoiceDialog(
+            title = "Lyrics Style",
+            options = LyricsTheme.STYLE_OPTIONS,
+            selected = lyricsStyle,
+            onSelect = { value ->
+                lyricsStyle = value
+                prefs.edit().putString("LyricsStyle", value).apply()
+            },
+            onDismiss = { showLyricsStyleDialog = false }
         )
     }
 
@@ -1549,7 +1621,9 @@ fun SettingsContentPreview() {
             onLoadProfile = {},
             onDeleteProfile = {},
             onClearCache = {},
-            onClearData = {}
+            onClearData = {},
+            blockServiceWorker = true,
+            onBlockServiceWorkerChange = {}
         )
     }
 }

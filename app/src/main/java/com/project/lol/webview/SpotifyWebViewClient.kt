@@ -25,6 +25,7 @@ class SpotifyWebViewClient(
 
     private var currentWebView: WebView? = null
     private var prefsListener: android.content.SharedPreferences.OnSharedPreferenceChangeListener? = null
+    private var boundPrefs: android.content.SharedPreferences? = null
 
     override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
         super.doUpdateVisitedHistory(view, url, isReload)
@@ -70,11 +71,18 @@ class SpotifyWebViewClient(
 
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
         super.onPageStarted(view, url, favicon)
-        val useProxy = view?.context?.getSharedPreferences("spotilol_prefs", 0)
-            ?.getString("ConnectionMode", "normal") == "proxy"
-        val powerSave = view?.context?.getSharedPreferences("spotilol_prefs", 0)
-            ?.getBoolean("PowerSave", false) ?: false
+        val prefs = view?.context?.getSharedPreferences("spotilol_prefs", 0)
+
+        val useProxy = prefs?.getString("ConnectionMode", "normal") == "proxy"
+        val powerSave = prefs?.getBoolean("PowerSave", false) ?: false
+        val blockSW = prefs?.getBoolean("BlockServiceWorker", true) ?: true
+        val hideEmptyPlayer = prefs?.getBoolean("HideEmptyPlayer", false) ?: false
+
         view?.evaluateJavascript("window.__spotilolUseProxy=$useProxy;", null)
+        view?.evaluateJavascript("window.__splPowerSavePref=$powerSave;", null)
+        view?.evaluateJavascript("window.__splHideEmpty=$hideEmptyPlayer;", null)
+        // FIX: these payloads were injected raw - strip them like every other
+        // injection, served from cache.
         if (isGoogleAuthUrl(url)) {
             view?.evaluateJavascript(GoogleSpoof.CONTENT, null)
         } else {
@@ -83,10 +91,12 @@ class SpotifyWebViewClient(
         view?.evaluateJavascript(FetchOverride.CONTENT, null)
         AdIdStore.clear()
         view?.evaluateJavascript(AdStateHook.CONTENT, null)
+        if (blockSW) view?.evaluateJavascript(WorkerNeutralize.CONTENT, null)
         view?.evaluateJavascript(GaBlocker.CONTENT, null)
         view?.evaluateJavascript("window.__splPowerSavePref=$powerSave;", null)
         view?.evaluateJavascript(PowerSave.CONTENT, null)
         view?.evaluateJavascript(SettingsFix.CONTENT, null)
+        view?.evaluateJavascript(VideoPark.CONTENT, null)
     }
 
     override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
@@ -227,12 +237,18 @@ class SpotifyWebViewClient(
         val customCss = prefs.getString("CustomCss", "") ?: ""
         val playerMode = prefs.getString("PlayerMode", "spotilol") ?: "spotilol"
         val useProxy = prefs.getString("ConnectionMode", "normal") == "proxy"
+        val debugOverlay = prefs.getBoolean("DebugOverlay", false)
+        val takeControl = prefs.getBoolean("TakeControl", true)
+        val hideEmptyPlayer = prefs.getBoolean("HideEmptyPlayer", false)
+        val lyricsStyle = prefs.getString("LyricsStyle", LyricsTheme.DEFAULT_STYLE) ?: LyricsTheme.DEFAULT_STYLE
 
         val js = buildString {
             append("window.autoPlayMode='$autoPlayMode';\n")
             append("window.closeNpPref=$closeNowPlay;\n")
             append("window.__spotilolUseProxy=$useProxy;\n")
-            if (prefs.getBoolean("DebugOverlay", false)) {
+            append("window.__splTakeControl=$takeControl;\n")
+            append("window.__splHideEmpty=$hideEmptyPlayer;\n")
+            if (debugOverlay) {
                 append(DevLogPrelude.js())
                 append("\n")
             }
@@ -243,12 +259,15 @@ class SpotifyWebViewClient(
             append(LibraryFetcher.CONTENT)
             append(LibraryParser.CONTENT)
             append(PlaybackControls.CONTENT)
+            append(AndroidAuto.CONTENT)
             append(MainLoop.CONTENT)
             append(AutoFeatures.CONTENT)
             append(AndroidTracker.CONTENT)
             append(SearchOverlay.CONTENT)
             append(DownloadButton.CONTENT)
             append(DownloadProgress.CONTENT)
+            append(CollectionDownload.CONTENT)
+            append(ContextMenuDownload.CONTENT)
             append("""
                 (function(){
                     var recAcc=function(){
@@ -269,13 +288,16 @@ class SpotifyWebViewClient(
             append(ErrorDialogRestyle.CONTENT)
             append(ToastFix.CONTENT)
             append(LyricsSyncFix.CONTENT)
+            append(QueueAutoClose.CONTENT)
             if (playerMode == "spotilol") {
                 append(SpotilolPlayer.CONTENT)
             }
         }
         val cleanJs = JsUtils.stripConsoleLogs(js) + "\n" +
                 buildAmoledJs(amoledEnabled) + "\n" +
-                buildCustomCssJs(customCss)
+                AccentTheme.buildAccentJs(view.context) + "\n" +
+                buildCustomCssJs(customCss) + "\n" +
+                LyricsTheme.buildLyricsStyleJs(lyricsStyle)
         if (playerMode == "original") {
             view.evaluateJavascript(cleanJs + "\n(function(){var s=document.createElement('style');s.id='spl-np-show';s.textContent='aside[data-testid=\"now-playing-bar\"]{display:flex!important}';document.head.appendChild(s);})();", null)
         } else {
@@ -285,22 +307,53 @@ class SpotifyWebViewClient(
 
     private fun registerPrefsListener(view: WebView) {
         val prefs = view.context.getSharedPreferences("spotilol_prefs", 0)
-        prefsListener?.let { prefs.unregisterOnSharedPreferenceChangeListener(it) }
+        // Listener doesn't depend on the WebView instance (it reads currentWebView),
+        // so registering once is enough. Re-register only if the prefs instance
+        // actually changed (new context after a renderer-crash rebuild).
+        if (boundPrefs === prefs && prefsListener != null) return
+        prefsListener?.let { boundPrefs?.unregisterOnSharedPreferenceChangeListener(it) }
+        boundPrefs = prefs
+
         prefsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == "PlayerMode") {
-                val wv = currentWebView ?: return@OnSharedPreferenceChangeListener
-                val mode = prefs.getString("PlayerMode", "spotilol") ?: "spotilol"
-                switchPlayerMode(wv, mode)
-            } else if (key == "PowerSave") {
-                val wv = currentWebView ?: return@OnSharedPreferenceChangeListener
-                val on = prefs.getBoolean("PowerSave", false)
-                wv.evaluateJavascript("if(window.__splApplyPowerSave) window.__splApplyPowerSave($on);", null)
-            } else if (key == "AmoledTheme" || key == "CustomCss") {
-                val wv = currentWebView ?: return@OnSharedPreferenceChangeListener
-                val amoled = prefs.getBoolean("AmoledTheme", false)
-                val css = prefs.getString("CustomCss", "") ?: ""
-                wv.evaluateJavascript(buildAmoledJs(amoled), null)
-                wv.evaluateJavascript(buildCustomCssJs(css), null)
+            val wv = currentWebView ?: return@OnSharedPreferenceChangeListener
+            when (key) {
+                "PlayerMode" ->
+                    switchPlayerMode(wv, prefs.getString("PlayerMode", "spotilol") ?: "spotilol")
+                "PowerSave" -> {
+                    val on = prefs.getBoolean("PowerSave", false)
+                    wv.evaluateJavascript("if(window.__splApplyPowerSave) window.__splApplyPowerSave($on);", null)
+                }
+                "CloseNowPlay" -> {
+                    val closeNp = prefs.getBoolean("CloseNowPlay", true)
+                    wv.evaluateJavascript("window.closeNpPref=$closeNp;", null)
+                }
+                "APlayMode" -> {
+                    val mode = prefs.getString("APlayMode", "disabled") ?: "disabled"
+                    wv.evaluateJavascript("window.autoPlayMode='$mode';", null)
+                }
+                "AmoledTheme", "CustomCss", "LyricsStyle" -> {
+                    val js = buildAmoledJs(prefs.getBoolean("AmoledTheme", false)) + ";\n" +
+                            buildCustomCssJs(prefs.getString("CustomCss", "") ?: "")
+                    wv.evaluateJavascript(js, null)
+                    wv.evaluateJavascript(LyricsTheme.buildLyricsStyleJs(prefs.getString("LyricsStyle", LyricsTheme.DEFAULT_STYLE) ?: LyricsTheme.DEFAULT_STYLE), null)
+                }
+                "PaletteSeed", "MaterialYou" ->
+                    wv.evaluateJavascript(AccentTheme.buildAccentJs(wv.context), null)
+                "TakeControl" -> {
+                    val on = prefs.getBoolean("TakeControl", true)
+                    wv.evaluateJavascript("window.__splTakeControl=$on;", null)
+                }
+                "BlockServiceWorker" -> {
+                    if (prefs.getBoolean("BlockServiceWorker", true)) {
+                        wv.evaluateJavascript(WorkerNeutralize.CONTENT + ";\n" + SW_UNREGISTER_JS, null)
+                    } else {
+                        wv.reload()
+                    }
+                }
+                "HideEmptyPlayer" -> {
+                    val hideEmpty = prefs.getBoolean("HideEmptyPlayer", false)
+                    wv.evaluateJavascript("window.__splHideEmpty=$hideEmpty; if(window.splApplyEmpty) window.splApplyEmpty();", null)
+                }
             }
         }
         prefs.registerOnSharedPreferenceChangeListener(prefsListener)
@@ -344,5 +397,15 @@ class SpotifyWebViewClient(
         private const val TAG = "SpotifyWebViewClient"
         private const val DESKTOP_UA =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
+
+        private val SW_UNREGISTER_JS = """
+            try {
+                if(navigator.serviceWorker){
+                    navigator.serviceWorker.getRegistrations().then(function(regs){
+                        regs.forEach(function(r){ r.unregister(); });
+                    });
+                }
+            } catch(e){}
+        """.trimIndent()
     }
 }

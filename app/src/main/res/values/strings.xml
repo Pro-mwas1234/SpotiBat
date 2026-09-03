@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Spotilol</string>
+    <string name="aa_playlists">Playlists</string>
+    <string name="aa_albums">Albums</string>
+    <string name="aa_artists">Artists</string>
+    <string name="aa_podcasts">Podcasts</string>
 </resources>

@@ -2,19 +2,64 @@ package com.project.lol.webview.injections
 
 object PlaybackControls {
     const val CONTENT = """
-            window.playFromUri = function(uri) {
-                var type = uri.match(/^spotify:([^:]+)/);
-                type = type ? type[1] : 'your_library';
-                if(type=='user') type='your_library';
-                (window.mngFetch || oriFetch)('https://gew4-spclient.spotify.com/connect-state/v1/player/command/from/'+window.spotDevId+'/to/'+window.spotDevId, {
-                    method:'POST',
-                    headers:{'Authorization':window.spotAuthToken,'Client-Token':window.spotCliToken,'Content-Type':'application/json'},
-                    body:JSON.stringify({
-                        command:{
-                            context:{uri:uri,url:'context://'+uri,metadata:{}},
-                            play_origin:{feature_identifier:type,feature_version:featVer,referrer_identifier:'your_library'},
-                            options:{license:'tft',skip_to:{},player_options_override:{}},
-                            endpoint:'play'
+            window.playFromUri = function(uri, contextUri) {
+                var playContext = contextUri || uri;
+                var isLikedSongs = (playContext === 'your_library' || playContext.indexOf('collection') !== -1 || playContext === 'playlists' || playContext === 'spotify:collection:tracks');
+
+                var playOptions = {
+                    license: 'tft',
+                    skip_to: {},
+                    player_options_override: {}
+                };
+
+                var commandContext = {
+                    uri: playContext,
+                    url: 'context://' + playContext,
+                    metadata: {}
+                };
+
+                var featIdent = playContext.match(/^spotify:([^:]+)/);
+                featIdent = featIdent ? featIdent[1] : null;
+                if (featIdent == 'user' || isLikedSongs) featIdent = 'your_library';
+
+                if (isLikedSongs) {
+                    var tracks = window.likedSongsCache || [];
+                    var targetUri = (uri && uri.indexOf(':track:') !== -1) ? uri : ((tracks[0] && tracks[0].id) || uri);
+                    var trackList = (tracks || []).map(function(t) { return t.id || t.uri || t; }).filter(Boolean);
+
+                    if (targetUri && targetUri.indexOf(':track:') !== -1 && trackList.indexOf(targetUri) === -1) {
+                        trackList.unshift(targetUri);
+                    }
+
+                    var collectionUri = window.spotUserId ? 'spotify:user:' + window.spotUserId + ':collection' : 'spotify:collection:tracks';
+
+                    commandContext = {
+                        uri: collectionUri,
+                        url: 'context://' + collectionUri,
+                        metadata: { context_description: 'Liked Songs' },
+                        pages: [{ page_url: 'context://' + collectionUri, tracks: trackList.map(function(u) { return { uri: u }; }) }]
+                    };
+
+                    featIdent = 'collection-tracks';
+
+                    playOptions.skip_to = { track_uri: targetUri };
+                } else if (contextUri && contextUri !== uri) {
+                    playOptions.skip_to = { track_uri: uri };
+                }
+
+                (window.mngFetch || oriFetch)('https://gew4-spclient.spotify.com/connect-state/v1/player/command/from/' + window.spotDevId + '/to/' + window.spotDevId, {
+                    method: 'POST',
+                    headers: { 'Authorization': window.spotAuthToken, 'Client-Token': window.spotCliToken, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        command: {
+                            context: commandContext,
+                            play_origin: {
+                                feature_identifier: featIdent || 'your_library',
+                                feature_version: featVer,
+                                referrer_identifier: 'your_library'
+                            },
+                            options: playOptions,
+                            endpoint: 'play'
                         }
                     })
                 });
