@@ -358,7 +358,10 @@ class OfflineMediaService : Service() {
 
     private fun buildNotification(): Notification {
         val contentIntent = PendingIntent.getActivity(
-            this, 0, Intent(this, OfflineActivity::class.java),
+            this, 0,
+            Intent(this, OfflineActivity::class.java).addFlags(
+                Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            ),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 

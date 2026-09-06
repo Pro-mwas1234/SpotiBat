@@ -43,6 +43,7 @@
         <activity
             android:name=".ui.MainActivity"
             android:exported="false"
+            android:launchMode="singleTask"
             android:screenOrientation="fullSensor"
             android:supportsPictureInPicture="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
@@ -52,6 +53,7 @@
         <activity
             android:name=".ui.OfflineActivity"
             android:exported="false"
+            android:launchMode="singleTop"
             android:screenOrientation="fullSensor"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:theme="@style/Theme.Spotilol" />
