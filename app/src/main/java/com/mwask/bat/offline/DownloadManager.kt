@@ -15,6 +15,7 @@ import com.mwask.bat.yt.CandidateScorer.isAcceptableMatch
 import com.mwask.bat.yt.YTPlayerUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Result
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -71,6 +72,11 @@ private sealed class DownloadJob {
         val name: String,
         val cover: String?,
         val tracks: List<TrackMeta>,
+    ) : DownloadJob()
+    data class Playlist(
+        val playlistUrl: String,
+        val name: String? = null,
+        val cover: String? = null,
     ) : DownloadJob()
 }
 
@@ -223,6 +229,199 @@ object DownloadManager {
         Log.i(TAG, "downloadCollection: '$name' type=${parsed.optString("type")} tracks=${batch.size}")
         onProgress?.invoke(0, "Queued ${batch.size} tracks — $name")
         enqueue(appContext, DownloadJob.Collection(name, collectionCover, batch))
+    }
+
+    fun downloadPlaylist(
+        context: Context,
+        playlistUrl: String,
+        override val name: String? = null,
+    ) {
+        val appContext = context.applicationContext
+        // Parse playlist ID from YouTube URL
+        val playlistId = YouTubeUrlParser.parsePlaylistUrl(playlistUrl)
+        if (playlistId.isBlank()) {
+            onStatus?.invoke("Invalid YouTube playlist URL")
+            return
+        }
+        // Fetch playlist tracks using YouTube browse endpoint
+        val tracksTask = runCatching {
+            innerTubeBrowsePlaylist(playlistId).getOrThrow()
+        }.getOrElse {
+            onStatus?.invoke("Failed to fetch playlist: ${it.message?.takeIf { it.length > 50 } ?: "unknown error"}")
+            return
+        }
+
+        val tracks = tracksTask?.contents?.sectionListRenderer?.contents
+            ?.mapNotNull { it.musicShelfRenderer }
+            ?.flatMap { shelf ->
+                shelf.contents?.getItems()?.mapNotNull { SearchPage.toYTItem(it) }?.filterIsInstance<SongItem>()
+            } ?: emptyList() // Limit to 50 tracks
+        if (tracks.isEmpty()) {
+            onStatus?.invoke("No tracks found in playlist")
+            return
+        }
+
+        val playlistName = tracks.firstOrNull()?.title ?: name ?: "Playlist"
+        // Get cover from first track's thumbnail
+        val playlistCover = tracks.firstOrNull()?.chosen?.thumbnails?.first?.url.orNull()
+
+        val trackMetas = tracks.map { song ->
+            TrackMeta(
+                trackId = song.id,
+                title = song.title,
+                artist = song.artists.joinToString(", "),
+                album = null,
+                cover = null,
+            )
+        }
+
+        val nameForJob = name ?: playlistName
+        val coverForJob = cover ?? playlistCover
+        Log.i(TAG, "downloadPlaylist: '${nameForJob}' ${tracks.size} tracks from playlist $playlistId")
+        onProgress?.invoke(0, "Queued ${tracks.size} tracks from playlist")
+        enqueue(appContext, DownloadJob.Playlist(playlistUrl, nameForJob, coverForJob) {
+            // Override the enqueue to use playlist tracks
+            override fun enqueue(appContext: Context, job: DownloadJob) {
+                pendingJobs.incrementAndGet()
+                jobs.trySend(job)
+                synchronized(consumerLock) {
+                    if (!consumerStarted) {
+                        consumerStarted = true
+                        scope.launch { consumePlaylistPlaylist(appContext, job as DownloadJob.Playlist) }
+                    }
+                }
+            }
+        })
+    }
+
+    private suspend fun innerTubeBrowsePlaylist(playlistId: String): Result<SearchResult> {
+        // Use InnerTube browse endpoint to fetch playlist
+        val response = innerTube.browse(
+            browseId = playlistId,
+            client = YouTubeClient.WEB,
+        ).body<SearchResult>()
+        return response
+    }
+
+    private suspend fun consumePlaylistPlaylist(appContext: Context, job: DownloadJob.Playlist) {
+        val total = job.tracks.size
+        var saved = 0
+        var failed = 0
+        var skipped = 0
+
+        try {
+            for ((index, track) in job.tracks.withIndex()) {
+                val n = index + 1
+                val shortTitle = track.title.ifBlank { track.trackId }
+                val completed = saved + failed + skipped
+
+                fun overallPct(trackPct: Int): Int {
+                    val frac = if (trackPct in 0..100) trackPct / 100.0 else 0.0
+                    return ((completed + frac) * 100.0 / total).toInt().coerceIn(0, 100)
+                }
+
+                fun report(pct: Int, text: String) {
+                    onProgress?.invoke(overallPct(pct), "$n/$total · $shortTitle — $text")
+                }
+
+                // Check for skip/cancel
+                when (consumeSignal()) {
+                    ControlSignal.CANCEL -> {
+                        skipped++
+                        report(100, "Cancelled")
+                        break
+                    }
+                    ControlSignal.SKIP -> {
+                        skipped++
+                        report(100, "Skipped")
+                        continue
+                    }
+                    null -> {}
+                }
+
+                if (OfflineStore.isTrackSaved(appContext, track.trackId)) {
+                    skipped++
+                    Log.d(TAG, "runCollection: ${track.trackId} already saved, skipping")
+                    report(100, "Already saved")
+                    continue
+                }
+
+                activeTrackId = track.trackId
+                report(0, "Resolving...")
+                try {
+                    val result = runCatching {
+                        downloadToFile(appContext, track) { pct, text -> report(pct, text) }
+                    }.onFailure { Log.e(TAG, "runCollection: ${track.trackId} exception: ${it.message}", it) }
+                        .getOrElse {
+                            if (signal != null) TrackResult.Aborted
+                            else TrackResult.Failed(track.title, track.artist, track.album)
+                        }
+
+                    when (result) {
+                        is TrackResult.Saved -> {
+                            saved++
+                            OfflineStore.saveMetadata(
+                                appContext,
+                                track.trackId,
+                                result.title,
+                                result.artist,
+                                result.album,
+                                track.cover ?: result.yt?.ytThumbnail,
+                                videoId = result.yt?.videoId,
+                                ytTitle = result.yt?.ytTitle.orEmpty(),
+                                ytArtist = result.yt?.ytArtist.orEmpty(),
+                                ytAlbum = result.yt?.ytAlbum.orEmpty(),
+                                ytThumbnail = result.yt?.ytThumbnail,
+                                durationSec = result.yt?.durationSec,
+                                explicit = result.yt?.explicit ?: false,
+                                shareLink = result.yt?.shareLink,
+                            )
+                            report(100, "Saved")
+                        }
+                        is TrackResult.Failed -> {
+                            failed++
+                            Log.w(TAG, "runCollection: ${track.trackId} failed: $lastDownloadError")
+                            report(0, "Failed — skipping")
+                        }
+                        TrackResult.Aborted -> when (consumeSignal()) {
+                            ControlSignal.CANCEL -> {
+                                skipped++
+                                report(100, "Skipped")
+                            }
+                            else -> {
+                                skipped++
+                                report(100, "Skipped")
+                            }
+                        }
+                    }
+                } finally {
+                    activeTrackId = null
+                }
+
+                if (cancelled) break
+                if (index < job.tracks.lastIndex) {
+                    delay(BATCH_INTER_TRACK_DELAY_MS.milliseconds)
+                }
+            }
+        } finally {
+            batchActive = false
+        }
+
+        val processed = saved + failed + skipped
+        val summary = buildString {
+            append(saved)
+            append(if (saved == 1) " track saved" else " tracks saved")
+            if (skipped > 0) append(", $skipped skipped")
+            if (failed > 0) append(", $failed failed")
+            if (cancelled) append(" — cancelled at $processed/$total")
+        }
+        Log.i(TAG, "downloadPlaylist: done '${job.name}' saved=$saved failed=$failed skipped=$skipped cancelled=$cancelled")
+        withContext(Dispatchers.Main) { onStatus?.invoke(summary) }
+        when {
+            cancelled -> onProgress?.invoke(-1, summary)
+            saved > 0 -> onProgress?.invoke(100, "$summary — Music/SpotiBat")
+            failed > 0 -> onProgress?.invoke(-1, summary)
+        }
     }
 
     private fun enqueue(appContext: Context, job: DownloadJob) {
