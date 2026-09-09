@@ -1,4 +1,4 @@
-package com.project.lol.service
+package com.mwask.bat.service
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -32,7 +32,7 @@ import android.webkit.WebView
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
-import com.project.lol.R
+import com.mwask.bat.R
 import androidx.media.MediaBrowserServiceCompat
 import androidx.media.app.NotificationCompat.MediaStyle
 import androidx.media.session.MediaButtonReceiver
@@ -41,7 +41,7 @@ import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.IconCompat
 import androidx.core.graphics.scale
 import androidx.core.graphics.toColorInt
-import com.project.lol.webview.helpers.AccentTheme
+import com.mwask.bat.webview.helpers.AccentTheme
 import java.lang.ref.WeakReference
 import java.net.HttpURLConnection
 import java.net.URL
@@ -52,17 +52,17 @@ import kotlin.math.min
 class MediaNotificationService : MediaBrowserServiceCompat() {
 
     companion object {
-        private const val TAG = "MediaNotifService"
-        private const val CHANNEL_ID = "spotilol_media_playback"
+        private const val TAG = "SpotiBatNotifService"
+        private const val CHANNEL_ID = "spotiBat_media_playback"
         private const val NOTIFICATION_ID = 1
         private val mainHandler = Handler(Looper.getMainLooper())
         private const val MEDIA_ID_ROOT = "__ROOT__"
 
-        const val ACTION_PLAY_PAUSE = "com.project.lol.ACTION_PLAY_PAUSE"
-        const val ACTION_NEXT = "com.project.lol.ACTION_NEXT"
-        const val ACTION_PREV = "com.project.lol.ACTION_PREV"
-        const val ACTION_SHUFFLE = "com.project.lol.ACTION_SHUFFLE"
-        private const val ACTION_FAVORITE = "com.project.lol.ACTION_FAVORITE"
+        const val ACTION_PLAY_PAUSE = "com.mwask.bat.ACTION_PLAY_PAUSE"
+        const val ACTION_NEXT = "com.mwask.bat.ACTION_NEXT"
+        const val ACTION_PREV = "com.mwask.bat.ACTION_PREV"
+        const val ACTION_SHUFFLE = "com.mwask.bat.ACTION_SHUFFLE"
+        private const val ACTION_FAVORITE = "com.mwask.bat.ACTION_FAVORITE"
 
         private const val CUSTOM_ACTION_TOGGLE_FAV = "toggle_fav"
         private const val CUSTOM_ACTION_TOGGLE_SHUFFLE = "toggle_shuffle"
@@ -209,7 +209,7 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
     private val audioBecomingNoisyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
-                val prefs = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+                val prefs = getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
                 if (prefs.getBoolean("BtAutoPause", false)) pausePlayback()
             }
         }
@@ -217,7 +217,7 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
 
     private val bluetoothReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            val prefs = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+            val prefs = getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
             when (intent.action) {
                 BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
                     if (prefs.getBoolean("BtAutoPause", false)) pausePlayback()
@@ -241,7 +241,7 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
             }
         }
         if (key == "AndAuto") {
-            val andAuto = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+            val andAuto = getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
                 .getBoolean("AndAuto", true)
             if (andAuto) {
                 lastMediaStatusJson?.let { updateFromMediaStatus(it) }
@@ -268,7 +268,7 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
                     return
                 }
                 if (state == 1) {
-                    val prefs = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+                    val prefs = getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
                     if (prefs.getBoolean("HpAutoResume", false)) resumePlayback()
                 }
             }
@@ -329,7 +329,7 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Failed to register disconnect receivers", e)
         }
-        getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+        getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
             .registerOnSharedPreferenceChangeListener(prefsListener)
     }
 
@@ -365,7 +365,7 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
         clientUid: Int,
         rootHints: Bundle?
     ): BrowserRoot? {
-        val andAuto = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+        val andAuto = getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
             .getBoolean("AndAuto", true)
         if (!andAuto) return null
         val extras = Bundle().apply {
@@ -383,10 +383,10 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
     ) {
         if (parentId == MEDIA_ID_ROOT) {
             val items = mutableListOf<MediaBrowserCompat.MediaItem>()
-            items.add(createBrowsableItem(MEDIA_ID_PLAYLISTS, getString(com.project.lol.R.string.aa_playlists)))
-            items.add(createBrowsableItem(MEDIA_ID_ALBUMS, getString(com.project.lol.R.string.aa_albums)))
-            items.add(createBrowsableItem(MEDIA_ID_ARTISTS, getString(com.project.lol.R.string.aa_artists)))
-            items.add(createBrowsableItem(MEDIA_ID_PODCASTS, getString(com.project.lol.R.string.aa_podcasts)))
+            items.add(createBrowsableItem(MEDIA_ID_PLAYLISTS, getString(com.mwask.bat.R.string.aa_playlists)))
+            items.add(createBrowsableItem(MEDIA_ID_ALBUMS, getString(com.mwask.bat.R.string.aa_albums)))
+            items.add(createBrowsableItem(MEDIA_ID_ARTISTS, getString(com.mwask.bat.R.string.aa_artists)))
+            items.add(createBrowsableItem(MEDIA_ID_PODCASTS, getString(com.mwask.bat.R.string.aa_podcasts)))
             result.sendResult(items)
             return
         }
@@ -459,7 +459,7 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
         try { unregisterReceiver(bluetoothReceiver) } catch (_: Exception) {}
         try { unregisterReceiver(audioBecomingNoisyReceiver) } catch (_: Exception) {}
         try { unregisterReceiver(headsetReceiver) } catch (_: Exception) {}
-        getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+        getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
             .unregisterOnSharedPreferenceChangeListener(prefsListener)
         if (::mediaSession.isInitialized) {
             try { mediaSession.isActive = false } catch (_: Exception) {}
@@ -480,7 +480,7 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
                 "Media Playback",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Spotilol media playback controls"
+                description = "SpotiBat media playback controls"
                 setShowBadge(false)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }
@@ -491,7 +491,7 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
 
     @Suppress("DEPRECATION")
     private fun setupMediaSession() {
-        mediaSession = MediaSessionCompat(this, "SpotilolSession").apply {
+        mediaSession = MediaSessionCompat(this, "SpotiBatSession").apply {
             setFlags(
                 MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or
                 MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS
@@ -619,7 +619,7 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
         try {
             lastMediaStatusJson = json
             val obj = org.json.JSONObject(json)
-            val andAuto = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+            val andAuto = getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
                 .getBoolean("AndAuto", true)
 
             if (andAuto) {
@@ -718,7 +718,7 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
         val builder = MediaMetadataCompat.Builder()
             .putString(MediaMetadataCompat.METADATA_KEY_TITLE, currentTitle)
             .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, currentArtist)
-            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, "Spotilol")
+            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, "SpotiBat")
             .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, currentDuration)
         coverBitmap?.let { bmp ->
             builder.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bmp)
@@ -767,7 +767,7 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Failed to build notification", e)
             NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Spotilol")
+                .setContentTitle("SpotiBat")
                 .setSmallIcon(R.drawable.ic_notification)
                 .setOngoing(true)
                 .build()
@@ -837,9 +837,9 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
         actions.add(favAction)
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(currentTitle.ifEmpty { "Spotilol" })
+            .setContentTitle(currentTitle.ifEmpty { "SpotiBat" })
             .setContentText(currentArtist)
-            .setSubText("Spotilol")
+            .setSubText("SpotiBat")
             .setSmallIcon(R.drawable.ic_notification)
             .setContentIntent(contentIntent)
             .setOngoing(true)
@@ -877,7 +877,7 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
             wakeLock = pm.newWakeLock(
                 PowerManager.PARTIAL_WAKE_LOCK,
-                "spotilol:media_playback"
+                "spotiBat:media_playback"
             ).apply { acquire(60 * 60 * 1000L) }
         }
     }
@@ -890,7 +890,7 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        val stopOnSwipe = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+        val stopOnSwipe = getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
             .getBoolean("SwipeStop", true)
         if (stopOnSwipe) {
             taskRemoved = true

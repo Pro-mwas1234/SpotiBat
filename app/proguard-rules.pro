@@ -1,12 +1,12 @@
--keep class com.project.lol.bridge.SpotifyBridge { *; }
--keep class com.project.lol.webview.SpotifyWebViewClient { *; }
--keep class com.project.lol.webview.SpotifyWebChromeClient { *; }
--keep class com.project.lol.webview.injections.** { *; }
--keep class com.project.lol.webview.helpers.** { *; }
--keep class com.project.lol.service.MediaNotificationService { *; }
--keep class com.project.lol.proxy.LocalProxyManager { *; }
--keep class com.project.lol.ui.SplashActivity { *; }
--keep class com.project.lol.ui.MainActivity { *; }
+-keep class com.mwask.bat.bridge.SpotifyBridge { *; }
+-keep class com.mwask.bat.webview.SpotifyWebViewClient { *; }
+-keep class com.mwask.bat.webview.SpotifyWebChromeClient { *; }
+-keep class com.mwask.bat.webview.injections.** { *; }
+-keep class com.mwask.bat.webview.helpers.** { *; }
+-keep class com.mwask.bat.service.MediaNotificationService { *; }
+-keep class com.mwask.bat.proxy.LocalProxyManager { *; }
+-keep class com.mwask.bat.ui.SplashActivity { *; }
+-keep class com.mwask.bat.ui.MainActivity { *; }
 -keep class org.bouncycastle.** { *; }
 -dontwarn org.bouncycastle.**
 -dontwarn javax.annotation.concurrent.GuardedBy

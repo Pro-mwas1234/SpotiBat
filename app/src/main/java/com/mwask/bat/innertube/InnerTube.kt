@@ -1,11 +1,11 @@
-package com.project.lol.innertube
+package com.mwask.bat.innertube
 
-import com.project.lol.innertube.models.Context
-import com.project.lol.innertube.models.YouTubeClient
-import com.project.lol.innertube.models.YouTubeLocale
-import com.project.lol.innertube.models.body.*
-import com.project.lol.innertube.utils.parseCookieString
-import com.project.lol.innertube.utils.sha1
+import com.mwask.bat.innertube.models.Context
+import com.mwask.bat.innertube.models.YouTubeClient
+import com.mwask.bat.innertube.models.YouTubeLocale
+import com.mwask.bat.innertube.models.body.*
+import com.mwask.bat.innertube.utils.parseCookieString
+import com.mwask.bat.innertube.utils.sha1
 import io.ktor.client.*
 import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.*

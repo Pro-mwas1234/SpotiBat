@@ -1,4 +1,4 @@
-package com.project.lol.innertube
+package com.mwask.bat.innertube
 
 object YouTubeConstants {
     const val DEFAULT_TOP_RESULT = "Top result"

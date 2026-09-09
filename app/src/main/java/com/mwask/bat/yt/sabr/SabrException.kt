@@ -1,3 +1,3 @@
-package com.project.lol.yt.sabr
+package com.mwask.bat.yt.sabr
 
 class SabrException(message: String, cause: Throwable? = null) : Exception(message, cause)

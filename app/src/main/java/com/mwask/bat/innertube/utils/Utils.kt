@@ -1,4 +1,4 @@
-package com.project.lol.innertube.utils
+package com.mwask.bat.innertube.utils
 
 import java.security.MessageDigest
 

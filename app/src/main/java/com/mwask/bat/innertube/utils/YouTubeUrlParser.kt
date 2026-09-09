@@ -1,6 +1,6 @@
-package com.project.lol.innertube.utils
+package com.mwask.bat.innertube.utils
 
-import com.project.lol.innertube.models.WatchEndpoint
+import com.mwask.bat.innertube.models.WatchEndpoint
 
 /**
  * Utility class for parsing YouTube and YouTube Music URLs.

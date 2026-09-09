@@ -1,4 +1,4 @@
-package com.project.lol.webview.helpers
+package com.mwask.bat.webview.helpers
 
 object DevLogPrelude {
 

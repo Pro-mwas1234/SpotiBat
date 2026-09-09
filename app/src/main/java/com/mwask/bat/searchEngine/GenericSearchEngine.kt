@@ -1,4 +1,4 @@
-package com.project.lol.searchEngine
+package com.mwask.bat.searchEngine
 
 import java.util.Locale
 import kotlin.math.ceil

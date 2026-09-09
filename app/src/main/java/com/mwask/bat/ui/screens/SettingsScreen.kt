@@ -1,4 +1,4 @@
-package com.project.lol.ui.screens
+package com.mwask.bat.ui.screens
 
 import android.content.ClipData
 import android.content.Context
@@ -109,15 +109,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.webkit.WebViewCompat
-import com.project.lol.R
-import com.project.lol.profile.ProfileManager
-import com.project.lol.proxy.LocalProxyManager
-import com.project.lol.ui.theme.SpotifyTheme
-import com.project.lol.util.DebugLogStore
-import com.project.lol.util.GitHubApi
-import com.project.lol.util.GitHubRelease
-import com.project.lol.util.MarkdownText
-import com.project.lol.webview.helpers.LyricsTheme
+import com.mwask.bat.R
+import com.mwask.bat.profile.ProfileManager
+import com.mwask.bat.proxy.LocalProxyManager
+import com.mwask.bat.ui.theme.SpotifyTheme
+import com.mwask.bat.util.DebugLogStore
+import com.mwask.bat.util.GitHubApi
+import com.mwask.bat.util.GitHubRelease
+import com.mwask.bat.util.MarkdownText
+import com.mwask.bat.webview.helpers.LyricsTheme
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -189,7 +189,7 @@ fun SettingsContent(
     var btAutoPause by remember { mutableStateOf(prefs.getBoolean("BtAutoPause", false)) }
     var btAutoResume by remember { mutableStateOf(prefs.getBoolean("BtAutoResume", false)) }
     var hpAutoResume by remember { mutableStateOf(prefs.getBoolean("HpAutoResume", false)) }
-    var playerMode by remember { mutableStateOf(prefs.getString("PlayerMode", "spotilol") ?: "spotilol") }
+    var playerMode by remember { mutableStateOf(prefs.getString("PlayerMode", "spotiBat") ?: "spotiBat") }
     var connectionMode by remember { mutableStateOf(prefs.getString("ConnectionMode", "normal") ?: "normal") }
     var offlineMode by remember { mutableStateOf(prefs.getBoolean("OfflineMode", false)) }
     var blockSW by remember { mutableStateOf(blockServiceWorker) }
@@ -348,9 +348,9 @@ fun SettingsContent(
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
 
             val playerModeLabel = when (playerMode) {
-                "spotilol" -> "Spotilol Player"
+                "spotiBat" -> "SpotiBat Player"
                 "original" -> "Spotify Original"
-                else -> "Spotilol Player"
+                else -> "SpotiBat Player"
             }
             SettingTile(
                 title = "Player Mode",
@@ -620,10 +620,10 @@ fun SettingsContent(
         ) {
             SettingTile(
                 title = "GitHub Repository",
-                subtitle = "github.com/lyssadev/Spotilol",
+                subtitle = "github.com/Pro-mwas1234/SpotiBat",
                 painter = painterResource(id = R.drawable.ic_github),
                 onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/lyssadev/Spotilol"))
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Pro-mwas1234/SpotiBat"))
                     context.startActivity(intent)
                 }
             )
@@ -631,7 +631,7 @@ fun SettingsContent(
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
 
             SettingTile(
-                title = "Spotilol Version",
+                title = "SpotiBat Version",
                 subtitle = "v$appVersionName",
                 icon = Icons.Default.Smartphone,
                 onClick = { showChangelogDialog = true }
@@ -789,7 +789,7 @@ fun SettingsContent(
         SingleChoiceDialog(
             title = "Player Mode",
             options = listOf(
-                "spotilol" to "Spotilol Player",
+                "spotiBat" to "SpotiBat Player",
                 "original" to "Spotify Original"
             ),
             selected = playerMode,
@@ -1078,7 +1078,7 @@ private fun ChangelogDialog(onDismiss: () -> Unit) {
     fun fetch() {
         loading = true
         failed = false
-        GitHubApi.fetchLatestRelease("lyssadev", "Spotilol") { r ->
+        GitHubApi.fetchLatestRelease("Pro-mwas1234", "SpotiBat") { r ->
             loading = false
             if (r == null || r.body.isBlank()) {
                 failed = true
@@ -1665,7 +1665,7 @@ fun DevlogLiveDialog(onDismiss: () -> Unit) {
                     val text = lines.joinToString("\n")
                     scope.launch {
                         clipboard.setClipEntry(
-                            ClipData.newPlainText("spotilol_devlog", text).toClipEntry()
+                            ClipData.newPlainText("spotiBat_devlog", text).toClipEntry()
                         )
                     }
                 }) { Text("Copy") }

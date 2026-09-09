@@ -1,19 +1,19 @@
-package com.project.lol.bridge
+package com.mwask.bat.bridge
 
 import android.app.Activity
 import android.view.View
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.widget.Toast
-import com.project.lol.service.MediaNotificationService
-import com.project.lol.webview.helpers.AdIdStore
+import com.mwask.bat.service.MediaNotificationService
+import com.mwask.bat.webview.helpers.AdIdStore
 import org.json.JSONArray
 import org.json.JSONObject
 import java.lang.ref.WeakReference
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
-import com.project.lol.offline.DownloadManager
+import com.mwask.bat.offline.DownloadManager
 
 class SpotifyBridge(activityRef: WeakReference<Activity>) {
 
@@ -45,7 +45,7 @@ class SpotifyBridge(activityRef: WeakReference<Activity>) {
     @JavascriptInterface
     fun loginDetected() {
         val activity = activityRef.get() ?: return
-        activity.getSharedPreferences("spotilol_prefs", Activity.MODE_PRIVATE)
+activity.getSharedPreferences("spotiBat_prefs", Activity.MODE_PRIVATE)
             .edit()
             .putBoolean("LoggedIn", true)
             .apply()
@@ -90,7 +90,7 @@ class SpotifyBridge(activityRef: WeakReference<Activity>) {
     fun dbg(level: String?, msg: String?) {
         val m = msg ?: return
         val activity = activityRef.get() ?: return
-        if (!activity.getSharedPreferences("spotilol_prefs", Activity.MODE_PRIVATE)
+        if (!activity.getSharedPreferences("spotiBat_prefs", Activity.MODE_PRIVATE)
                 .getBoolean("DebugOverlay", false)) return
         val tag = when (level) {
             "w" -> "js.warn"
@@ -98,7 +98,7 @@ class SpotifyBridge(activityRef: WeakReference<Activity>) {
             "s" -> "js.sys"
             else -> "js"
         }
-        com.project.lol.util.DebugLogStore.log(tag, m)
+        com.mwask.bat.util.DebugLogStore.log(tag, m)
     }
 
     @JavascriptInterface
@@ -158,7 +158,7 @@ class SpotifyBridge(activityRef: WeakReference<Activity>) {
         val activity = activityRef.get() ?: return
         val trimmed = name.trim()
         if (trimmed.isNotEmpty()) {
-            activity.getSharedPreferences("spotilol_prefs", Activity.MODE_PRIVATE)
+            activity.getSharedPreferences("spotiBat_prefs", Activity.MODE_PRIVATE)
                 .edit()
                 .putString("CurrentAccountName", trimmed)
                 .apply()

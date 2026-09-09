@@ -1,7 +1,7 @@
-package com.project.lol.webview.injections
+package com.mwask.bat.webview.injections
 
 /*
- * CREDIT: Spotilol - Toast Restyle.
+ * CREDIT: SpotiBat - Toast Restyle.
  * GitHub: https://github.com/AldySan
  */
 object ToastFix {

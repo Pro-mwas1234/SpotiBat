@@ -1,12 +1,12 @@
-package com.project.lol.webview.helpers
+package com.mwask.bat.webview.helpers
 
 import org.json.JSONObject
 
 /**
- * Spotilol - Lyrics Style Engine.
+ * SpotiBat - Lyrics Style Engine.
  *
- * Injects a dedicated <style id="spotilol-lyrics-style"> element. It does
- * NOT touch 'spotilol-custom-css' (owned by the CustomCss setting), so the
+ * Injects a dedicated <style id="spotiBat-lyrics-style"> element. It does
+ * NOT touch 'spotiBat-custom-css' (owned by the CustomCss setting), so the
  * two features can coexist without clobbering each other.
  *
  * Style "default" removes the element entirely - Spotify renders untouched.
@@ -28,7 +28,7 @@ object LyricsTheme {
     )
 
     const val DEFAULT_STYLE = "fullscreen"
-    private const val STYLE_ID = "spotilol-lyrics-style"
+    private const val STYLE_ID = "spotiBat-lyrics-style"
 
     fun buildLyricsStyleJs(style: String?): String {
         val css = cssFor(style)
@@ -69,7 +69,7 @@ object LyricsTheme {
     // (your v5 sections A, B, J, M)
     // ---------------------------------------------------------------
     private val SHARED_FIX = """
-/* --- Spotilol Lyrics Engine: shared fixes --- */
+/* --- SpotiBat Lyrics Engine: shared fixes --- */
 
 /* Old ~1-screen background layer -> hidden */
 .nqmjceMqTFCSMXlnquLP { display: none !important; }

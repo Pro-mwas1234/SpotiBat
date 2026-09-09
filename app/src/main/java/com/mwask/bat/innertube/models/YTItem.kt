@@ -1,6 +1,6 @@
-package com.project.lol.innertube.models
+package com.mwask.bat.innertube.models
 
-import com.project.lol.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_ATV
+import com.mwask.bat.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_ATV
 
 sealed class YTItem {
     abstract val id: String

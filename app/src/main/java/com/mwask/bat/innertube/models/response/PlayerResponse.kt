@@ -1,12 +1,12 @@
-package com.project.lol.innertube.models.response
+package com.mwask.bat.innertube.models.response
 
-import com.project.lol.innertube.models.ResponseContext
-import com.project.lol.innertube.models.Thumbnails
+import com.mwask.bat.innertube.models.ResponseContext
+import com.mwask.bat.innertube.models.Thumbnails
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * PlayerResponse with [com.project.lol.innertube.models.YouTubeClient.WEB_REMIX] client
+ * PlayerResponse with [com.mwask.bat.innertube.models.YouTubeClient.WEB_REMIX] client
  */
 @Serializable
 data class PlayerResponse(

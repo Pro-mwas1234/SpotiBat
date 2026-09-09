@@ -1,11 +1,11 @@
 {
   "repo_notes": [
     {
-      "content": "This is an Android app (Spotilol) that wraps the Spotify Web Player in a WebView. It injects custom JS/CSS to block ads/analytics, spoof the browser fingerprint, bypass GDPR dialogs, add custom player controls, and expose a library browser. Written in Kotlin using Jetpack Compose. The project is a clean-Kotlin port of deviato's Spotifuck. Priority areas: webview/ (JS injection engine), service/ (media + offline playback), offline/ + innertube/ + yt/ (YouTube-backed offline downloads), and bridge/ (JS <-> Kotlin).",
+      "content": "This is an Android app (SpotiBat) that wraps the Spotify Web Player in a WebView. It injects custom JS/CSS to block ads/analytics, spoof the browser fingerprint, bypass GDPR dialogs, add custom player controls, and expose a library browser. Written in Kotlin using Jetpack Compose. The project is a clean-Kotlin port of deviato's Spotifuck. Priority areas: webview/ (JS injection engine), service/ (media + offline playback), offline/ + innertube/ + yt/ (YouTube-backed offline downloads), and bridge/ (JS <-> Kotlin).",
       "author": "Maintainer"
     },
     {
-      "content": "webview/ holds the core engine. SpotifyWebViewClient orchestrates per-page JS injection and request interception; SpotifyWebChromeClient handles fullscreen/custom view and progress. webview/injections/ contains 32 Kotlin objects, each exposing a const val CONTENT with raw JavaScript (BrowserSpoof, FetchOverride, PlayerCore, TrackObserver, MediaUpdater, LibraryFetcher, LibraryParser, PlaybackControls, AndroidAuto, MainLoop, AutoFeatures, AndroidTracker, PowerSave, SearchOverlay, DownloadButton, DownloadProgress, CssHack, SpotilolPlayer, FbGdprBypass, ClassicLoginButton, LogoutCheck, LoginDetection, GoogleSpoof, WorkerNeutralize, AdStateHook, GaBlocker, SettingsFix, ModalFix, ErrorDialogRestyle, ToastFix, LyricsSyncFix, ClassicBridge). Order of injection in injectPlayerControl matters (PlayerCore defines globals first). webview/helpers/ has JsUtils (console log stripping), AmoledTheme, CssInjector, AdBlocker, AdIdStore, DevLogPrelude. AndroidAuto.kt is the Android Auto media-browser/search JS (fetchMediaItems, searchMediaItems, checkMediaLib, ensureAuthToken, playFromUri with contextUri).",
+      "content": "webview/ holds the core engine. SpotifyWebViewClient orchestrates per-page JS injection and request interception; SpotifyWebChromeClient handles fullscreen/custom view and progress. webview/injections/ contains 32 Kotlin objects, each exposing a const val CONTENT with raw JavaScript (BrowserSpoof, FetchOverride, PlayerCore, TrackObserver, MediaUpdater, LibraryFetcher, LibraryParser, PlaybackControls, AndroidAuto, MainLoop, AutoFeatures, AndroidTracker, PowerSave, SearchOverlay, DownloadButton, DownloadProgress, CssHack, SpotiBatPlayer, FbGdprBypass, ClassicLoginButton, LogoutCheck, LoginDetection, GoogleSpoof, WorkerNeutralize, AdStateHook, GaBlocker, SettingsFix, ModalFix, ErrorDialogRestyle, ToastFix, LyricsSyncFix, ClassicBridge). Order of injection in injectPlayerControl matters (PlayerCore defines globals first). webview/helpers/ has JsUtils (console log stripping), AmoledTheme, CssInjector, AdBlocker, AdIdStore, DevLogPrelude. AndroidAuto.kt is the Android Auto media-browser/search JS (fetchMediaItems, searchMediaItems, checkMediaLib, ensureAuthToken, playFromUri with contextUri).",
       "author": "Maintainer"
     },
     {
@@ -20,7 +20,7 @@
   "pages": [
     {
       "title": "Architecture Overview",
-      "purpose": "High-level architecture of Spotilol: how the WebView, JS injection engine, Android services, Android Auto integration, and the YouTube-backed offline downloader interact to wrap and enhance the Spotify Web Player",
+      "purpose": "High-level architecture of SpotiBat: how the WebView, JS injection engine, Android services, Android Auto integration, and the YouTube-backed offline downloader interact to wrap and enhance the Spotify Web Player",
       "parent": null
     },
     {
@@ -30,7 +30,7 @@
     },
     {
       "title": "JS Injection Objects Reference",
-      "purpose": "Detailed reference for each of the 32 JS injection objects in webview/injections/ - what each one does, its key exported window functions/variables, and when it is injected. Cover ad-blocking (AdStateHook, GaBlocker, WorkerNeutralize, FetchOverride), spoofing (BrowserSpoof, GoogleSpoof, desktop fingerprint), player core + globals (PlayerCore, TrackObserver, MediaUpdater, PlaybackControls), Android Auto JS (AndroidAuto), UI features (CssHack, SpotilolPlayer, AutoFeatures, AndroidTracker, PowerSave, SearchOverlay, DownloadButton, DownloadProgress), and page helpers (ClassicLoginButton, FbGdprBypass, LoginDetection, LogoutCheck, ClassicBridge, SettingsFix, ModalFix, ErrorDialogRestyle, ToastFix, LyricsSyncFix, MainLoop)",
+      "purpose": "Detailed reference for each of the 32 JS injection objects in webview/injections/ - what each one does, its key exported window functions/variables, and when it is injected. Cover ad-blocking (AdStateHook, GaBlocker, WorkerNeutralize, FetchOverride), spoofing (BrowserSpoof, GoogleSpoof, desktop fingerprint), player core + globals (PlayerCore, TrackObserver, MediaUpdater, PlaybackControls), Android Auto JS (AndroidAuto), UI features (CssHack, SpotiBatPlayer, AutoFeatures, AndroidTracker, PowerSave, SearchOverlay, DownloadButton, DownloadProgress), and page helpers (ClassicLoginButton, FbGdprBypass, LoginDetection, LogoutCheck, ClassicBridge, SettingsFix, ModalFix, ErrorDialogRestyle, ToastFix, LyricsSyncFix, MainLoop)",
       "parent": "WebView & JS Injection System"
     },
     {
@@ -80,7 +80,7 @@
     },
     {
       "title": "UI Layer",
-      "purpose": "Documentation of ui/: MainActivity (Jetpack Compose host for the WebView, custom player overlay, PiP handling, service start/stop), SplashActivity (animated splash), OfflineActivity (downloaded tracks UI), screens/SettingsScreen (all preferences: AndAuto/Android Auto, APlayMode, ConnectionMode normal/proxy, AmoledTheme, CustomCss, BtAutoPause/Resume, sleep timer, PlayerMode spotilol/original, profiles), and theme/ (Saira font family, AMOLED dark theme)",
+      "purpose": "Documentation of ui/: MainActivity (Jetpack Compose host for the WebView, custom player overlay, PiP handling, service start/stop), SplashActivity (animated splash), OfflineActivity (downloaded tracks UI), screens/SettingsScreen (all preferences: AndAuto/Android Auto, APlayMode, ConnectionMode normal/proxy, AmoledTheme, CustomCss, BtAutoPause/Resume, sleep timer, PlayerMode spotiBat/original, profiles), and theme/ (Saira font family, AMOLED dark theme)",
       "parent": "Architecture Overview"
     },
     {

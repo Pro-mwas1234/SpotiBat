@@ -1,4 +1,4 @@
-package com.project.lol.yt.sabr
+package com.mwask.bat.yt.sabr
 
 import android.content.Context
 import android.net.Uri
@@ -11,8 +11,8 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewAssetLoader.InternalStoragePathHandler
-import com.project.lol.yt.cipher.CipherDeobfuscator
-import com.project.lol.yt.cipher.PlayerJsFetcher
+import com.mwask.bat.yt.cipher.CipherDeobfuscator
+import com.mwask.bat.yt.cipher.PlayerJsFetcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.suspendCancellableCoroutine

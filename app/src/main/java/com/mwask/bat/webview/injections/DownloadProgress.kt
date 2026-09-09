@@ -1,4 +1,4 @@
-package com.project.lol.webview.injections
+package com.mwask.bat.webview.injections
 
 object DownloadProgress {
     const val CONTENT = """
@@ -13,7 +13,7 @@ object DownloadProgress {
             var dlFixed = false;
         
             function expandedPlayer() {
-                var p = document.getElementById('spotilolPlayerControls');
+                var p = document.getElementById('spotiBatPlayerControls');
                 return (p && !p.classList.contains('spl-mini')) ? p : null;
             }
         

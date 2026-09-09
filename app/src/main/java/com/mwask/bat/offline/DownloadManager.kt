@@ -1,4 +1,4 @@
-package com.project.lol.offline
+package com.mwask.bat.offline
 
 import android.content.ContentValues
 import android.content.Context
@@ -7,12 +7,12 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
-import com.project.lol.innertube.YouTube
-import com.project.lol.innertube.models.SongItem
-import com.project.lol.yt.AudioQuality
-import com.project.lol.yt.CandidateScorer
-import com.project.lol.yt.CandidateScorer.isAcceptableMatch
-import com.project.lol.yt.YTPlayerUtils
+import com.mwask.bat.innertube.YouTube
+import com.mwask.bat.innertube.models.SongItem
+import com.mwask.bat.yt.AudioQuality
+import com.mwask.bat.yt.CandidateScorer
+import com.mwask.bat.yt.CandidateScorer.isAcceptableMatch
+import com.mwask.bat.yt.YTPlayerUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -252,7 +252,7 @@ object DownloadManager {
     private suspend fun runSingle(appContext: Context, track: TrackMeta) {
         if (OfflineStore.isTrackSaved(appContext, track.trackId)) {
             onProgress?.invoke(100, "Already saved")
-            withContext(Dispatchers.Main) { onStatus?.invoke("Already saved to Music/Spotilol") }
+            withContext(Dispatchers.Main) { onStatus?.invoke("Already saved to Music/SpotiBat") }
             return
         }
         activeTrackId = track.trackId
@@ -283,8 +283,8 @@ object DownloadManager {
                         explicit = result.yt?.explicit ?: false,
                         shareLink = result.yt?.shareLink,
                     )
-                    onProgress?.invoke(100, "Saved to Music/Spotilol")
-                    withContext(Dispatchers.Main) { onStatus?.invoke("Saved to Music/Spotilol") }
+                    onProgress?.invoke(100, "Saved to Music/SpotiBat")
+                    withContext(Dispatchers.Main) { onStatus?.invoke("Saved to Music/SpotiBat") }
                 }
                 is TrackResult.Failed -> {
                     val msg = "Download failed: ${lastDownloadError ?: "unknown error"}"
@@ -424,7 +424,7 @@ object DownloadManager {
         withContext(Dispatchers.Main) { onStatus?.invoke(summary) }
         when {
             cancelled -> onProgress?.invoke(-1, summary)
-            saved > 0 -> onProgress?.invoke(100, "$summary — Music/Spotilol")
+            saved > 0 -> onProgress?.invoke(100, "$summary — Music/SpotiBat")
             failed > 0 -> onProgress?.invoke(-1, summary)
         }
     }
@@ -477,7 +477,7 @@ object DownloadManager {
         val uri = saveToPublicMusic(context, trackId, effectiveTitle, effectiveArtist, tmpFile, "m4a", "audio/mp4")
         tmpFile.delete()
         if (uri != null) {
-            Log.d(TAG, "downloadToFile: saved to Music/Spotilol uri=$uri")
+            Log.d(TAG, "downloadToFile: saved to Music/SpotiBat uri=$uri")
             return TrackResult.Saved(
                 effectiveTitle,
                 effectiveArtist,
@@ -667,7 +667,7 @@ object DownloadManager {
         ext: String,
         mime: String,
     ): String? {
-        val folderName = "Spotilol"
+        val folderName = "SpotiBat"
         val fileName = "$artist - $title [$trackId]"
             .replace(Regex("""[\\/:*?"<>|]"""), "_")
             .let { if (it.length > 200) it.take(200) else it }

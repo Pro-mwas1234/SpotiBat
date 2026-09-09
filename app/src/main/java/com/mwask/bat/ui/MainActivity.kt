@@ -1,4 +1,4 @@
-package com.project.lol.ui
+package com.mwask.bat.ui
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -108,22 +108,22 @@ import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import androidx.webkit.WebSettingsCompat
 import com.google.firebase.analytics.FirebaseAnalytics
-import com.project.lol.R
-import com.project.lol.bridge.SpotifyBridge
-import com.project.lol.offline.DownloadManager
-import com.project.lol.profile.ProfileManager
-import com.project.lol.proxy.LocalProxyManager
-import com.project.lol.service.MediaNotificationService
-import com.project.lol.ui.components.SettingsDrawer
-import com.project.lol.ui.theme.SpotifyTheme
-import com.project.lol.util.UpdateChecker
-import com.project.lol.webview.SpotifyWebChromeClient
-import com.project.lol.webview.SpotifyWebViewClient
-import com.project.lol.webview.helpers.DevLogPrelude
-import com.project.lol.webview.helpers.LyricsTheme
-import com.project.lol.webview.helpers.buildAmoledJs
-import com.project.lol.webview.helpers.buildCustomCssJs
-import com.project.lol.webview.injections.LogoutCheck
+import com.mwask.bat.R
+import com.mwask.bat.bridge.SpotifyBridge
+import com.mwask.bat.offline.DownloadManager
+import com.mwask.bat.profile.ProfileManager
+import com.mwask.bat.proxy.LocalProxyManager
+import com.mwask.bat.service.MediaNotificationService
+import com.mwask.bat.ui.components.SettingsDrawer
+import com.mwask.bat.ui.theme.SpotifyTheme
+import com.mwask.bat.util.UpdateChecker
+import com.mwask.bat.webview.SpotifyWebChromeClient
+import com.mwask.bat.webview.SpotifyWebViewClient
+import com.mwask.bat.webview.helpers.DevLogPrelude
+import com.mwask.bat.webview.helpers.LyricsTheme
+import com.mwask.bat.webview.helpers.buildAmoledJs
+import com.mwask.bat.webview.helpers.buildCustomCssJs
+import com.mwask.bat.webview.injections.LogoutCheck
 import java.lang.ref.WeakReference
 import java.net.HttpURLConnection
 import java.net.URL
@@ -133,9 +133,9 @@ import org.json.JSONObject
 import androidx.core.content.edit
 import androidx.core.graphics.scale
 import androidx.core.graphics.toColorInt
-import com.project.lol.ui.components.ErrorScreen
-import com.project.lol.ui.components.mapWebViewError
-import com.project.lol.webview.helpers.AccentTheme
+import com.mwask.bat.ui.components.ErrorScreen
+import com.mwask.bat.ui.components.mapWebViewError
+import com.mwask.bat.webview.helpers.AccentTheme
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -196,7 +196,7 @@ class MainActivity : ComponentActivity() {
             putString(FirebaseAnalytics.Param.SCREEN_CLASS, "MainActivity")
         })
 
-        prefs = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+        prefs = getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
         val useProxy = prefs.getString("ConnectionMode", "normal") == "proxy"
 
         // After an OOM kill, Android can resume directly at MainActivity
@@ -336,7 +336,7 @@ class MainActivity : ComponentActivity() {
                                 title = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(
-                                            text = "Spotilol",
+                                            text = "SpotiBat",
                                             fontWeight = FontWeight.Bold
                                         )
                                         Spacer(Modifier.width(6.dp))
@@ -546,8 +546,8 @@ class MainActivity : ComponentActivity() {
                             }
 
                             webViewError.value?.let { (code, desc) ->
-                                com.project.lol.ui.components.ErrorScreen(
-                                    errorType = com.project.lol.ui.components.mapWebViewError(code),
+                                com.mwask.bat.ui.components.ErrorScreen(
+                                    errorType = com.mwask.bat.ui.components.mapWebViewError(code),
                                     errorCode = code,
                                     errorDescription = desc,
                                     onRetry = {
@@ -1232,7 +1232,7 @@ class MainActivity : ComponentActivity() {
     private fun startDownloadService() {
         runCatching {
             ContextCompat.startForegroundService(
-                this, Intent(this, com.project.lol.service.DownloadService::class.java)
+                this, Intent(this, com.mwask.bat.service.DownloadService::class.java)
             )
         }
     }
@@ -1337,7 +1337,7 @@ class MainActivity : ComponentActivity() {
             putString(FirebaseAnalytics.Param.SCREEN_CLASS, "MainActivity")
         })
 
-        prefs = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+        prefs = getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
         serviceEnabledState.value = prefs.getBoolean("ServiceOn", true)
         materialYouState.value = prefs.getBoolean("MaterialYou", false)
         amoledState.value = prefs.getBoolean("AmoledTheme", false)
@@ -1386,7 +1386,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        val loggedIn = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+        val loggedIn = getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
             .getBoolean("LoggedIn", false)
         if (!loggedIn) {
             webView?.loadUrl("https://accounts.spotify.com/login")

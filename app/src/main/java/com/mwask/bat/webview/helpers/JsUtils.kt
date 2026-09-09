@@ -1,8 +1,8 @@
-package com.project.lol.webview.helpers
+package com.mwask.bat.webview.helpers
 
 import androidx.collection.LruCache
-import com.project.lol.webview.helpers.JsUtils.MAX_CACHE_BYTES
-import com.project.lol.webview.helpers.JsUtils.stripConsoleLogs
+import com.mwask.bat.webview.helpers.JsUtils.MAX_CACHE_BYTES
+import com.mwask.bat.webview.helpers.JsUtils.stripConsoleLogs
 
 /**
  * Strips `console.log(...)` calls from JavaScript before it is handed to

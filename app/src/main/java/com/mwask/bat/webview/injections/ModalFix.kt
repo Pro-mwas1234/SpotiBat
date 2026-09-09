@@ -1,7 +1,7 @@
-package com.project.lol.webview.injections
+package com.mwask.bat.webview.injections
 
 /*
- * CREDIT: Spotilol - Modal Fix.
+ * CREDIT: SpotiBat - Modal Fix.
  * GitHub: https://github.com/AldySan
  */
 

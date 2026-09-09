@@ -1,4 +1,4 @@
-package com.project.lol.webview.injections
+package com.mwask.bat.webview.injections
 
 object FetchOverride {
     const val CONTENT = """
@@ -65,7 +65,7 @@ object FetchOverride {
                             }
                         } catch(e){}
                     }
-                    if(!window.__spotilolUseProxy && url && url.indexOf && (url.indexOf('connect-state') !== -1 || url.indexOf('melody/v1/msg') !== -1 || url.indexOf('/track-playback/') !== -1) && window.mngFetch) {
+                    if(!window.__spotiBatUseProxy && url && url.indexOf && (url.indexOf('connect-state') !== -1 || url.indexOf('melody/v1/msg') !== -1 || url.indexOf('/track-playback/') !== -1) && window.mngFetch) {
                         return window.mngFetch(input, init);
                     }
                     if(window.ffDone && url && url.indexOf && url.indexOf('/track-playback/') !== -1 && method === 'PUT' && init && init.body) {

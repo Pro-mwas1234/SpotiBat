@@ -1,8 +1,8 @@
-package com.project.lol.innertube.models.response
+package com.mwask.bat.innertube.models.response
 
-import com.project.lol.innertube.models.Continuation
-import com.project.lol.innertube.models.MusicResponsiveListItemRenderer
-import com.project.lol.innertube.models.Tabs
+import com.mwask.bat.innertube.models.Continuation
+import com.mwask.bat.innertube.models.MusicResponsiveListItemRenderer
+import com.mwask.bat.innertube.models.Tabs
 import kotlinx.serialization.Serializable
 
 @Serializable

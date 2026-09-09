@@ -1,4 +1,4 @@
-package com.project.lol.webview.injections
+package com.mwask.bat.webview.injections
 
 /*
  * CREDIT: uBlock Origin (Raymond Hill) - Google Analytics Neutralizer

@@ -1,4 +1,4 @@
-package com.project.lol.webview.helpers
+package com.mwask.bat.webview.helpers
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -16,7 +16,7 @@ object AccentTheme {
     /** How far the hover tint is pulled toward white (#1ED760 vs #1DB954). */
     private const val BRIGHTEN_FACTOR = 0.12f
 
-    private const val PREFS_NAME = "spotilol_prefs"
+    private const val PREFS_NAME = "spotiBat_prefs"
     private const val KEY_MATERIAL_YOU = "MaterialYou"
     private const val KEY_PALETTE_SEED = "PaletteSeed"
 

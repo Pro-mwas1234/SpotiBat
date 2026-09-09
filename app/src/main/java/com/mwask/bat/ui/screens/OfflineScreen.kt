@@ -1,4 +1,4 @@
-package com.project.lol.ui.screens
+package com.mwask.bat.ui.screens
 
 import android.content.Intent
 import android.content.SharedPreferences
@@ -66,8 +66,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import com.project.lol.searchEngine.GenericSearchEngine
-import com.project.lol.searchEngine.SearchableFieldExtractor
+import com.mwask.bat.searchEngine.GenericSearchEngine
+import com.mwask.bat.searchEngine.SearchableFieldExtractor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -95,11 +95,11 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.core.content.ContextCompat
-import com.project.lol.R
-import com.project.lol.offline.OfflineSong
-import com.project.lol.offline.OfflineStore
-import com.project.lol.service.OfflineMediaService
-import com.project.lol.ui.components.SettingsDrawer
+import com.mwask.bat.R
+import com.mwask.bat.offline.OfflineSong
+import com.mwask.bat.offline.OfflineStore
+import com.mwask.bat.service.OfflineMediaService
+import com.mwask.bat.ui.components.SettingsDrawer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -185,7 +185,7 @@ fun OfflineScreen(
                 Intent(context, OfflineMediaService::class.java).apply {
                     putExtra("title", song.title)
                     putExtra("artist", song.artist)
-                    putExtra("album", song.album.ifBlank { "Spotilol" })
+                    putExtra("album", song.album.ifBlank { "SpotiBat" })
                     putExtra("duration", durationMs.toLong())
                     putExtra("playing", isPlaying)
                     putExtra("position", positionMs.toLong())
@@ -348,7 +348,7 @@ fun OfflineScreen(
                         title = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = "Spotilol",
+                                    text = "SpotiBat",
                                     fontWeight = FontWeight.Bold
                                 )
                                 Spacer(Modifier.width(6.dp))

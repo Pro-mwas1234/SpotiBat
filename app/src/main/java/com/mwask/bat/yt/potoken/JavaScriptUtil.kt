@@ -1,4 +1,4 @@
-package com.project.lol.yt.potoken
+package com.mwask.bat.yt.potoken
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull

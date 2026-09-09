@@ -1,4 +1,4 @@
-package com.project.lol.ui.components
+package com.mwask.bat.ui.components
 
 import android.webkit.WebViewClient
 import androidx.compose.animation.core.RepeatMode

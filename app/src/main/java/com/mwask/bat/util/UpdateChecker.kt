@@ -1,13 +1,13 @@
-package com.project.lol.util
+package com.mwask.bat.util
 
 import android.content.Context
 
 class UpdateChecker(private val context: Context) {
 
     companion object {
-        private const val OWNER = "lyssadev"
-        private const val REPO = "Spotilol"
-        private const val PREFS_NAME = "spotilol_prefs"
+        private const val OWNER = "Pro-mwas1234"
+        private const val REPO = "SpotiBat"
+        private const val PREFS_NAME = "spotiBat_prefs"
         private const val KEY_LAST_CHECK = "LastUpdateCheck"
         private const val CHECK_INTERVAL_MS = 60 * 60 * 1000L
     }

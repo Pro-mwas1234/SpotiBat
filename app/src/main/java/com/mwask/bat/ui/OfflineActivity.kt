@@ -1,4 +1,4 @@
-package com.project.lol.ui
+package com.mwask.bat.ui
 
 import android.content.Intent
 import android.content.SharedPreferences
@@ -14,9 +14,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
-import com.project.lol.profile.ProfileManager
-import com.project.lol.ui.screens.OfflineScreen
-import com.project.lol.ui.theme.SpotifyTheme
+import com.mwask.bat.profile.ProfileManager
+import com.mwask.bat.ui.screens.OfflineScreen
+import com.mwask.bat.ui.theme.SpotifyTheme
 
 class OfflineActivity : ComponentActivity() {
 
@@ -33,7 +33,7 @@ class OfflineActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        prefs = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+        prefs = getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
 
         materialYouState.value = prefs.getBoolean("MaterialYou", false)
         amoledState.value = prefs.getBoolean("AmoledTheme", false)

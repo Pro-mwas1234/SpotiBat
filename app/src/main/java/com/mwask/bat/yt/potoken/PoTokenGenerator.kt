@@ -1,7 +1,7 @@
-package com.project.lol.yt.potoken
+package com.mwask.bat.yt.potoken
 
 import android.webkit.CookieManager
-import com.project.lol.yt.cipher.CipherDeobfuscator
+import com.mwask.bat.yt.cipher.CipherDeobfuscator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex

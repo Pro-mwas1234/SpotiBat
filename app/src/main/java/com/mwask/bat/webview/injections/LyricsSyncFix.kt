@@ -1,7 +1,7 @@
-package com.project.lol.webview.injections
+package com.mwask.bat.webview.injections
 
 /*
- * CREDIT: Spotilol - Lyrics Sync Float
+ * CREDIT: SpotiBat - Lyrics Sync Float
  * GitHub: https://github.com/AldySan
  */
 

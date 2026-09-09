@@ -1,4 +1,4 @@
-package com.project.lol.yt.potoken
+package com.mwask.bat.yt.potoken
 
 class PoTokenException(message: String) : Exception(message)
 

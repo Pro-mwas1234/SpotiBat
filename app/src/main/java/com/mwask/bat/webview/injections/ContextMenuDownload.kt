@@ -1,7 +1,7 @@
-package com.project.lol.webview.injections
+package com.mwask.bat.webview.injections
 
 /*
- * CREDIT: Spotilol - Context Menu Download
+ * CREDIT: SpotiBat - Context Menu Download
  *
  * Adds a "Download" item to Spotify's track context menu (the "..."
  * button on a tracklist row, or right-click on the row itself).

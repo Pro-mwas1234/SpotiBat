@@ -1,4 +1,4 @@
-package com.project.lol.ui
+package com.mwask.bat.ui
 
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -55,8 +55,8 @@ import androidx.compose.ui.unit.sp
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.perf.FirebasePerformance
-import com.project.lol.proxy.LocalProxyManager
-import com.project.lol.ui.theme.SpotifyTheme
+import com.mwask.bat.proxy.LocalProxyManager
+import com.mwask.bat.ui.theme.SpotifyTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -71,7 +71,7 @@ class SplashActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         requestedOrientation = if (
-            getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+            getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
                 .getBoolean("LandscapeMode", false)
         ) {
             ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
@@ -83,7 +83,7 @@ class SplashActivity : ComponentActivity() {
         FirebaseCrashlytics.getInstance()
         FirebasePerformance.getInstance()
         analytics.logEvent(FirebaseAnalytics.Event.APP_OPEN, Bundle().apply {
-            putString(FirebaseAnalytics.Param.SCREEN_NAME, "Spotilol")
+            putString(FirebaseAnalytics.Param.SCREEN_NAME, "SpotiBat")
             putString(FirebaseAnalytics.Param.SCREEN_CLASS, "SplashActivity")
         })
 
@@ -96,7 +96,7 @@ class SplashActivity : ComponentActivity() {
             val scope = rememberCoroutineScope()
 
             LaunchedEffect(Unit) {
-                if (getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+                if (getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
                         .getBoolean("OfflineMode", false)
                 ) {
                     startActivity(Intent(this@SplashActivity, OfflineActivity::class.java))
@@ -105,7 +105,7 @@ class SplashActivity : ComponentActivity() {
                     return@LaunchedEffect
                 }
                 withContext(Dispatchers.IO) {
-                    val useProxy = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+                    val useProxy = getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
                         .getString("ConnectionMode", "normal") == "proxy"
                     if (useProxy) {
                         LocalProxyManager.init(this@SplashActivity)
@@ -155,7 +155,7 @@ class SplashActivity : ComponentActivity() {
                                     .background(MaterialTheme.colorScheme.background)
                                     .graphicsLayer { alpha = certAlpha },
                                 onSwitchNormal = {
-                                    getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+                                    getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
                                         .edit()
                                         .putString("ConnectionMode", "normal")
                                         .putBoolean("ServiceOn", false)
@@ -286,7 +286,7 @@ private fun CACertScreen(
         Spacer(Modifier.height(12.dp))
 
         Text(
-            text = "Install the Spotilol CA certificate to continue.",
+            text = "Install the SpotiBat CA certificate to continue.",
             style = MaterialTheme.typography.bodyMedium,
             color = Color.White.copy(alpha = 0.5f),
             textAlign = TextAlign.Center

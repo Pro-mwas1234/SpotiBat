@@ -1,4 +1,4 @@
-package com.project.lol.util
+package com.mwask.bat.util
 
 import android.util.Log
 import java.time.Instant
@@ -26,7 +26,7 @@ object DebugLogStore {
             buf.addLast(line)
             while (buf.size > MAX) buf.removeFirst()
         }
-        Log.d("SpotilolDbg", "[$tag] $msg")
+        Log.d("SpotiBatDbg", "[$tag] $msg")
     }
 
     fun snapshot(): List<String> = synchronized(lock) { ArrayList(buf) }

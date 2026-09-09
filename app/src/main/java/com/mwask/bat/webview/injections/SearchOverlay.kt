@@ -1,6 +1,6 @@
-package com.project.lol.webview.injections
+package com.mwask.bat.webview.injections
 /*
- * CREDIT: Spotilol - Custom Search Overlay.
+ * CREDIT: SpotiBat - Custom Search Overlay.
  *
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⡀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣾⠙⠻⢶⣄⡀⠀⠀⠀⢀⣤⠶⠛⠛⡇⠀⠀⠀

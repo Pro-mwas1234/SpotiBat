@@ -3,32 +3,32 @@
  * Licensed under GPL-3.0 | See git history for contributors
  */
 
-package com.project.lol.yt
+package com.mwask.bat.yt
 
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.util.Log
-import com.project.lol.innertube.NewPipeExtractor
-import com.project.lol.innertube.YouTube
-import com.project.lol.innertube.models.YouTubeClient
-import com.project.lol.innertube.models.YouTubeClient.Companion.ANDROID_CREATOR
-import com.project.lol.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_43_32
-import com.project.lol.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_61_48
-import com.project.lol.innertube.models.YouTubeClient.Companion.ANDROID_VR_NO_AUTH
-import com.project.lol.innertube.models.YouTubeClient.Companion.IOS
-import com.project.lol.innertube.models.YouTubeClient.Companion.IPADOS
-import com.project.lol.innertube.models.YouTubeClient.Companion.MOBILE
-import com.project.lol.innertube.models.YouTubeClient.Companion.TVHTML5
-import com.project.lol.innertube.models.YouTubeClient.Companion.TVHTML5_SIMPLY_EMBEDDED_PLAYER
-import com.project.lol.innertube.models.YouTubeClient.Companion.WEB
-import com.project.lol.innertube.models.YouTubeClient.Companion.WEB_CREATOR
-import com.project.lol.innertube.models.YouTubeClient.Companion.WEB_REMIX
-import com.project.lol.innertube.models.response.PlayerResponse
-import com.project.lol.yt.AudioQuality
-import com.project.lol.yt.cipher.CipherDeobfuscator
-import com.project.lol.yt.potoken.PoTokenGenerator
-import com.project.lol.yt.potoken.PoTokenResult
-import com.project.lol.yt.sabr.EjsNTransformSolver
+import com.mwask.bat.innertube.NewPipeExtractor
+import com.mwask.bat.innertube.YouTube
+import com.mwask.bat.innertube.models.YouTubeClient
+import com.mwask.bat.innertube.models.YouTubeClient.Companion.ANDROID_CREATOR
+import com.mwask.bat.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_43_32
+import com.mwask.bat.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_61_48
+import com.mwask.bat.innertube.models.YouTubeClient.Companion.ANDROID_VR_NO_AUTH
+import com.mwask.bat.innertube.models.YouTubeClient.Companion.IOS
+import com.mwask.bat.innertube.models.YouTubeClient.Companion.IPADOS
+import com.mwask.bat.innertube.models.YouTubeClient.Companion.MOBILE
+import com.mwask.bat.innertube.models.YouTubeClient.Companion.TVHTML5
+import com.mwask.bat.innertube.models.YouTubeClient.Companion.TVHTML5_SIMPLY_EMBEDDED_PLAYER
+import com.mwask.bat.innertube.models.YouTubeClient.Companion.WEB
+import com.mwask.bat.innertube.models.YouTubeClient.Companion.WEB_CREATOR
+import com.mwask.bat.innertube.models.YouTubeClient.Companion.WEB_REMIX
+import com.mwask.bat.innertube.models.response.PlayerResponse
+import com.mwask.bat.yt.AudioQuality
+import com.mwask.bat.yt.cipher.CipherDeobfuscator
+import com.mwask.bat.yt.potoken.PoTokenGenerator
+import com.mwask.bat.yt.potoken.PoTokenResult
+import com.mwask.bat.yt.sabr.EjsNTransformSolver
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 

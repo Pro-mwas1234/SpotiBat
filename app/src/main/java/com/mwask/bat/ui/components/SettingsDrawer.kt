@@ -1,4 +1,4 @@
-package com.project.lol.ui.components
+package com.mwask.bat.ui.components
 
 import android.content.SharedPreferences
 import androidx.compose.animation.AnimatedVisibility
@@ -38,7 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.project.lol.ui.screens.SettingsContent
+import com.mwask.bat.ui.screens.SettingsContent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -172,7 +172,7 @@ private fun SettingsDrawerHeader(onClose: () -> Unit) {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Spotilol v$versionName",
+                    text = "SpotiBat v$versionName",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

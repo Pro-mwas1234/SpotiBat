@@ -1,6 +1,6 @@
-package com.project.lol.innertube.models.body
+package com.mwask.bat.innertube.models.body
 
-import com.project.lol.innertube.models.Context
+import com.mwask.bat.innertube.models.Context
 import kotlinx.serialization.Serializable
 
 @Serializable

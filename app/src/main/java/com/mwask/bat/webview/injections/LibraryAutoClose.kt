@@ -1,7 +1,7 @@
-package com.project.lol.webview.injections
+package com.mwask.bat.webview.injections
 
 /*
- * CREDIT: Spotilol - Library Auto-Close
+ * CREDIT: SpotiBat - Library Auto-Close
  *
  * Closes the library whenever the user interacts with anything
  * that isn't the library itself - same pattern as QueueAutoClose.

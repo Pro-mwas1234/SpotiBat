@@ -1,4 +1,4 @@
-package com.project.lol.webview
+package com.mwask.bat.webview
 
 import android.graphics.Bitmap
 import android.util.Log
@@ -9,8 +9,8 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import com.project.lol.webview.helpers.*
-import com.project.lol.webview.injections.*
+import com.mwask.bat.webview.helpers.*
+import com.mwask.bat.webview.injections.*
 import java.io.ByteArrayInputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -48,7 +48,7 @@ class SpotifyWebViewClient(
             onPageFinishedClean(view, ClassicLoginButton.CONTENT)
         }
 
-        val loggedIn = view.context.getSharedPreferences("spotilol_prefs", 0)
+        val loggedIn = view.context.getSharedPreferences("spotiBat_prefs", 0)
             .getBoolean("LoggedIn", false)
 
         if (!loggedIn) {
@@ -62,7 +62,7 @@ class SpotifyWebViewClient(
 
         view.evaluateJavascript(LogoutCheck.CONTENT) { result ->
             if (result == "\"out\"") {
-                view.context.getSharedPreferences("spotilol_prefs", 0)
+                view.context.getSharedPreferences("spotiBat_prefs", 0)
                     .edit().putBoolean("LoggedIn", false).apply()
                 view.loadUrl("https://accounts.spotify.com/login")
             }
@@ -71,14 +71,14 @@ class SpotifyWebViewClient(
 
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
         super.onPageStarted(view, url, favicon)
-        val prefs = view?.context?.getSharedPreferences("spotilol_prefs", 0)
+        val prefs = view?.context?.getSharedPreferences("spotiBat_prefs", 0)
 
         val useProxy = prefs?.getString("ConnectionMode", "normal") == "proxy"
         val powerSave = prefs?.getBoolean("PowerSave", false) ?: false
         val blockSW = prefs?.getBoolean("BlockServiceWorker", true) ?: true
         val hideEmptyPlayer = prefs?.getBoolean("HideEmptyPlayer", false) ?: false
 
-        view?.evaluateJavascript("window.__spotilolUseProxy=$useProxy;", null)
+        view?.evaluateJavascript("window.__spotiBatUseProxy=$useProxy;", null)
         view?.evaluateJavascript("window.__splPowerSavePref=$powerSave;", null)
         view?.evaluateJavascript("window.__splHideEmpty=$hideEmptyPlayer;", null)
         // FIX: these payloads were injected raw - strip them like every other
@@ -152,7 +152,7 @@ class SpotifyWebViewClient(
             return WebResourceResponse("audio/mpeg", null, silent)
         }
 
-        val useProxy = view.context.getSharedPreferences("spotilol_prefs", 0)
+        val useProxy = view.context.getSharedPreferences("spotiBat_prefs", 0)
             .getString("ConnectionMode", "normal") == "proxy"
 
         if (!useProxy) {
@@ -230,12 +230,12 @@ class SpotifyWebViewClient(
     }
 
     private fun injectPlayerControl(view: WebView) {
-        val prefs = view.context.getSharedPreferences("spotilol_prefs", 0)
+        val prefs = view.context.getSharedPreferences("spotiBat_prefs", 0)
         val autoPlayMode = prefs.getString("APlayMode", "disabled") ?: "disabled"
         val closeNowPlay = prefs.getBoolean("CloseNowPlay", true)
         val amoledEnabled = prefs.getBoolean("AmoledTheme", false)
         val customCss = prefs.getString("CustomCss", "") ?: ""
-        val playerMode = prefs.getString("PlayerMode", "spotilol") ?: "spotilol"
+        val playerMode = prefs.getString("PlayerMode", "spotiBat") ?: "spotiBat"
         val useProxy = prefs.getString("ConnectionMode", "normal") == "proxy"
         val debugOverlay = prefs.getBoolean("DebugOverlay", false)
         val takeControl = prefs.getBoolean("TakeControl", true)
@@ -245,7 +245,7 @@ class SpotifyWebViewClient(
         val js = buildString {
             append("window.autoPlayMode='$autoPlayMode';\n")
             append("window.closeNpPref=$closeNowPlay;\n")
-            append("window.__spotilolUseProxy=$useProxy;\n")
+            append("window.__spotiBatUseProxy=$useProxy;\n")
             append("window.__splTakeControl=$takeControl;\n")
             append("window.__splHideEmpty=$hideEmptyPlayer;\n")
             if (debugOverlay) {
@@ -290,8 +290,8 @@ class SpotifyWebViewClient(
             append(LyricsSyncFix.CONTENT)
             append(QueueAutoClose.CONTENT)
             append(LibraryAutoClose.CONTENT)
-            if (playerMode == "spotilol") {
-                append(SpotilolPlayer.CONTENT)
+            if (playerMode == "spotiBat") {
+                append(SpotiBatPlayer.CONTENT)
             }
         }
         val cleanJs = JsUtils.stripConsoleLogs(js) + "\n" +
@@ -307,7 +307,7 @@ class SpotifyWebViewClient(
     }
 
     private fun registerPrefsListener(view: WebView) {
-        val prefs = view.context.getSharedPreferences("spotilol_prefs", 0)
+        val prefs = view.context.getSharedPreferences("spotiBat_prefs", 0)
         // Listener doesn't depend on the WebView instance (it reads currentWebView),
         // so registering once is enough. Re-register only if the prefs instance
         // actually changed (new context after a renderer-crash rebuild).
@@ -319,7 +319,7 @@ class SpotifyWebViewClient(
             val wv = currentWebView ?: return@OnSharedPreferenceChangeListener
             when (key) {
                 "PlayerMode" ->
-                    switchPlayerMode(wv, prefs.getString("PlayerMode", "spotilol") ?: "spotilol")
+                    switchPlayerMode(wv, prefs.getString("PlayerMode", "spotiBat") ?: "spotiBat")
                 "PowerSave" -> {
                     val on = prefs.getBoolean("PowerSave", false)
                     wv.evaluateJavascript("if(window.__splApplyPowerSave) window.__splApplyPowerSave($on);", null)
@@ -364,7 +364,7 @@ class SpotifyWebViewClient(
         if (mode == "original") {
             val js = """
                 (function(){
-                    var pl=document.getElementById('spotilolPlayerControls');
+                    var pl=document.getElementById('spotiBatPlayerControls');
                     if(pl) pl.style.display='none';
                     var s=document.createElement('style');
                     s.id='spl-np-show';
@@ -374,16 +374,16 @@ class SpotifyWebViewClient(
             """.trimIndent()
             view.evaluateJavascript(js, null)
         } else {
-            view.evaluateJavascript("if(typeof initSpotilolPlayer!=='function'){" + SpotilolPlayer.CONTENT + "}", null)
+            view.evaluateJavascript("if(typeof initSpotiBatPlayer!=='function'){" + SpotiBatPlayer.CONTENT + "}", null)
             val js = """
                 (function(){
                     var s=document.getElementById('spl-np-show');
                     if(s) s.remove();
                     var npb=document.querySelector('aside[data-testid="now-playing-bar"]');
                     if(npb) npb.style.display='none';
-                    var pl=document.getElementById('spotilolPlayerControls');
+                    var pl=document.getElementById('spotiBatPlayerControls');
                     if(pl){pl.style.display='flex';}
-                    else if(typeof initSpotilolPlayer==='function'){initSpotilolPlayer();}
+                    else if(typeof initSpotiBatPlayer==='function'){initSpotiBatPlayer();}
                 })();
             """.trimIndent()
             view.evaluateJavascript(js, null)

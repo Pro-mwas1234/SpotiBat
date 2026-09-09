@@ -1,7 +1,7 @@
-package com.project.lol.innertube
+package com.mwask.bat.innertube
 
-import com.project.lol.innertube.models.YouTubeClient
-import com.project.lol.innertube.models.response.PlayerResponse
+import com.mwask.bat.innertube.models.YouTubeClient
+import com.mwask.bat.innertube.models.response.PlayerResponse
 import io.ktor.http.URLBuilder
 import io.ktor.http.parseQueryString
 import okhttp3.OkHttpClient

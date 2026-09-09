@@ -1,4 +1,4 @@
-package com.project.lol.util
+package com.mwask.bat.util
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll

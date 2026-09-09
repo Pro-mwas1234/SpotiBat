@@ -1,4 +1,4 @@
-package com.project.lol.service
+package com.mwask.bat.service
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -14,18 +14,18 @@ import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.graphics.toColorInt
-import com.project.lol.R
-import com.project.lol.offline.DownloadManager
+import com.mwask.bat.R
+import com.mwask.bat.offline.DownloadManager
 import java.io.File
 
 class DownloadService : Service() {
 
     companion object {
-        private const val CHANNEL_ID = "spotilol_downloads"
+        private const val CHANNEL_ID = "spotiBat_downloads"
         private const val NOTIF_ID = 3
 
-        const val ACTION_SKIP = "com.project.lol.download.ACTION_SKIP"
-        const val ACTION_CANCEL = "com.project.lol.download.ACTION_CANCEL"
+        const val ACTION_SKIP = "com.mwask.bat.download.ACTION_SKIP"
+        const val ACTION_CANCEL = "com.mwask.bat.download.ACTION_CANCEL"
     }
 
     private val handler = Handler(Looper.getMainLooper())
@@ -90,7 +90,7 @@ class DownloadService : Service() {
                 "Downloads",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Spotilol track downloads"
+                description = "SpotiBat track downloads"
                 setShowBadge(false)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }
@@ -107,7 +107,7 @@ class DownloadService : Service() {
         val label = DownloadManager.lastLabel.ifBlank { "Preparing download..." }
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Spotilol Download")
+            .setContentTitle("SpotiBat Download")
             .setContentText(label)
             .setSmallIcon(R.drawable.ic_notification)
             .setOngoing(true)
@@ -119,7 +119,7 @@ class DownloadService : Service() {
             .addAction(0, "Cancel", actionPendingIntent(ACTION_CANCEL))
 
         try {
-            builder.color = com.project.lol.webview.helpers.AccentTheme
+            builder.color = com.mwask.bat.webview.helpers.AccentTheme
                 .resolveHex(this).toColorIntOrNull() ?: 0xFF1DB954.toInt()
         } catch (_: Exception) {
             builder.color = 0xFF1DB954.toInt()

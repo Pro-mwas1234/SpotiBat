@@ -1,7 +1,7 @@
-package com.project.lol.webview.injections
+package com.mwask.bat.webview.injections
 
 /*
- * CREDIT: Spotilol - Error Dialog Restyle
+ * CREDIT: SpotiBat - Error Dialog Restyle
  */
 
 object ErrorDialogRestyle {

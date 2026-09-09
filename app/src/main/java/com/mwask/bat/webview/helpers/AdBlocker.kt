@@ -1,4 +1,4 @@
-package com.project.lol.webview.helpers
+package com.mwask.bat.webview.helpers
 
 private val ANALYTICS_DOMAINS = listOf(
     "doubleclick.net",

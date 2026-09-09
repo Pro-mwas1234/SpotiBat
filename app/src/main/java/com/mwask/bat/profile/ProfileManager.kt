@@ -1,4 +1,4 @@
-package com.project.lol.profile
+package com.mwask.bat.profile
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -16,7 +16,7 @@ object ProfileManager {
         val savedAt: Long
     )
 
-    private const val PREFS = "spotilol_profiles"
+    private const val PREFS = "spotiBat_profiles"
     private const val KEY_PROFILES = "profiles"
 
     private val COOKIE_DOMAINS = listOf(
@@ -140,7 +140,7 @@ object ProfileManager {
                 }
             }
             CookieManager.getInstance().flush()
-            context.getSharedPreferences("spotilol_prefs", Context.MODE_PRIVATE)
+            context.getSharedPreferences("spotiBat_prefs", Context.MODE_PRIVATE)
                 .edit()
                 .putBoolean("LoggedIn", true)
                 .apply()

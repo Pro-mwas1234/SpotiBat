@@ -1,8 +1,8 @@
-package com.project.lol.innertube.pages
+package com.mwask.bat.innertube.pages
 
-import com.project.lol.innertube.models.Menu
-import com.project.lol.innertube.models.MusicResponsiveListItemRenderer.FlexColumn
-import com.project.lol.innertube.models.Run
+import com.mwask.bat.innertube.models.Menu
+import com.mwask.bat.innertube.models.MusicResponsiveListItemRenderer.FlexColumn
+import com.mwask.bat.innertube.models.Run
 
 object PageHelper {
     // Icon types for library management (YouTube changed these in Feb 2026)

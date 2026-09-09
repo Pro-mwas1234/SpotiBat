@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Keep launcher icon resources through R8 resource shrinking.
+  The adaptive icon chain (manifest -> mipmap XML -> foreground/background/monochrome)
+  is not always traced by the shrinker, so keep it explicitly.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@mipmap/*,@drawable/ic_launcher_background,@drawable/ic_launcher_monochrome,@drawable/ic_launcher_playstore" />

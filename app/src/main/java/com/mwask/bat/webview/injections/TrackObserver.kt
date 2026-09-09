@@ -1,7 +1,7 @@
-package com.project.lol.webview.injections
+package com.mwask.bat.webview.injections
 
 /*
- * CREDIT: Spotilol - Track Observer.
+ * CREDIT: SpotiBat - Track Observer.
  * Watches the now-playing widget and exposes the current track globally:
  *   window.splTrackId      -> "6rqhFgbbKwnb9MLmUQDhG6" or null
  *   window.splTrackUri     -> "spotify:track:6rqhF..." or null

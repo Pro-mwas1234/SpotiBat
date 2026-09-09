@@ -17,15 +17,15 @@ val keystoreProperties = Properties().apply {
 
 
 android {
-    namespace = "com.project.lol"
+    namespace = "com.mwask.bat"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.project.lol"
+        applicationId = "com.mwask.bat"
         minSdk = 28
         targetSdk = 36
-        versionCode = 13
-        versionName = "1.1.3"
+        versionCode = 14
+        versionName = "1.1.4"
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
@@ -38,10 +38,12 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = rootProject.file("keystore/${keystoreProperties.getProperty("storeFile")}")
-            storePassword = keystoreProperties.getProperty("storePassword")
-            keyAlias = keystoreProperties.getProperty("keyAlias")
-            keyPassword = keystoreProperties.getProperty("keyPassword")
+            if (keystorePropertiesFile.exists()) {
+                storeFile = rootProject.file("keystore/${keystoreProperties.getProperty("storeFile")}")
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
         }
     }
 
@@ -49,7 +51,13 @@ android {
         debug {
         }
         release {
-            signingConfig = signingConfigs.getByName("release")
+            // Use the private release keystore when present; otherwise fall back
+            // to the debug keystore so release builds work without it.
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

@@ -1,4 +1,4 @@
-package com.project.lol.service
+package com.mwask.bat.service
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -23,8 +23,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.media.app.NotificationCompat.MediaStyle
 import androidx.media.session.MediaButtonReceiver
-import com.project.lol.R
-import com.project.lol.ui.OfflineActivity
+import com.mwask.bat.R
+import com.mwask.bat.ui.OfflineActivity
 import java.io.File
 import kotlin.math.min
 
@@ -32,13 +32,13 @@ class OfflineMediaService : Service() {
 
     companion object {
         private const val TAG = "OfflineMediaSvc"
-        private const val CHANNEL_ID = "spotilol_offline_playback"
+        private const val CHANNEL_ID = "spotiBat_offline_playback"
         private const val NOTIFICATION_ID = 2
 
-        const val ACTION_PLAY_PAUSE = "com.project.lol.offline.ACTION_PLAY_PAUSE"
-        const val ACTION_NEXT = "com.project.lol.offline.ACTION_NEXT"
-        const val ACTION_PREV = "com.project.lol.offline.ACTION_PREV"
-        const val ACTION_STOP = "com.project.lol.offline.ACTION_STOP"
+        const val ACTION_PLAY_PAUSE = "com.mwask.bat.offline.ACTION_PLAY_PAUSE"
+        const val ACTION_NEXT = "com.mwask.bat.offline.ACTION_NEXT"
+        const val ACTION_PREV = "com.mwask.bat.offline.ACTION_PREV"
+        const val ACTION_STOP = "com.mwask.bat.offline.ACTION_STOP"
 
         private val PLAYBACK_ACTIONS: Long =
             PlaybackStateCompat.ACTION_PLAY or
@@ -68,7 +68,7 @@ class OfflineMediaService : Service() {
     private var coverBitmap: Bitmap? = null
     private var currentTitle = ""
     private var currentArtist = ""
-    private var currentAlbum = "Spotilol"
+    private var currentAlbum = "SpotiBat"
     private var currentPosition: Long = 0L
     private var currentDuration: Long = 0L
 
@@ -86,7 +86,7 @@ class OfflineMediaService : Service() {
     private val audioBecomingNoisyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
-                val prefs = getSharedPreferences("spotilol_prefs", MODE_PRIVATE)
+                val prefs = getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
                 if (prefs.getBoolean("BtAutoPause", false)) {
                     controller?.onPlayPause()
                 }
@@ -136,7 +136,7 @@ class OfflineMediaService : Service() {
         if (intent?.hasExtra("title") == true) {
             currentTitle = intent.getStringExtra("title") ?: ""
             currentArtist = intent.getStringExtra("artist") ?: ""
-            currentAlbum = intent.getStringExtra("album")?.ifBlank { "Spotilol" } ?: "Spotilol"
+            currentAlbum = intent.getStringExtra("album")?.ifBlank { "SpotiBat" } ?: "SpotiBat"
             currentDuration = intent.getLongExtra("duration", 0L)
             isPlaying = intent.getBooleanExtra("playing", false)
             currentPosition = intent.getLongExtra("position", 0L)
@@ -181,7 +181,7 @@ class OfflineMediaService : Service() {
                 "Offline Playback",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Spotilol offline playback controls"
+                description = "SpotiBat offline playback controls"
                 setShowBadge(false)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }
@@ -191,7 +191,7 @@ class OfflineMediaService : Service() {
     }
 
     private fun setupMediaSession() {
-        mediaSession = MediaSessionCompat(this, "SpotilolOfflineSession").apply {
+        mediaSession = MediaSessionCompat(this, "SpotiBatOfflineSession").apply {
             setFlags(
                 MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or
                     MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS
@@ -250,7 +250,7 @@ class OfflineMediaService : Service() {
     fun updateTrack(title: String, artist: String, album: String, coverFile: File?, duration: Long) {
         currentTitle = title
         currentArtist = artist
-        currentAlbum = album.ifBlank { "Spotilol" }
+        currentAlbum = album.ifBlank { "SpotiBat" }
         currentDuration = duration
         coverBitmap = null
         coverFile?.let { loadCoverArt(it) }
@@ -349,7 +349,7 @@ class OfflineMediaService : Service() {
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Failed to build notification", e)
             NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Spotilol")
+                .setContentTitle("SpotiBat")
                 .setSmallIcon(R.drawable.ic_notification)
                 .setOngoing(true)
                 .build()
@@ -388,7 +388,7 @@ class OfflineMediaService : Service() {
         }
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(currentTitle.ifEmpty { "Spotilol" })
+            .setContentTitle(currentTitle.ifEmpty { "SpotiBat" })
             .setContentText(currentArtist)
             .setSubText("Offline Mode")
             .setSmallIcon(R.drawable.ic_notification)

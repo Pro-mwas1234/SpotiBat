@@ -1,19 +1,19 @@
-package com.project.lol.innertube.pages
+package com.mwask.bat.innertube.pages
 
-import com.project.lol.innertube.models.Album
-import com.project.lol.innertube.models.AlbumItem
-import com.project.lol.innertube.models.Artist
-import com.project.lol.innertube.models.ArtistItem
-import com.project.lol.innertube.models.BrowseEndpoint.BrowseEndpointContextSupportedConfigs.BrowseEndpointContextMusicConfig.Companion.MUSIC_PAGE_TYPE_PODCAST_SHOW_DETAIL_PAGE
-import com.project.lol.innertube.models.EpisodeItem
-import com.project.lol.innertube.models.MusicResponsiveListItemRenderer
-import com.project.lol.innertube.models.PlaylistItem
-import com.project.lol.innertube.models.PodcastItem
-import com.project.lol.innertube.models.SongItem
-import com.project.lol.innertube.models.YTItem
-import com.project.lol.innertube.models.oddElements
-import com.project.lol.innertube.models.splitBySeparator
-import com.project.lol.innertube.utils.parseTime
+import com.mwask.bat.innertube.models.Album
+import com.mwask.bat.innertube.models.AlbumItem
+import com.mwask.bat.innertube.models.Artist
+import com.mwask.bat.innertube.models.ArtistItem
+import com.mwask.bat.innertube.models.BrowseEndpoint.BrowseEndpointContextSupportedConfigs.BrowseEndpointContextMusicConfig.Companion.MUSIC_PAGE_TYPE_PODCAST_SHOW_DETAIL_PAGE
+import com.mwask.bat.innertube.models.EpisodeItem
+import com.mwask.bat.innertube.models.MusicResponsiveListItemRenderer
+import com.mwask.bat.innertube.models.PlaylistItem
+import com.mwask.bat.innertube.models.PodcastItem
+import com.mwask.bat.innertube.models.SongItem
+import com.mwask.bat.innertube.models.YTItem
+import com.mwask.bat.innertube.models.oddElements
+import com.mwask.bat.innertube.models.splitBySeparator
+import com.mwask.bat.innertube.utils.parseTime
 
 data class SearchResult(
     val items: List<YTItem>,

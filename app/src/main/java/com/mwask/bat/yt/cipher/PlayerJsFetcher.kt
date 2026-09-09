@@ -1,6 +1,6 @@
-package com.project.lol.yt.cipher
+package com.mwask.bat.yt.cipher
 
-import com.project.lol.innertube.YouTube
+import com.mwask.bat.innertube.YouTube
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient

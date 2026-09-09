@@ -1,4 +1,4 @@
-package com.project.lol.proxy
+package com.mwask.bat.proxy
 
 import android.content.ContentUris
 import android.content.ContentValues
@@ -53,9 +53,9 @@ import javax.net.ssl.SSLSocketFactory
 object LocalProxyManager {
     private const val TAG = "LocalProxy"
     private const val KEYSTORE_FILE = "proxy_ca.p12"
-    private const val KEYSTORE_PREFS = "spotilol_secure_prefs"
+    private const val KEYSTORE_PREFS = "spotiBat_secure_prefs"
     private const val KEY_PASSWORD = "keystore_password"
-    private const val CA_ALIAS = "spotilol-ca"
+    private const val CA_ALIAS = "spotiBat-ca"
     private const val KEYSTORE_TYPE = "PKCS12"
 
     @Volatile private var serverSocket: ServerSocket? = null
@@ -175,7 +175,7 @@ object LocalProxyManager {
         kpg.initialize(2048, SecureRandom())
         caKeyPair = kpg.generateKeyPair()
 
-        val name = X500Name("CN=Spotilol Proxy CA, O=Spotilol")
+        val name = X500Name("CN=SpotiBat Proxy CA, O=SpotiBat")
         val serial = BigInteger.valueOf(System.currentTimeMillis())
         val notBefore = Date()
         val notAfter = Date(notBefore.time + 365L * 24 * 60 * 60 * 1000L * 10)
@@ -716,10 +716,10 @@ object LocalProxyManager {
 
             val ks = KeyStore.getInstance(KEYSTORE_TYPE)
             ks.load(null, null)
-            ks.setKeyEntry("leaf", domainKeyPair.private, "spotilol".toCharArray(), arrayOf(domainCert, caCert))
+            ks.setKeyEntry("leaf", domainKeyPair.private, "spotiBat".toCharArray(), arrayOf(domainCert, caCert))
 
             val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
-            kmf.init(ks, "spotilol".toCharArray())
+            kmf.init(ks, "spotiBat".toCharArray())
 
             val sslContext = SSLContext.getInstance("TLS")
             sslContext.init(kmf.keyManagers, null, SecureRandom())
@@ -739,7 +739,7 @@ object LocalProxyManager {
         }
         val domainKeyPair = leafKeyPair!!
 
-        val issuer = X500Name("CN=Spotilol Proxy CA, O=Spotilol")
+        val issuer = X500Name("CN=SpotiBat Proxy CA, O=SpotiBat")
         val subject = X500Name("CN=$domain")
         val serial = BigInteger.valueOf(System.currentTimeMillis())
         val notBefore = Date()
@@ -892,7 +892,7 @@ object LocalProxyManager {
                     MediaStore.Downloads.EXTERNAL_CONTENT_URI,
                     arrayOf(MediaStore.MediaColumns._ID),
                     "${MediaStore.MediaColumns.DISPLAY_NAME} = ?",
-                    arrayOf("Spotilol_CA.pem"),
+                    arrayOf("SpotiBat_CA.pem"),
                     null
                 )?.use { cursor ->
                     val stale = mutableListOf<Long>()
@@ -908,7 +908,7 @@ object LocalProxyManager {
                 }
             } catch (_: Exception) {}
 
-            var displayName = "Spotilol_CA.pem"
+            var displayName = "SpotiBat_CA.pem"
             var uri = try {
                 resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, pendingValues(displayName))
             } catch (_: Exception) { null }
@@ -916,7 +916,7 @@ object LocalProxyManager {
             if (uri == null) {
                 // Canonical name is stuck behind an undeletable orphan -
                 // export under a unique name instead of failing.
-                displayName = "Spotilol_CA_${System.currentTimeMillis()}.pem"
+                displayName = "SpotiBat_CA_${System.currentTimeMillis()}.pem"
                 uri = try {
                     resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, pendingValues(displayName))
                 } catch (_: Exception) { null }
@@ -960,7 +960,7 @@ object LocalProxyManager {
     private fun exportToFileDir(context: Context, pem: String): String {
         return try {
             val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.filesDir
-            val file = File(dir, "Spotilol_CA.pem")
+            val file = File(dir, "SpotiBat_CA.pem")
             file.writeText(pem)
             Log.d(TAG, "CA exported to app dir: ${file.absolutePath}")
             file.absolutePath

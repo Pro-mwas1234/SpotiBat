@@ -1,6 +1,6 @@
-package com.project.lol.yt
+package com.mwask.bat.yt
 
-import com.project.lol.innertube.models.SongItem
+import com.mwask.bat.innertube.models.SongItem
 import java.text.Normalizer
 import kotlin.math.abs
 

@@ -1,4 +1,4 @@
-package com.project.lol.webview.helpers
+package com.mwask.bat.webview.helpers
 
 import org.json.JSONObject
 
@@ -6,14 +6,14 @@ fun buildCustomCssJs(css: String): String {
     val jsonCss = JSONObject.quote(css)
     return """
         (function(){
-            var cst = document.getElementById('spotilol-custom-css');
+            var cst = document.getElementById('spotiBat-custom-css');
             if ($jsonCss === "") {
                 if (cst) cst.remove();
                 return;
             }
             if (!cst) {
                 cst = document.createElement('style');
-                cst.id = 'spotilol-custom-css';
+                cst.id = 'spotiBat-custom-css';
             }
             cst.textContent = $jsonCss;
             var target = document.head || document.documentElement;

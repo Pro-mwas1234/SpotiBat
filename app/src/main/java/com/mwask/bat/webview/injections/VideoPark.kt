@@ -1,7 +1,7 @@
-package com.project.lol.webview.injections
+package com.mwask.bat.webview.injections
 
 /*
- * CREDIT: Spotilol - Background Video Park/Restore
+ * CREDIT: SpotiBat - Background Video Park/Restore
  * GitHub: https://github.com/AldySan
  *
  * Parks canvas video sources when the app goes to background and

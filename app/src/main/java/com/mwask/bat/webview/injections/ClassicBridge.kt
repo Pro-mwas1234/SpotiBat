@@ -1,9 +1,9 @@
-package com.project.lol.webview.injections
+package com.mwask.bat.webview.injections
 
 object ClassicBridge {
     const val CONTENT = """
         (function(){
-            if(window.__spotilolUseProxy) {
+            if(window.__spotiBatUseProxy) {
                 window.mngFetch = function(url, opts) {
                     return (window.fetch || oriFetch).apply(window, arguments);
                 };

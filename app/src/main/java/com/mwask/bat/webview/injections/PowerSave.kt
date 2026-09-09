@@ -1,7 +1,7 @@
-package com.project.lol.webview.injections
+package com.mwask.bat.webview.injections
 
 /*
- * CREDIT: Spotilol - Power Save Mode.
+ * CREDIT: SpotiBat - Power Save Mode.
  * GitHub: https://github.com/AldySan
  */
 object PowerSave {

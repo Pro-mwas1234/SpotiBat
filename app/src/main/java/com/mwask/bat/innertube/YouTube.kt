@@ -1,14 +1,14 @@
-package com.project.lol.innertube
+package com.mwask.bat.innertube
 
-import com.project.lol.innertube.models.YouTubeClient
-import com.project.lol.innertube.models.YouTubeClient.Companion.WEB_REMIX
-import com.project.lol.innertube.models.YouTubeLocale
-import com.project.lol.innertube.models.getContinuation
-import com.project.lol.innertube.models.getItems
-import com.project.lol.innertube.models.response.PlayerResponse
-import com.project.lol.innertube.models.response.SearchResponse
-import com.project.lol.innertube.pages.SearchPage
-import com.project.lol.innertube.pages.SearchResult
+import com.mwask.bat.innertube.models.YouTubeClient
+import com.mwask.bat.innertube.models.YouTubeClient.Companion.WEB_REMIX
+import com.mwask.bat.innertube.models.YouTubeLocale
+import com.mwask.bat.innertube.models.getContinuation
+import com.mwask.bat.innertube.models.getItems
+import com.mwask.bat.innertube.models.response.PlayerResponse
+import com.mwask.bat.innertube.models.response.SearchResponse
+import com.mwask.bat.innertube.pages.SearchPage
+import com.mwask.bat.innertube.pages.SearchResult
 import io.ktor.client.call.body
 import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.json.Json

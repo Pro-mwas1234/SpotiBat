@@ -1,4 +1,4 @@
-package com.project.lol.innertube.models
+package com.mwask.bat.innertube.models
 
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable

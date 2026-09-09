@@ -1,4 +1,4 @@
-package com.project.lol.offline
+package com.mwask.bat.offline
 
 import android.content.ContentUris
 import android.content.Context
@@ -31,7 +31,7 @@ data class OfflineSong(
 
 object OfflineStore {
     private const val TAG = "Spl-DL"
-    private const val FOLDER = "Spotilol"
+    private const val FOLDER = "SpotiBat"
 
     private val TrackIdRegex = Regex("\\[([^\\]]+)\\]\\.[^.]+$")
     private val FileNameRegex = Regex("^(.*) - (.*) \\[([^\\]]+)\\]\\.[^.]+$")
@@ -232,7 +232,7 @@ object OfflineStore {
     }
 
     /**
-     * TRUE if a track with this Spotify ID is already saved in Music/Spotilol.
+     * TRUE if a track with this Spotify ID is already saved in Music/SpotiBat.
      * Used to de-duplicate album/playlist batch downloads. MediaStore is the
      * source of truth on Q+; the folder listing on older devices.
      */

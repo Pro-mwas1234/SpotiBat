@@ -1,7 +1,7 @@
-package com.project.lol.webview.injections
+package com.mwask.bat.webview.injections
 
 /*
- * CREDIT: Spotilol - Settings Page Fix
+ * CREDIT: SpotiBat - Settings Page Fix
  */
 
 object SettingsFix {

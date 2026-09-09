@@ -1,4 +1,4 @@
-package com.project.lol.innertube
+package com.mwask.bat.innertube
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp

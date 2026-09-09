@@ -1,4 +1,4 @@
-package com.project.lol.webview
+package com.mwask.bat.webview
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
@@ -11,9 +11,9 @@ import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import com.project.lol.webview.injections.BrowserSpoof
-import com.project.lol.webview.injections.FbGdprBypass
-import com.project.lol.webview.injections.GoogleSpoof
+import com.mwask.bat.webview.injections.BrowserSpoof
+import com.mwask.bat.webview.injections.FbGdprBypass
+import com.mwask.bat.webview.injections.GoogleSpoof
 import androidx.core.net.toUri
 
 class SpotifyWebChromeClient(

@@ -1,6 +1,6 @@
-package com.project.lol.webview.injections
+package com.mwask.bat.webview.injections
 /*
- * CREDIT: Spotilol - Custom Player.
+ * CREDIT: SpotiBat - Custom Player.
  *
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⡀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣾⠙⠻⢶⣄⡀⠀⠀⠀⢀⣤⠶⠛⠛⡇⠀⠀⠀
@@ -20,10 +20,10 @@ package com.project.lol.webview.injections
  */
 
 
-object SpotilolPlayer {
+object SpotiBatPlayer {
     const val CONTENT = """
-            window.initSpotilolPlayer=function(){
-                if(document.getElementById('spotilolPlayerControls')) return;
+            window.initSpotiBatPlayer=function(){
+                if(document.getElementById('spotiBatPlayerControls')) return;
                 var npb=document.querySelector('aside[data-testid="now-playing-bar"]');
                 if(!npb) return;
                 npb.style.display='none';
@@ -59,7 +59,7 @@ object SpotilolPlayer {
                 }
 
                 var pl=document.createElement('div');
-                pl.id='spotilolPlayerControls';
+                pl.id='spotiBatPlayerControls';
                 pl.innerHTML=''
                     +'<div class="spl-top">'
                     +'<div class="spl-cover"><img id="spl-cover-img" src="" alt=""></div>'
@@ -114,13 +114,13 @@ object SpotilolPlayer {
 
                 if(!document.getElementById('spl-vol-css')){
                     var sst=document.createElement('style');sst.id='spl-vol-css';
-                    sst.textContent='#spotilolPlayerControls .spl-vol-wrap{display:flex;align-items:center;gap:2px;margin-right:2px}#spotilolPlayerControls .spl-vol-btn{flex-shrink:0}#spotilolPlayerControls .spl-vol-bar{position:relative;width:70px;height:38px;display:flex;align-items:center;cursor:pointer;flex-shrink:0;margin:0 2px}#spotilolPlayerControls .spl-vol-track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:rgba(255,255,255,.14)}#spotilolPlayerControls .spl-vol-fill{position:absolute;left:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:var(--spl-accent,#1db954);width:0%}#spotilolPlayerControls .spl-vol-handle{position:absolute;top:50%;left:0%;width:12px;height:12px;transform:translate(-50%,-50%);border-radius:50%;background:#fff;opacity:0;transition:opacity .15s;box-shadow:0 1px 4px rgba(0,0,0,.5);pointer-events:none}#spotilolPlayerControls .spl-vol-bar:hover .spl-vol-handle,#spotilolPlayerControls .spl-vol-bar:active .spl-vol-handle{opacity:1}#spotilolPlayerControls.spl-empty{opacity:0!important;pointer-events:none!important;transform:translateY(24px)!important}';
+                    sst.textContent='#spotiBatPlayerControls .spl-vol-wrap{display:flex;align-items:center;gap:2px;margin-right:2px}#spotiBatPlayerControls .spl-vol-btn{flex-shrink:0}#spotiBatPlayerControls .spl-vol-bar{position:relative;width:70px;height:38px;display:flex;align-items:center;cursor:pointer;flex-shrink:0;margin:0 2px}#spotiBatPlayerControls .spl-vol-track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:rgba(255,255,255,.14)}#spotiBatPlayerControls .spl-vol-fill{position:absolute;left:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:var(--spl-accent,#1db954);width:0%}#spotiBatPlayerControls .spl-vol-handle{position:absolute;top:50%;left:0%;width:12px;height:12px;transform:translate(-50%,-50%);border-radius:50%;background:#fff;opacity:0;transition:opacity .15s;box-shadow:0 1px 4px rgba(0,0,0,.5);pointer-events:none}#spotiBatPlayerControls .spl-vol-bar:hover .spl-vol-handle,#spotiBatPlayerControls .spl-vol-bar:active .spl-vol-handle{opacity:1}#spotiBatPlayerControls.spl-empty{opacity:0!important;pointer-events:none!important;transform:translateY(24px)!important}';
                     var t=document.head||document.documentElement;if(t)t.appendChild(sst);
                 }
 
                 if(!document.getElementById('spl-vol-css')){
                     var sst=document.createElement('style');sst.id='spl-vol-css';
-                    sst.textContent='#spotilolPlayerControls .spl-vol-wrap{display:flex;align-items:center;gap:2px;margin-right:2px}#spotilolPlayerControls .spl-vol-btn{flex-shrink:0}#spotilolPlayerControls .spl-vol-bar{position:relative;width:70px;height:38px;display:flex;align-items:center;cursor:pointer;flex-shrink:0;margin:0 2px}#spotilolPlayerControls .spl-vol-track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:rgba(255,255,255,.14)}#spotilolPlayerControls .spl-vol-fill{position:absolute;left:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:#1db954;width:0%}#spotilolPlayerControls .spl-vol-handle{position:absolute;top:50%;left:0%;width:12px;height:12px;transform:translate(-50%,-50%);border-radius:50%;background:#fff;opacity:0;transition:opacity .15s;box-shadow:0 1px 4px rgba(0,0,0,.5);pointer-events:none}#spotilolPlayerControls .spl-vol-bar:hover .spl-vol-handle,#spotilolPlayerControls .spl-vol-bar:active .spl-vol-handle{opacity:1}';
+                    sst.textContent='#spotiBatPlayerControls .spl-vol-wrap{display:flex;align-items:center;gap:2px;margin-right:2px}#spotiBatPlayerControls .spl-vol-btn{flex-shrink:0}#spotiBatPlayerControls .spl-vol-bar{position:relative;width:70px;height:38px;display:flex;align-items:center;cursor:pointer;flex-shrink:0;margin:0 2px}#spotiBatPlayerControls .spl-vol-track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:rgba(255,255,255,.14)}#spotiBatPlayerControls .spl-vol-fill{position:absolute;left:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:#1db954;width:0%}#spotiBatPlayerControls .spl-vol-handle{position:absolute;top:50%;left:0%;width:12px;height:12px;transform:translate(-50%,-50%);border-radius:50%;background:#fff;opacity:0;transition:opacity .15s;box-shadow:0 1px 4px rgba(0,0,0,.5);pointer-events:none}#spotiBatPlayerControls .spl-vol-bar:hover .spl-vol-handle,#spotiBatPlayerControls .spl-vol-bar:active .spl-vol-handle{opacity:1}';
                     var t=document.head||document.documentElement;if(t)t.appendChild(sst);
                 }
 
@@ -379,12 +379,12 @@ object SpotilolPlayer {
                     if(window.splMiniPref) splSetMini(true);
                     requestAnimationFrame(rafUpdate);
             };
-            if(document.readyState==='complete') initSpotilolPlayer();
-            else window.addEventListener('load',initSpotilolPlayer);
+            if(document.readyState==='complete') initSpotiBatPlayer();
+            else window.addEventListener('load',initSpotiBatPlayer);
             setInterval(function(){
                 if(window.__splBg) return;
                 var npb=document.querySelector('aside[data-testid="now-playing-bar"]');
-                if(npb&&npb.style.display!=='none') initSpotilolPlayer();
+                if(npb&&npb.style.display!=='none') initSpotiBatPlayer();
             },3000);
         
     """

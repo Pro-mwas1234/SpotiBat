@@ -1,4 +1,4 @@
-package com.project.lol.util
+package com.mwask.bat.util
 
 import android.os.Handler
 import android.os.Looper

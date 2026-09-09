@@ -1,4 +1,4 @@
-package com.project.lol.webview.injections
+package com.mwask.bat.webview.injections
 
 /**
  * Page-level ad-state hook, ported from Blockify's page-hook.js.

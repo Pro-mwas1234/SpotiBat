@@ -1,4 +1,4 @@
-package com.project.lol.yt.potoken
+package com.mwask.bat.yt.potoken
 
 import android.content.Context
 import android.webkit.ConsoleMessage
@@ -7,8 +7,8 @@ import android.webkit.WebChromeClient
 import android.webkit.WebView
 import androidx.annotation.MainThread
 import androidx.collection.ArrayMap
-import com.project.lol.innertube.YouTube
-import com.project.lol.BuildConfig
+import com.mwask.bat.innertube.YouTube
+import com.mwask.bat.BuildConfig
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
