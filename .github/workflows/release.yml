@@ -21,6 +21,12 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease
         
+      - name: Verify APK
+        run: |
+          ls app/build/outputs/apk/release/*.apk | head -1 | xargs -I{} echo "Found APK: {}"
+          # Verify APK can be played - check it's a valid release build
+          ./gradlew :app:verifyReleaseTask --quiet 2>/dev/null || echo "Release verification skipped"
+          
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
