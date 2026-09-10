@@ -1,6 +1,6 @@
-<div align="center">
+<!--<div align="center">
   <img src="art/bgwelcome.png" alt="SpotiBat" style="width: 100%; max-width: 900px; margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
-</div>
+</div>-->
 
 <h1 align="center">SpotiBat</h1>
 
@@ -53,7 +53,7 @@
 download the `.apk` and install it on your device. you may need to toggle **"Install from unknown sources"** in your Settings.
 
 ---
-
+<!--
 ## Preview
 
 <div align="center">
@@ -61,7 +61,7 @@ download the `.apk` and install it on your device. you may need to toggle **"Ins
   <img src="art/spotiBat_ss2.jpg" alt="screenshot 2" width="30%" style="max-width: 250px; margin: 4px; border-radius: 12px;" />
   <img src="art/spotiBat_ss3.jpg" alt="screenshot 3" width="30%" style="max-width: 250px; margin: 4px; border-radius: 12px;" />
 </div>
-
+-->
 ---
 
 ## Features
