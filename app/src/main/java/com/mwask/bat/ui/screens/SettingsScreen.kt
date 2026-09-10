@@ -211,6 +211,14 @@ fun SettingsContent(
     var showCustomCssDialog by remember { mutableStateOf(false) }
     var showPaletteDialog by remember { mutableStateOf(false) }
     var showChangelogDialog by remember { mutableStateOf(false) }
+
+    // In-app updater state (see com.mwask.bat.update.Updater)
+    val scope = rememberCoroutineScope()
+    var updateStatus by remember { mutableStateOf("") }
+    var updateApkUrl by remember { mutableStateOf<String?>(null) }
+    var downloadedApkUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    var checkingUpdate by remember { mutableStateOf(false) }
+    var downloadingUpdate by remember { mutableStateOf(false) }
     var dbgOverlay by remember { mutableStateOf(prefs.getBoolean("DebugOverlay", false)) }
     var showDevlogDialog by remember { mutableStateOf(false) }
     var showLyricsStyleDialog by remember { mutableStateOf(false) }
@@ -632,9 +640,59 @@ fun SettingsContent(
 
             SettingTile(
                 title = "SpotiBat Version",
-                subtitle = "v$appVersionName",
+                subtitle = updateStatus.ifBlank { "v$appVersionName" },
                 icon = Icons.Default.Smartphone,
-                onClick = { showChangelogDialog = true }
+                onClick = {
+                    when {
+                        checkingUpdate || downloadingUpdate -> return@SettingTile
+                        // APK already downloaded: hand it to the installer
+                        downloadedApkUri != null -> {
+                            com.mwask.bat.update.Updater.install(context, downloadedApkUri!!)
+                        }
+                        // Update found earlier: download then offer install
+                        updateApkUrl != null -> {
+                            downloadingUpdate = true
+                            updateStatus = "Downloading update..."
+                            val url = updateApkUrl!!
+                            scope.launch {
+                                val uri = com.mwask.bat.update.Updater.downloadApk(context, url)
+                                downloadingUpdate = false
+                                if (uri != null) {
+                                    downloadedApkUri = uri
+                                    updateStatus = "Downloaded - tap to install"
+                                    com.mwask.bat.update.Updater.install(context, uri)
+                                } else {
+                                    updateStatus = "Download failed - tap to retry"
+                                    updateApkUrl = null
+                                }
+                            }
+                        }
+                        // Nothing yet: check GitHub for a newer release
+                        else -> {
+                            checkingUpdate = true
+                            updateStatus = "Checking for updates..."
+                            scope.launch {
+                                val currentCode = runCatching {
+                                    packageInfo?.longVersionCode ?: 0L
+                                }.getOrDefault(0L)
+                                val result = com.mwask.bat.update.Updater.checkForUpdate(currentCode)
+                                checkingUpdate = false
+                                when {
+                                    result.updateAvailable && result.apkUrl != null -> {
+                                        updateStatus = "Update ${result.latestTag} available - tap to download"
+                                        updateApkUrl = result.apkUrl
+                                    }
+                                    result.updateAvailable -> {
+                                        updateStatus = "Update available but no APK asset found"
+                                    }
+                                    else -> {
+                                        updateStatus = "v$appVersionName - up to date"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             )
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
