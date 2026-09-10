@@ -1,9 +1,16 @@
 name: Android Release
 
+# Builds a signed release APK and attaches it to a GitHub Release.
+# Runs on any version tag push (v1.2.3 or 1.2.3 style) and on manual dispatch.
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*'      # v1.2.3 style
+      - '[0-9]*'  # 1.2.3 style (matches the tags actually used in this repo)
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -11,25 +18,86 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
+
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
-          
-      - name: Build Release APK
-        run: ./gradlew assembleRelease
-        
-      - name: Verify APK
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # google-services.json is gitignored, so restore it in CI from a secret.
+      # To get working Firebase in CI-built APKs, add a repo secret
+      # GOOGLE_SERVICES_JSON_B64 = base64 of app/google-services.json.
+      # Without it, a stub is used so the build still succeeds (Firebase no-ops).
+      - name: Prepare google-services.json
+        env:
+          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
         run: |
-          ls app/build/outputs/apk/release/*.apk | head -1 | xargs -I{} echo "Found APK: {}"
-          # Verify APK can be played - check it's a valid release build
-          ./gradlew :app:verifyReleaseTask --quiet 2>/dev/null || echo "Release verification skipped"
-          
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
+          if [ -n "$GOOGLE_SERVICES_JSON_B64" ]; then
+            echo "$GOOGLE_SERVICES_JSON_B64" | base64 -d > app/google-services.json
+            echo "Restored google-services.json from secret"
+          else
+            echo "GOOGLE_SERVICES_JSON_B64 not set; using stub (Firebase disabled in this build)"
+            echo '{"project_info":{"project_number":"000000000000","project_id":"spotibat-stub","storage_bucket":"spotibat-stub.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000","android_client_info":{"package_name":"com.mwask.bat"}},"oauth_client":[],"api_key":[{"current_key":"AIzaSyA0000000000000000000000000000000"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}' > app/google-services.json
+          fi
+
+      # If the signing secrets are configured, use the real release keystore;
+      # otherwise the build falls back to debug signing (still installable).
+      # Secrets: KEYSTORE_BASE64, KEYSTORE_STORE_PASSWORD, KEYSTORE_KEY_ALIAS, KEYSTORE_KEY_PASSWORD
+      - name: Prepare release keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_STORE_PASSWORD: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
+          KEYSTORE_KEY_ALIAS: ${{ secrets.KEYSTORE_KEY_ALIAS }}
+          KEYSTORE_KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            mkdir -p keystore
+            echo "$KEYSTORE_B64" | base64 -d > keystore/release.jks
+            printf 'storeFile=release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$KEYSTORE_STORE_PASSWORD" "$KEYSTORE_KEY_ALIAS" "$KEYSTORE_KEY_PASSWORD" > keystore/keystore.properties
+            echo "Using release keystore from secrets"
+          else
+            echo "KEYSTORE_BASE64 not set; release APK will be debug-signed"
+          fi
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --stacktrace
+
+      # Fail loudly if Gradle produced no APK instead of publishing an empty release.
+      - name: Collect APK
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          APK=$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' | head -n 1)
+          if [ -z "$APK" ]; then
+            echo "::error::No APK found in app/build/outputs/apk/release"
+            exit 1
+          fi
+          VERSION="${GITHUB_REF_NAME#v}"
+          cp "$APK" "dist/SpotiBat-${VERSION}.apk"
+          ls -la dist/
+
+      # Always upload the APK as a workflow artifact too, so builds triggered
+      # without a tag (workflow_dispatch on a branch) still produce a download.
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          files: app/build/outputs/apk/release/*.apk
+          name: SpotiBat-APK
+          path: dist/*.apk
+          if-no-files-found: error
+
+      # Creates the GitHub Release for the pushed tag and attaches the APK.
+      # Skipped for manual runs without a tag; draft=false publishes immediately.
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.apk
+          generate_release_notes: true
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

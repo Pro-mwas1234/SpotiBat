@@ -64,6 +64,13 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Mapping upload needs real Firebase credentials; CI builds use a
+            // stub google-services.json, so skip it there.
+            if (System.getenv("CI") != null) {
+                configure<com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension> {
+                    mappingFileUploadEnabled = false
+                }
+            }
         }
     }
     compileOptions {
