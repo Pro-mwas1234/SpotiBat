@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "271777616491",
+    "project_id": "spotibat-fb4bb",
+    "storage_bucket": "spotibat-fb4bb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:271777616491:android:2cf8cb419195e2ca7ad72e",
+        "android_client_info": {
+          "package_name": "com.mwask.bat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmtfhvW3ZVs0jre5kWMhYHB1uls8rD4Ns"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:271777616491:android:831e3ab7c6917b6c7ad72e",
+        "android_client_info": {
+          "package_name": "com.mwask.bat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmtfhvW3ZVs0jre5kWMhYHB1uls8rD4Ns"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
