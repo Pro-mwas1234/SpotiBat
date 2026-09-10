@@ -97,6 +97,8 @@ class OfflineActivity : ComponentActivity() {
                     },
                     onOfflineModeChange = { enabled ->
                         prefs.edit().putBoolean("OfflineMode", enabled).apply()
+                        // Service state mirrors offline mode (see MainActivity).
+                        prefs.edit().putBoolean("ServiceOn", !enabled).apply()
                         restartToSplash()
                     },
                     onSaveProfile = { name, cookies ->
@@ -169,7 +171,12 @@ class OfflineActivity : ComponentActivity() {
     }
 
     private fun exitOfflineMode() {
-        prefs.edit().putBoolean("OfflineMode", false).apply()
+        // Leaving offline mode re-enables the service automatically so the
+        // normal app comes back up streaming (SplashActivity -> MainActivity).
+        prefs.edit()
+            .putBoolean("OfflineMode", false)
+            .putBoolean("ServiceOn", true)
+            .apply()
         restartToSplash()
     }
 }

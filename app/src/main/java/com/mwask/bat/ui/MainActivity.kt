@@ -657,7 +657,9 @@ class MainActivity : ComponentActivity() {
 
     private fun switchOfflineMode(enabled: Boolean) {
         prefs.edit().putBoolean("OfflineMode", enabled).apply()
-        prefs.edit().putBoolean("ServiceOn", false).apply()
+        // Service state mirrors offline mode: leaving offline mode brings
+        // the service back up automatically, entering it shuts it down.
+        prefs.edit().putBoolean("ServiceOn", !enabled).apply()
         stopService(Intent(this, MediaNotificationService::class.java))
         val intent = Intent(this, SplashActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
