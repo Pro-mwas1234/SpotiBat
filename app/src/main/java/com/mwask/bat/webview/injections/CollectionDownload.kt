@@ -92,6 +92,11 @@ object CollectionDownload {
                 var top = sc ? sc.scrollTop : 0;
                 var target = parseInt(tl.getAttribute('aria-rowcount') || '0', 10) || 0;
                 var last = -1, stable = 0, iter = 0;
+                // Large playlists can take well over a minute to virtualize:
+                // keep scrolling until the row count matches aria-rowcount or
+                // stops growing for 2s (8 ticks). Hard cap ~100s as a safety
+                // net so the button never hangs forever.
+                var MAX_ITER = 400;
                 var iv = setInterval(function(){
                     iter++;
                     if (sc) { try { sc.scrollTop = sc.scrollHeight; } catch(e){} }
@@ -99,9 +104,20 @@ object CollectionDownload {
                     var c = tl.querySelectorAll(ROW_SEL).length;
                     if (c === last) stable++; else stable = 0;
                     last = c;
-                    if ((target > 0 && c >= target - 1) || stable >= 5 || iter >= 90) {
+                    try {
+                        if (typeof window.splDownloadProgress === 'function' && (iter % 4 === 0)) {
+                            var lbl = 'Loading tracklist... ' + c + (target > 0 ? ' / ' + target : '');
+                            window.splDownloadProgress(0, lbl);
+                        }
+                    } catch(e5){}
+                    if ((target > 0 && c >= target - 1) || stable >= 8 || iter >= MAX_ITER) {
                         clearInterval(iv);
                         if (sc) { try { sc.scrollTop = top; } catch(e){} }
+                        // Reached the safety cap before loading everything:
+                        // tell the user the list may be incomplete.
+                        if (target > 0 && c < target - 1) {
+                            try { AndBridge.deferMessage('Loaded ' + c + ' of ' + (target - 1) + ' tracks — tap download again for the rest'); } catch(e6){}
+                        }
                         setTimeout(function(){ cb(tl); }, 300);
                     }
                 }, 250);
