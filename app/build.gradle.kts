@@ -24,8 +24,8 @@ android {
         applicationId = "com.mwask.bat"
         minSdk = 28
         targetSdk = 36
-        versionCode = 15
-        versionName = "1.1.5"
+        versionCode = 14
+        versionName = "1.1.4"
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
