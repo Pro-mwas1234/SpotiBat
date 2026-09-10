@@ -625,6 +625,17 @@ class MainActivity : ComponentActivity() {
             stopService(Intent(this, MediaNotificationService::class.java))
             serviceStarted = false
             destroyWebView()
+            // Turning the service off automatically switches the app into
+            // offline mode: hand over to OfflineActivity (which restores the
+            // normal app via SplashActivity when offline mode is exited).
+            prefs.edit().putBoolean("OfflineMode", true).apply()
+            Toast.makeText(this, "Service off — entered offline mode", Toast.LENGTH_SHORT).show()
+            startActivity(
+                Intent(this, OfflineActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                }
+            )
+            finish()
         } else {
             analytics.logEvent("service_toggle", Bundle().apply {
                 putString("enabled", "on")
