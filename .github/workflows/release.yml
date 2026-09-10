@@ -78,6 +78,10 @@ jobs:
           fi
           VERSION="${GITHUB_REF_NAME#v}"
           cp "$APK" "dist/SpotiBat-${VERSION}.apk"
+          # Stable-named copy: the website's download button links to
+          # releases/latest/download/SpotiBat-latest.apk, a GitHub redirect
+          # URL that needs no API access and always serves the newest release.
+          cp "$APK" "dist/SpotiBat-latest.apk"
           ls -la dist/
 
       # Always upload the APK as a workflow artifact too, so builds triggered

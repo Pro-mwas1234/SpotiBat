@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpotiBat — Download</title>
+<meta name="description" content="Download SpotiBat, the free YouTube Music client with offline mode.">
+<meta property="og:title" content="SpotiBat — Download">
+<meta property="og:description" content="Free YouTube Music client with offline playback. Get the latest APK.">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #121212;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Logo watermark background — fixed, centered, faded, gently breathing */
+  .logo-bg {
+    position: fixed;
+    inset: 0;
+    background: url("icon.png") center 42% / min(72vmin, 560px) no-repeat;
+    opacity: 0.10;
+    filter: saturate(1.1);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* Soft vignette so text stays readable over the watermark */
+  .vignette {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 0%, rgba(18, 18, 18, 0.55) 75%, rgba(18, 18, 18, 0.9) 100%);
+    pointer-events: none;
+  }
+
+  .content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 2rem;
+    max-width: 34rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.1rem;
+  }
+
+  .logo {
+    width: 96px;
+    height: 96px;
+    border-radius: 24px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  }
+
+  h1 {
+    font-size: clamp(2.2rem, 6vw, 3.2rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .tagline {
+    font-size: clamp(1rem, 2.5vw, 1.15rem);
+    color: rgba(255, 255, 255, 0.65);
+    line-height: 1.5;
+    max-width: 28rem;
+  }
+
+  .download-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    margin-top: 0.6rem;
+    padding: 1rem 2.2rem;
+    background: #1db954;
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-decoration: none;
+    border-radius: 999px;
+    border: none;
+    box-shadow: 0 8px 30px rgba(29, 185, 84, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  }
+
+  .download-btn:hover {
+    background: #1ed760;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 38px rgba(29, 185, 84, 0.5);
+  }
+
+  .download-btn:active { transform: translateY(0); }
+
+  .download-btn svg { width: 20px; height: 20px; fill: currentColor; flex-shrink: 0; }
+
+  .meta {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.45);
+    min-height: 1.3em;
+  }
+
+  .alt-link {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-decoration: none;
+    border-bottom: 1px dotted rgba(255, 255, 255, 0.3);
+  }
+
+  .alt-link:hover { color: rgba(255, 255, 255, 0.7); }
+
+  .requirements {
+    margin-top: 0.8rem;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .logo-bg { animation: breathe 9s ease-in-out infinite; }
+    @keyframes breathe {
+      0%, 100% { opacity: 0.10; transform: scale(1); }
+      50%      { opacity: 0.16; transform: scale(1.025); }
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="logo-bg" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <main class="content">
+    <img class="logo" src="icon.png" alt="SpotiBat logo" width="96" height="96">
+
+    <h1>SpotiBat</h1>
+
+    <p class="tagline">
+      Your music, your rules. Stream from YouTube Music and keep your favorite
+      tracks offline — free and open.
+    </p>
+
+    <a class="download-btn"
+       href="https://github.com/Pro-mwas1234/SpotiBat/releases/latest/download/SpotiBat-latest.apk"
+       download>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 3v10.586l-3.293-3.293-1.414 1.414L12 16.414l4.707-4.707-1.414-1.414L12 13.586V3h-1.5zM5 19h14v2H5v-2z" transform="translate(0,-1.5)"/>
+      </svg>
+      <span id="btnLabel">Download for Android</span>
+    </a>
+
+    <p class="meta" id="meta"></p>
+
+    <a class="alt-link" href="https://github.com/Pro-mwas1234/SpotiBat/releases" target="_blank" rel="noopener">
+      All releases
+    </a>
+
+    <p class="requirements">Requires Android 9 (Pie) or newer · arm64 / arm32</p>
+  </main>
+
+<script>
+(function () {
+  // The button itself is a plain link to GitHub's stable redirect URL
+  // (releases/latest/download/SpotiBat-latest.apk) — it works with zero
+  // API calls. The API is used only opportunistically to show the
+  // version and file size on the label; if it fails, nothing breaks.
+  var API = "https://api.github.com/repos/Pro-mwas1234/SpotiBat/releases/latest";
+
+  fetch(API, { headers: { Accept: "application/vnd.github+json" } })
+    .then(function (res) { return res.ok ? res.json() : null; })
+    .then(function (release) {
+      if (!release) return;
+      var assets = (release.assets || []).filter(function (a) {
+        return /^SpotiBat-latest\.apk$/i.test(a.name);
+      });
+      if (!assets.length) return;
+      var tag = release.tag_name || "latest";
+      document.getElementById("btnLabel").textContent =
+        "Download v" + tag + " · " + (assets[0].size / 1048576).toFixed(1) + " MB";
+      document.getElementById("meta").textContent =
+        "Latest release: " + tag;
+    })
+    .catch(function () { /* silent — the plain link already works */ });
+})();
+</script>
+</body>
+</html>
