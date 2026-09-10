@@ -32,8 +32,8 @@ object Updater {
         val apkSizeBytes: Long?,
     )
 
-    /** Fetch the latest release and decide whether it is newer than [currentVersionCode]. */
-    suspend fun checkForUpdate(currentVersionCode: Long): CheckResult =
+    /** Fetch the latest release and decide whether it is newer than the current version. */
+    suspend fun checkForUpdate(currentVersionName: String): CheckResult =
         withContext(Dispatchers.IO) {
             runCatching {
                 val conn = open(RELEASES_URL)
@@ -67,10 +67,11 @@ object Updater {
                     }
                 }
                 val remoteCode = parseVersionCode(tag)
-                val newer = (remoteCode != null && remoteCode > currentVersionCode) ||
-                    // No versionCode in tag (e.g. non vX.Y.Z tag): assume an
-                    // APK asset means there is something to offer; install
-                    // will no-op if the package is not actually newer.
+                val currentCode = parseVersionCode(currentVersionName)
+                val newer = (remoteCode != null && currentCode != null && remoteCode > currentCode) ||
+                    // Non vX.Y.Z tag: assume an APK asset means there is
+                    // something to offer; install will no-op if the package
+                    // is not actually newer.
                     (remoteCode == null && apkUrl != null)
                 CheckResult(newer, tag, apkUrl.takeIf { newer }, apkSize)
             }.getOrElse {
@@ -138,10 +139,11 @@ object Updater {
         context.startActivity(intent)
     }
 
-    private fun parseVersionCode(tag: String?): Long? {
-        // Expect vX.Y.Z or X.Y.Z — treat Y*100 + Z as a sortable code so a
-        // bump in the minor or patch version reads as an update.
-        val m = Regex("""^v?(\d+)\.(\d+)(?:\.(\d+))?$""").find(tag?.trim() ?: "") ?: return null
+    private fun parseVersionCode(version: String?): Long? {
+        // Expect vX.Y.Z or X.Y.Z — treat major*100000 + minor*1000 + patch as
+        // a sortable code so any bump reads as an update. Used for both the
+        // release tag and the app's own versionName.
+        val m = Regex("""^v?(\d+)\.(\d+)(?:\.(\d+))?$""").find(version?.trim() ?: "") ?: return null
         val (major, minor, patch) = m.destructured
         val p = if (patch.isBlank()) 0L else patch.toLong()
         return major.toLong() * 100_000 + minor.toLong() * 1_000 + p

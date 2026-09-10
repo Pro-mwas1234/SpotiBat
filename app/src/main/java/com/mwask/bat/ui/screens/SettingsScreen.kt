@@ -672,10 +672,8 @@ fun SettingsContent(
                             checkingUpdate = true
                             updateStatus = "Checking for updates..."
                             scope.launch {
-                                val currentCode = runCatching {
-                                    packageInfo?.longVersionCode ?: 0L
-                                }.getOrDefault(0L)
-                                val result = com.mwask.bat.update.Updater.checkForUpdate(currentCode)
+                                val currentName = packageInfo?.versionName ?: "0.0.0"
+                                val result = com.mwask.bat.update.Updater.checkForUpdate(currentName)
                                 checkingUpdate = false
                                 when {
                                     result.updateAvailable && result.apkUrl != null -> {
