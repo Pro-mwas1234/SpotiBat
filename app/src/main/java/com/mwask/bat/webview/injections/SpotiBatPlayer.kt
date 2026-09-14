@@ -64,7 +64,8 @@ object SpotiBatPlayer {
                     +'<div class="spl-top">'
                     +'<div class="spl-cover"><img id="spl-cover-img" src="" alt=""></div>'
                     +'<div class="spl-info"><div class="spl-track" id="spl-track">No track</div>'
-                    +'<div class="spl-artist" id="spl-artist">\u2014</div></div>'
+                    +'<div class="spl-artist" id="spl-artist">\u2014</div>'
+                    +'<span class="spl-dj-chip" id="spl-dj-chip">DJ</span></div>'
                     +'<div class="spl-mini-transport">'
                     +'<button class="spl-btn" id="spl-prev-mini" aria-label="Previous"><svg viewBox="0 0 16 16"><path fill="currentColor" d="M3.3 1a.7.7 0 0 1 .7.7v5.15l9.95-5.744a.7.7 0 0 1 1.05.606v12.575a.7.7 0 0 1-1.05.607L4 9.149V14.3a.7.7 0 0 1-.7.7H1.7a.7.7 0 0 1-.7-.7V1.7a.7.7 0 0 1 .7-.7z"/></svg></button>'
                     +'<button class="spl-btn spl-play" id="spl-play-mini" aria-label="Play"><svg viewBox="0 0 16 16"><path fill="currentColor" d="M3 1.713a.7.7 0 0 1 1.05-.607l10.89 6.288a.7.7 0 0 1 0 1.212L4.05 14.894A.7.7 0 0 1 3 14.288z"/></svg></button>'
@@ -103,7 +104,6 @@ object SpotiBatPlayer {
 
                 document.body.appendChild(pl);
                 if(window.__splHideEmpty) pl.classList.add('spl-empty');
-                    document.body.appendChild(pl);
                     
                     window.splApplyEmpty=function(){
                         var t=document.getElementById('spl-track');
@@ -114,7 +114,7 @@ object SpotiBatPlayer {
 
                 if(!document.getElementById('spl-vol-css')){
                     var sst=document.createElement('style');sst.id='spl-vol-css';
-                    sst.textContent='#spotiBatPlayerControls .spl-vol-wrap{display:flex;align-items:center;gap:2px;margin-right:2px}#spotiBatPlayerControls .spl-vol-btn{flex-shrink:0}#spotiBatPlayerControls .spl-vol-bar{position:relative;width:70px;height:38px;display:flex;align-items:center;cursor:pointer;flex-shrink:0;margin:0 2px}#spotiBatPlayerControls .spl-vol-track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:rgba(255,255,255,.14)}#spotiBatPlayerControls .spl-vol-fill{position:absolute;left:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:var(--spl-accent,#1db954);width:0%}#spotiBatPlayerControls .spl-vol-handle{position:absolute;top:50%;left:0%;width:12px;height:12px;transform:translate(-50%,-50%);border-radius:50%;background:#fff;opacity:0;transition:opacity .15s;box-shadow:0 1px 4px rgba(0,0,0,.5);pointer-events:none}#spotiBatPlayerControls .spl-vol-bar:hover .spl-vol-handle,#spotiBatPlayerControls .spl-vol-bar:active .spl-vol-handle{opacity:1}#spotiBatPlayerControls.spl-empty{opacity:0!important;pointer-events:none!important;transform:translateY(24px)!important}';
+                    sst.textContent='#spotiBatPlayerControls .spl-vol-wrap{display:flex;align-items:center;gap:2px;margin-right:2px}#spotiBatPlayerControls .spl-vol-btn{flex-shrink:0}#spotiBatPlayerControls .spl-vol-bar{position:relative;width:70px;height:38px;display:flex;align-items:center;cursor:pointer;flex-shrink:0;margin:0 2px}#spotiBatPlayerControls .spl-vol-track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:rgba(255,255,255,.14)}#spotiBatPlayerControls .spl-vol-fill{position:absolute;left:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:var(--spl-accent,#1db954);width:0%}#spotiBatPlayerControls .spl-vol-handle{position:absolute;top:50%;left:0%;width:12px;height:12px;transform:translate(-50%,-50%);border-radius:50%;background:#fff;opacity:0;transition:opacity .15s;box-shadow:0 1px 4px rgba(0,0,0,.5);pointer-events:none}#spotiBatPlayerControls .spl-vol-bar:hover .spl-vol-handle,#spotiBatPlayerControls .spl-vol-bar:active .spl-vol-handle{opacity:1}#spotiBatPlayerControls.spl-empty{opacity:0!important;pointer-events:none!important;transform:translateY(24px)!important}#spotiBatPlayerControls .spl-dj-chip{display:none;font-size:9px;font-weight:700;letter-spacing:.6px;color:#000;background:var(--spl-accent,#1db954);border-radius:4px;padding:1px 5px;margin-left:6px;line-height:14px;flex-shrink:0}#spotiBatPlayerControls.spl-dj-on .spl-dj-chip{display:inline-block}';
                     var t=document.head||document.documentElement;if(t)t.appendChild(sst);
                 }
 
@@ -132,7 +132,7 @@ object SpotiBatPlayer {
                 document.getElementById('spl-play-mini').onclick=function(){var pb=document.querySelector('button[data-testid=control-button-playpause]');actPlayPause(pb&&pb.getAttribute('aria-label')==='Play')};
                 document.getElementById('spl-shuffle').onclick=function(){var sb=splFindShuffle();if(sb&&sb.getAttribute('aria-disabled')!=='true')sb.click()};
                 document.getElementById('spl-repeat').onclick=function(){actRepeat()};
-                document.getElementById('spl-lyrics').onclick=function(){if(this.classList.contains('spl-disabled'))return;if(typeof closeNowPlay==='function') closeNowPlay();var lb=document.querySelector('button[data-testid=lyrics-button]');if(lb&&!lb.disabled)lb.click()};
+                document.getElementById('spl-lyrics').onclick=function(){if(this.classList.contains('spl-disabled'))return;if(typeof closeNowPlay==='function') closeNowPlay();                        var lb=splQ('button[data-testid=lyrics-button]','lyrbtn');if(lb&&!lb.disabled)lb.click()};
                 document.getElementById('spl-queue').onclick=function(){var qb=document.querySelector('button[data-testid=control-button-queue]');if(qb)qb.click()};
                 document.getElementById('spl-vol-btn').onclick=function(){var vb=document.querySelector('button[data-testid=volume-bar-toggle-mute-button]');if(vb)vb.click()};
                 (function(){
@@ -174,6 +174,15 @@ object SpotiBatPlayer {
                 document.getElementById('spl-liked').onclick=function(){actAddToFav()};
                 document.getElementById('spl-download').onclick=function(){splDoDownload()};
                 document.getElementById('spl-dl-cancel').onclick=function(){ try{ AndBridge.cancelDownload(); }catch(e){} };
+                var djChip=document.getElementById('spl-dj-chip');
+                if(djChip){
+                    djChip.style.cursor='pointer';
+                    djChip.title='Tap to switch the vibe';
+                    djChip.onclick=function(){
+                        if(!window.__splDj||!window.__splDj.enabled) return;
+                        if(typeof window.splDjSwitchVibe==='function') window.splDjSwitchVibe(true);
+                    };
+                }
 
                 var splTrack=document.getElementById('spl-track');
                 var splArtist=document.getElementById('spl-artist');
@@ -248,44 +257,53 @@ object SpotiBatPlayer {
                 pl.addEventListener('mousedown',function(e){if(e.button!==0)return;if(e.target.closest('#spl-bar')||e.target.closest('#spl-edgebar')||e.target.closest('.spl-vol-bar')||e.target.closest('button'))return;splDragStart(e.clientX,e.clientY);});
                 document.addEventListener('mousemove',function(e){splDragMove(e.clientX,e.clientY);});
                 document.addEventListener('mouseup',function(){splDragEnd();});
-                pl.addEventListener('click',function(e){if(splSuppressClick)return;if(Date.now()-splLastDragEnd<400)return;if(splMini&&!e.target.closest('button')&&!e.target.closest('#spl-bar')&&!e.target.closest('#spl-edgebar'))splSetMini(false);});                    window.splUpdate=function(){
-                        var ci=document.getElementById('spl-cover-img');
-                        var tk=document.getElementById('spl-track');
-                        var ar=document.getElementById('spl-artist');
-                        var fl=document.getElementById('spl-fill');
-                        var fe=document.getElementById('spl-fill-edge');
-                        var hd=document.getElementById('spl-handle');
-                        var ps=document.getElementById('spl-pos');
-                        var ds=document.getElementById('spl-dur');
-                        var pp=document.getElementById('spl-play');
-                        var ppm=document.getElementById('spl-play-mini');
-                        var sh=document.getElementById('spl-shuffle');
-                        var rp=document.getElementById('spl-repeat');
-                        var vl=document.getElementById('spl-vol');
-                        var lk=document.getElementById('spl-liked');
-                        var ly=document.getElementById('spl-lyrics');
-                        var tm=document.getElementById('spl-timer');
+                pl.addEventListener('click',function(e){if(splSuppressClick)return;if(Date.now()-splLastDragEnd<400)return;if(splMini&&!e.target.closest('button')&&!e.target.closest('#spl-bar')&&!e.target.closest('#spl-edgebar'))splSetMini(false);});                    /* DOM cache: our elements persist, so look each one up once and reuse it
+   while it stays connected. Spotify's own widgets get re-queried only when
+   disconnected (React remounts) or missing. Cuts ~30 queries/tick to ~0. */
+                    var splCache={};
+                    var splIsPlaying=false;
+                    function splId(id){var el=splCache['i'+id];if(el&&el.isConnected)return el;el=document.getElementById(id);splCache['i'+id]=el;return el;}
+                    function splQ(sel,key){var el=splCache['q'+key];if(el&&el.isConnected)return el;el=document.querySelector(sel);splCache['q'+key]=el;return el;}
+                    window.splUpdate=function(){
+                        var ci=splId('spl-cover-img');
+                        var tk=splId('spl-track');
+                        var ar=splId('spl-artist');
+                        var fl=splId('spl-fill');
+                        var fe=splId('spl-fill-edge');
+                        var hd=splId('spl-handle');
+                        var ps=splId('spl-pos');
+                        var ds=splId('spl-dur');
+                        var pp=splId('spl-play');
+                        var ppm=splId('spl-play-mini');
+                        var sh=splId('spl-shuffle');
+                        var rp=splId('spl-repeat');
+                        var vl=splId('spl-vol');
+                        var lk=splId('spl-liked');
+                        var ly=splId('spl-lyrics');
+                        var tm=splId('spl-timer');
+                        var djc=splId('spl-dj-chip');
 
-                        var npb=document.querySelector('[data-testid="now-playing-widget"]');
+                        var npb=splQ('[data-testid="now-playing-widget"]','npb');
                         var imgEl=npb?npb.querySelector('img[data-testid="cover-art-image"]'):null;
                         if(ci&&imgEl&&imgEl.src&&ci.src!==imgEl.src) ci.src=imgEl.src;
 
-                        var trackEl=document.querySelector('a[data-testid=context-item-link]');
+                        var trackEl=splQ('a[data-testid=context-item-link]','track');
                         if(tk&&trackEl&&trackEl.textContent&&tk.textContent!==trackEl.textContent) tk.textContent=trackEl.textContent;
 
-                        var artistEl=document.querySelector('a[data-testid=context-item-info-artist]');
-                        if(!artistEl) artistEl=document.querySelector('a[data-testid=context-item-info-show]');
+                        var artistEl=splQ('a[data-testid=context-item-info-artist]','artist');
+                        if(!artistEl) artistEl=splQ('a[data-testid=context-item-info-show]','artistShow');
                         if(ar&&artistEl&&tk.textContent!=='No track') ar.textContent=artistEl.textContent||'';
 
-                        var rg=document.querySelector('[data-testid="playback-progressbar"] input[type=range]');
+                        var rg=splQ('[data-testid="playback-progressbar"] input[type=range]','prange');
                         if(pp||ppm){
-                            var pb=document.querySelector('button[data-testid=control-button-playpause]');
+                            var pb=splQ('button[data-testid=control-button-playpause]','ppb');
                             var isPlaying=pb&&pb.getAttribute('aria-label')!=='Play';
+                            splIsPlaying=isPlaying;
                             var ph=isPlaying
                                 ?'<svg viewBox="0 0 16 16"><path fill="currentColor" d="M2.7 1a.7.7 0 0 0-.7.7v12.6a.7.7 0 0 0 .7.7h2.6a.7.7 0 0 0 .7-.7V1.7a.7.7 0 0 0-.7-.7zm8 0a.7.7 0 0 0-.7.7v12.6a.7.7 0 0 0 .7.7h2.6a.7.7 0 0 0 .7-.7V1.7a.7.7 0 0 0-.7-.7z"/></svg>'
                                 :'<svg viewBox="0 0 16 16"><path fill="currentColor" d="M3 1.713a.7.7 0 0 1 1.05-.607l10.89 6.288a.7.7 0 0 1 0 1.212L4.05 14.894A.7.7 0 0 1 3 14.288z"/></svg>';
-                            if(pp)pp.innerHTML=ph;
-                            if(ppm)ppm.innerHTML=ph;
+                            if(pp&&pp.__ph!==ph){pp.__ph=ph;pp.innerHTML=ph;}
+                            if(ppm&&ppm.__ph!==ph){ppm.__ph=ph;ppm.innerHTML=ph;}
                         }
                         if(sh){
                             var sst=splShuffleState();
@@ -315,16 +333,23 @@ object SpotiBatPlayer {
                             }
                         }
                         if(lk){
-                            var fb=document.querySelector('div[data-testid=now-playing-widget]>div:last-child>button');
+                            var fb=splQ('div[data-testid=now-playing-widget]>div:last-child>button','likebtn');
                             var liked=fb&&fb.getAttribute('aria-checked')==='true';
                             lk.classList.toggle('spl-active',liked===true);
                         }
+                        if(djc){
+                            var djOn=!!(window.__splDj&&window.__splDj.enabled);
+                            if(djOn!==djc.__djOn){
+                                djc.__djOn=djOn;
+                                pl.classList.toggle('spl-dj-on',djOn);
+                            }
+                        }
                         if(vl){
-                            var vbb=document.getElementById('spl-vol-btn');
-                            var vf=document.getElementById('spl-vol-fill');
-                            var vh=document.getElementById('spl-vol-handle');
-                            var vrb=document.querySelector('button[data-testid=volume-bar-toggle-mute-button]');
-                            var vrg=document.querySelector('div[data-testid="volume-bar"] input[type="range"]')||document.querySelector('input[type="range"][data-testid="volume-bar"]');
+                            var vbb=splId('spl-vol-btn');
+                            var vf=splId('spl-vol-fill');
+                            var vh=splId('spl-vol-handle');
+                            var vrb=splQ('button[data-testid=volume-bar-toggle-mute-button]','mutebtn');
+                            var vrg=splQ('div[data-testid="volume-bar"] input[type="range"]','vrange')||splQ('input[type="range"][data-testid="volume-bar"]','vrange2');
                             var vpct=0;
                             if(vrg){vpct=parseFloat(vrg.value||'0')/(parseFloat(vrg.getAttribute('max'))||1);}
                             var muted=(vrb&&vrb.getAttribute('aria-label')==='Unmute')||vpct<=0;
@@ -338,7 +363,7 @@ object SpotiBatPlayer {
                             if(vf) vf.style.width=(Math.max(0,Math.min(1,vpct))*100)+'%';
                             if(vh) vh.style.left=(Math.max(0,Math.min(1,vpct))*100)+'%';
                         }
-                        var lb=document.querySelector('button[data-testid=lyrics-button]');
+                        var lb=splQ('button[data-testid=lyrics-button]','lyrbtn');
                         if(lb){
                             ly.style.display='';
                             ly.classList.toggle('spl-disabled',lb.disabled||lb.getAttribute('aria-disabled')==='true');
@@ -346,10 +371,10 @@ object SpotiBatPlayer {
                             ly.style.display='none';
                         }
                         if(tm) tm.classList.toggle('spl-active',typeof sleepTimerActive!=='undefined'&&sleepTimerActive&&sleepTimerActive.value);
-                        var dcb=document.getElementById('spl-dl-cancel');
+                        var dcb=splId('spl-dl-cancel');
                         if(dcb) dcb.style.display = window.__splDlActive ? '' : 'none';
 
-                        var pbEl=document.querySelector('[data-testid="playback-progressbar"] [data-testid="progress-bar"]');
+                        var pbEl=splQ('[data-testid="playback-progressbar"] [data-testid="progress-bar"]','pbar');
                         if(pbEl){
                             var cs=getComputedStyle(pbEl);
                             var tr=cs.getPropertyValue('--progress-bar-transform');
@@ -360,8 +385,8 @@ object SpotiBatPlayer {
                                 if(hd) hd.style.left=pct+'%';
                             }
                         }
-                        var posEl=document.querySelector('[data-testid="playback-position"]');
-                        var durEl=document.querySelector('[data-testid="playback-duration"]');
+                        var posEl=splQ('[data-testid="playback-position"]','pos');
+                        var durEl=splQ('[data-testid="playback-duration"]','dur');
                         if(ps&&posEl) ps.textContent=posEl.textContent;
                         if(ds&&durEl) ds.textContent=durEl.textContent;
                         splApplyEmpty();
@@ -373,7 +398,12 @@ object SpotiBatPlayer {
 
                     var rafLastTime=0;
                     function rafUpdate(timestamp){
-                        if(timestamp-rafLastTime>100){ splUpdate(); rafLastTime=timestamp; }
+                        /* adaptive rate: 10Hz while playing (progress moves),
+                           2.5Hz when paused/hidden; skipped entirely when the
+                           page is hidden so no work happens on lock screen */
+                        if(!document.hidden&&timestamp-rafLastTime>(splIsPlaying?100:400)){
+                            splUpdate(); rafLastTime=timestamp;
+                        }
                         requestAnimationFrame(rafUpdate);
                     }
                     if(window.splMiniPref) splSetMini(true);

@@ -263,6 +263,7 @@ class SpotifyWebViewClient(
             append(MainLoop.CONTENT)
             append(AutoFeatures.CONTENT)
             append(AndroidTracker.CONTENT)
+            append(AutoDj.CONTENT)
             append(SearchOverlay.CONTENT)
             append(DownloadButton.CONTENT)
             append(DownloadProgress.CONTENT)
@@ -331,6 +332,10 @@ class SpotifyWebViewClient(
                 "APlayMode" -> {
                     val mode = prefs.getString("APlayMode", "disabled") ?: "disabled"
                     wv.evaluateJavascript("window.autoPlayMode='$mode';", null)
+                }
+                "DjMode" -> {
+                    val on = prefs.getBoolean("DjMode", false)
+                    wv.evaluateJavascript("if(window.splDjSetEnabled) window.splDjSetEnabled($on);", null)
                 }
                 "AmoledTheme", "CustomCss", "LyricsStyle" -> {
                     val js = buildAmoledJs(prefs.getBoolean("AmoledTheme", false)) + ";\n" +

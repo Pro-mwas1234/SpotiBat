@@ -100,7 +100,7 @@ object ErrorDialogRestyle {
                     }
                 }
             });
-            obs.observe(document.body, { childList: true, subtree: true });
+            try { obs.observe(document.body, { childList: true, subtree: true }); } catch(e){}
             scan(document.body);
         })();
     """

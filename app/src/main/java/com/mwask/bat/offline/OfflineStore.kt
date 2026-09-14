@@ -2,6 +2,7 @@ package com.mwask.bat.offline
 
 import android.content.ContentUris
 import android.content.Context
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -45,6 +46,75 @@ object OfflineStore {
 
     fun coverFile(context: Context, trackId: String): File? =
         File(coverDir(context), "$trackId.jpg").takeIf { it.exists() && it.length() > 0 }
+
+    /**
+     * Asks the media scanner to index the download folder. Self-heal for files
+     * that exist on disk but have no MediaStore row (copied via USB, restored
+     * by backup, or written by the old com.project.lol package) - loadSongs()
+     * only sees files MediaStore knows about.
+     */
+    fun rescanFolder(context: Context) {
+        runCatching {
+            val dir = File(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
+                FOLDER,
+            )
+            val files = dir.listFiles()
+                ?.filter { it.isFile && it.extension.lowercase() in setOf("m4a", "mp3", "ogg", "flac", "wav", "opus") }
+                ?.map { it.absolutePath }
+                ?.toTypedArray()
+            if (files.isNullOrEmpty()) return
+            MediaScannerConnection.scanFile(context.applicationContext, files, null, null)
+            Log.i(TAG, "rescanFolder: scanning ${files.size} file(s) in Music/$FOLDER")
+        }
+    }
+
+    /**
+     * One-time self-heal: re-fetches cover art for songs whose cover file is
+     * missing - e.g. after the app's private storage was cleared or the app
+     * reinstalled while the Music/SpotiBat files survived. Cover urls are not
+     * stored on disk, so covers are resolved via Spotify's unauthenticated
+     * oEmbed endpoint using the Spotify track id embedded in the file names.
+     * Returns the number of covers restored; onRestored(done, total) fires
+     * after each cover so the caller can refresh progressively.
+     */
+    fun restoreMissingCovers(
+        context: Context,
+        trackIds: List<String>,
+        onRestored: (Int, Int) -> Unit = { _, _ -> },
+    ): Int {
+        val missing = trackIds.filter { coverFile(context, it) == null }.distinct()
+        val total = missing.size
+        if (total == 0) return 0
+        var restored = 0
+        for (id in missing) {
+            runCatching {
+                val meta = URL("https://open.spotify.com/oembed?url=spotify:track:$id")
+                    .openConnection() as HttpURLConnection
+                meta.connectTimeout = 10000
+                meta.readTimeout = 10000
+                meta.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                val thumb = runCatching {
+                    JSONObject(meta.inputStream.use { it.readBytes().toString(Charsets.UTF_8) })
+                        .optString("thumbnail_url")
+                }.getOrNull().orEmpty()
+                if (thumb.isNotBlank()) {
+                    val img = URL(thumb).openConnection() as HttpURLConnection
+                    img.connectTimeout = 10000
+                    img.readTimeout = 10000
+                    img.instanceFollowRedirects = true
+                    img.inputStream.use { input ->
+                        File(coverDir(context), "$id.jpg").outputStream().use { input.copyTo(it) }
+                    }
+                    restored++
+                    onRestored(restored, total)
+                }
+            }.onFailure { Log.w(TAG, "restoreMissingCovers: $id failed: ${it.message}") }
+            try { Thread.sleep(120) } catch (_: InterruptedException) { break }
+        }
+        Log.i(TAG, "restoreMissingCovers: restored $restored/$total")
+        return restored
+    }
 
     fun saveMetadata(
         context: Context,

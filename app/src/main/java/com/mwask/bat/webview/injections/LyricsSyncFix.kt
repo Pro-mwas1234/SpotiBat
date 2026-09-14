@@ -178,7 +178,7 @@ object LyricsSyncFix {
                     }, OBS_DEBOUNCE_MS);
                 }
             });
-            obs.observe(document.body, { childList: true, subtree: true });
+            try { obs.observe(document.body, { childList: true, subtree: true }); } catch(e){}
 
             window.addEventListener('beforeunload', function(){
                 try { obs.disconnect(); } catch(e){}

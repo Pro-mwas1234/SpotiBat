@@ -271,7 +271,7 @@ object ContextMenuDownload {
                     }, 60);
                 }
             });
-            obs.observe(document.body, { childList: true, subtree: true });
+            try { obs.observe(document.body, { childList: true, subtree: true }); } catch(e){}
         
             var splLastHover = 0;
             document.addEventListener('mouseover', function(e){

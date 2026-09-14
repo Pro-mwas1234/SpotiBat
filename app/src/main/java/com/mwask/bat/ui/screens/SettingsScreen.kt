@@ -49,6 +49,7 @@ import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
@@ -176,7 +177,8 @@ fun SettingsContent(
     onClearData: () -> Unit,
     onDebugToggle: (Boolean) -> Unit = {},
     blockServiceWorker: Boolean,
-    onBlockServiceWorkerChange: (Boolean) -> Unit
+    onBlockServiceWorkerChange: (Boolean) -> Unit,
+    onDjChange: (Boolean) -> Unit = {}
 ) {
     var autoplayMode by remember { mutableStateOf(prefs.getString("APlayMode", "disabled") ?: "disabled") }
     var takeControl by remember { mutableStateOf(prefs.getBoolean("TakeControl", true)) }
@@ -222,6 +224,11 @@ fun SettingsContent(
     var dbgOverlay by remember { mutableStateOf(prefs.getBoolean("DebugOverlay", false)) }
     var showDevlogDialog by remember { mutableStateOf(false) }
     var showLyricsStyleDialog by remember { mutableStateOf(false) }
+
+    // Auto DJ
+    var djMode by remember { mutableStateOf(prefs.getBoolean("DjMode", false)) }
+    var djLead by remember { mutableStateOf(prefs.getInt("DjLead", 15)) }
+    var showDjLeadDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -428,6 +435,37 @@ fun SettingsContent(
                     closeNowPlay = it
                     prefs.edit().putBoolean("CloseNowPlay", it).apply()
                 }
+            )
+        }
+
+        SettingSectionCard(
+            title = "DJ MODE",
+            icon = Icons.Default.LibraryMusic
+        ) {
+            SettingSwitchTile(
+                title = "DJ Mode",
+                subtitle = if (djMode) {
+                    "On — blends your top artists, discovery and liked songs"
+                } else {
+                    "Keeps the music going when the queue ends"
+                },
+                icon = Icons.Default.LibraryMusic,
+                checked = djMode,
+                onCheckedChange = { enabled ->
+                    djMode = enabled
+                    prefs.edit().putBoolean("DjMode", enabled).apply()
+                    onDjChange(enabled)
+                }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingTile(
+                title = "DJ Lead Time",
+                subtitle = "Picks the next track ${djLead}s before the current one ends",
+                icon = Icons.Default.LibraryMusic,
+                onClick = { showDjLeadDialog = true },
+                enabled = djMode
             )
         }
 
@@ -867,6 +905,26 @@ fun SettingsContent(
                 prefs.edit().putString("LyricsStyle", value).apply()
             },
             onDismiss = { showLyricsStyleDialog = false }
+        )
+    }
+
+    if (showDjLeadDialog) {
+        SingleChoiceDialog(
+            title = "DJ Lead Time",
+            options = listOf(
+                "10" to "10 seconds",
+                "15" to "15 seconds",
+                "20" to "20 seconds",
+                "30" to "30 seconds"
+            ),
+            selected = djLead.toString(),
+            onSelect = { value ->
+                val v = value.toIntOrNull() ?: 15
+                djLead = v
+                prefs.edit().putInt("DjLead", v).apply()
+                onDjChange(false)
+            },
+            onDismiss = { showDjLeadDialog = false }
         )
     }
 

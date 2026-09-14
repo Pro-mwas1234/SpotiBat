@@ -6,8 +6,11 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.media.MediaPlayer
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -151,6 +154,7 @@ fun OfflineScreen(
     val mediaPlayer = remember { MediaPlayer() }
     var searchQuery by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<OfflineSong>?>(null) }
+    var coverRestore by remember { mutableStateOf<String?>(null) }
 
     val searchEngine = remember { GenericSearchEngine<OfflineSong>(maxResult = 100) }
     val songExtractor = remember {
@@ -296,9 +300,73 @@ fun OfflineScreen(
         onDispose { }
     }
 
+    // Audio read permission (READ_MEDIA_AUDIO on 13+, READ_EXTERNAL_STORAGE on 12-):
+    // without it MediaStore hides rows the app didn't write itself.
+    val permLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants ->
+        val granted = grants.values.any { it }
+        if (granted) {
+            scope.launch {
+                songs = withContext(Dispatchers.IO) { OfflineStore.loadSongs(context) }
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
-        songs = withContext(Dispatchers.IO) { OfflineStore.loadSongs(context) }
+        val needsPerm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_MEDIA_AUDIO) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else {
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_EXTERNAL_STORAGE) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+        if (needsPerm) {
+            permLauncher.launch(
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    arrayOf(android.Manifest.permission.READ_MEDIA_AUDIO)
+                } else {
+                    arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+                }
+            )
+        }
+        var list = withContext(Dispatchers.IO) { OfflineStore.loadSongs(context) }
+        // Self-heal: files on disk but no MediaStore row (copied via USB, old
+        // package, backup restore) are invisible to loadSongs() until scanned.
+        if (list.isEmpty()) {
+            withContext(Dispatchers.IO) { OfflineStore.rescanFolder(context) }
+            delay(1200)
+            list = withContext(Dispatchers.IO) { OfflineStore.loadSongs(context) }
+        }
+        songs = list
         loading = false
+    }
+
+    // One-time self-heal: songs downloaded before a reinstall/clear-data lost
+    // their covers (they live in the app's private storage). The Spotify track
+    // id is embedded in each filename, so art is re-fetched from Spotify's
+    // unauthenticated oEmbed endpoint once per missing track.
+    LaunchedEffect(loading, songs.size) {
+        if (loading || songs.isEmpty() || coverRestore != null) return@LaunchedEffect
+        val missingIds = songs.filter { it.coverFile == null }.map { it.id }
+        if (missingIds.isEmpty()) return@LaunchedEffect
+        val total = missingIds.size
+        coverRestore = "Restoring 0/$total album covers…"
+        val restored = withContext(Dispatchers.IO) {
+            OfflineStore.restoreMissingCovers(context, missingIds) { done, t ->
+                coverRestore = "Restoring $done/$t album covers…"
+            }
+        }
+        coverRestore = if (restored > 0) {
+            "Restored $restored album cover${if (restored == 1) "" else "s"}"
+        } else {
+            null
+        }
+        if (restored > 0) {
+            songs = withContext(Dispatchers.IO) { OfflineStore.loadSongs(context) }
+        }
+        delay(2500)
+        coverRestore = null
     }
 
     LaunchedEffect(isPlaying, currentIndex) {
@@ -405,7 +473,11 @@ fun OfflineScreen(
                                 }
                             }
                             songs.isEmpty() -> "No downloads yet"
-                            else -> "${songs.size} song${if (songs.size == 1) "" else "s"} available offline"
+                            else -> {
+                                val n = songs.size
+                                val base = "$n song${if (n == 1) "" else "s"} available offline"
+                                coverRestore?.let { suffix -> "$base — $suffix" } ?: base
+                            }
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

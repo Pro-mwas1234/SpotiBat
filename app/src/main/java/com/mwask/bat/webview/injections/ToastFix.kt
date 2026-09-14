@@ -356,7 +356,7 @@ object ToastFix {
                     }
                 }
             });
-            splToastObs.observe(document.body, { childList: true, subtree: true });
+            try { splToastObs.observe(document.body, { childList: true, subtree: true }); } catch(e){}
 
             function splRestack(){
                 var idx = 0;

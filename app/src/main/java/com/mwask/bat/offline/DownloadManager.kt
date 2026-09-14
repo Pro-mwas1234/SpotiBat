@@ -76,7 +76,16 @@ private sealed class DownloadJob {
 
 object DownloadManager {
     private const val TAG = "Spl-DL"
-    private const val BATCH_INTER_TRACK_DELAY_MS = 300L
+    private const val BATCH_INTER_TRACK_DELAY_MS = 600L
+
+    /* YouTube quietly rate-limits rapid resolve bursts: after ~30 quick
+       tracks, searches/streams start failing en masse and a whole playlist
+       "only downloads" its first chunk. Failed tracks are retried with
+       backoff, and streaks of failures trigger a cooldown before continuing. */
+    private const val RESOLVE_ATTEMPTS = 3
+    private const val RESOLVE_RETRY_BASE_MS = 2_000L   // attempt^1: 2s, then 4s
+    private const val FAIL_STREAK_TRIGGER = 3
+    private const val FAIL_COOLDOWN_MS = 30_000L
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -304,12 +313,25 @@ object DownloadManager {
     }
 
 
+    /** Sleeps in slices so skip/cancel is honored mid-wait. Returns false if a control signal arrived. */
+    private suspend fun interruptibleDelay(ms: Long): Boolean {
+        var waited = 0L
+        while (waited < ms) {
+            if (signal != null) return false
+            val step = minOf(500L, ms - waited)
+            delay(step.milliseconds)
+            waited += step
+        }
+        return signal == null
+    }
+
     private suspend fun runCollection(appContext: Context, job: DownloadJob.Collection) {
         val total = job.tracks.size
         var saved = 0
         var failed = 0
         var skipped = 0
         var cancelled = false
+        var consecutiveFails = 0
         batchActive = true
         Log.i(TAG, "runCollection: start '${job.name}' total=$total")
 
@@ -355,14 +377,25 @@ object DownloadManager {
                 // Report at track start so the batch flags reach the UI
                 // before the (non-interruptible) resolver runs.
                 report(0, "Resolving...")
+                var result: TrackResult = TrackResult.Failed(track.title, track.artist, track.album)
                 try {
-                    val result = runCatching {
-                        downloadToFile(appContext, track) { pct, text -> report(pct, text) }
-                    }.onFailure { Log.e(TAG, "runCollection: ${track.trackId} exception: ${it.message}", it) }
-                        .getOrElse {
-                            if (signal != null) TrackResult.Aborted
-                            else TrackResult.Failed(track.title, track.artist, track.album)
+                    for (attempt in 1..RESOLVE_ATTEMPTS) {
+                        if (signal != null) { result = TrackResult.Aborted; break }
+                        if (attempt > 1) {
+                            val wait = RESOLVE_RETRY_BASE_MS shl (attempt - 2)   // 2s, then 4s
+                            report(0, "Retry $attempt/$RESOLVE_ATTEMPTS...")
+                            if (!interruptibleDelay(wait)) { result = TrackResult.Aborted; break }
                         }
+                        result = runCatching {
+                            downloadToFile(appContext, track) { pct, text -> report(pct, text) }
+                        }.onFailure { Log.e(TAG, "runCollection: ${track.trackId} exception: ${it.message}", it) }
+                            .getOrElse {
+                                if (signal != null) TrackResult.Aborted
+                                else TrackResult.Failed(track.title, track.artist, track.album)
+                            }
+                        if (result !is TrackResult.Failed) break
+                        Log.w(TAG, "runCollection: ${track.trackId} attempt $attempt/$RESOLVE_ATTEMPTS failed: $lastDownloadError")
+                    }
 
                     when (result) {
                         is TrackResult.Saved -> {
@@ -404,8 +437,24 @@ object DownloadManager {
                 }
 
                 if (cancelled) break
+
+                /* Rate-limit defense: a streak of failures means the source is
+                   throttling us. Cool down before continuing so the rest of
+                   the playlist doesn't cascade into failures. */
+                consecutiveFails = when {
+                    result is TrackResult.Saved -> 0
+                    result is TrackResult.Failed -> consecutiveFails + 1
+                    else -> consecutiveFails
+                }
+                if (consecutiveFails >= FAIL_STREAK_TRIGGER) {
+                    Log.w(TAG, "runCollection: $consecutiveFails consecutive failures — cooling down ${FAIL_COOLDOWN_MS / 1000}s")
+                    report(0, "Source throttled — waiting ${FAIL_COOLDOWN_MS / 1000}s...")
+                    interruptibleDelay(FAIL_COOLDOWN_MS)   // pending skip/cancel honored at the top of the loop
+                    consecutiveFails = 0
+                }
+
                 if (index < job.tracks.lastIndex) {
-                    delay(BATCH_INTER_TRACK_DELAY_MS.milliseconds)
+                    interruptibleDelay(BATCH_INTER_TRACK_DELAY_MS)
                 }
             }
         } finally {

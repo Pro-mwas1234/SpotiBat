@@ -72,6 +72,7 @@ download the `.apk` and install it on your device. you may need to toggle **"Ins
 - **offline downloads**: download songs and play them offline — audio is sourced via the InnerTube API
 - lock screen, Bluetooth, and Wear OS controls
 - autoplay modes: off, once at start, or permanent
+- **DJ Mode**: keeps the music going forever, modeled on Spotify's AI DJ — seeds a taste profile from your top artists, then blends familiar picks, discovery from your wider taste pool, and liked-songs deep cuts (vibe switches every few tracks; tap the DJ chip in the player to switch it up instantly; never repeats what you just heard), with a quick toggle in the media notification
 - mobile-friendly CSS/JS layout tweaks
 - AMOLED dark mode (pure black)
 - sleep timer

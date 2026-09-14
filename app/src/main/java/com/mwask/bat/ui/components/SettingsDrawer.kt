@@ -68,6 +68,7 @@ fun SettingsDrawer(
     onDebugToggle: (Boolean) -> Unit = {},
     blockServiceWorker: Boolean,
     onBlockServiceWorkerChange: (Boolean) -> Unit,
+    onDjChange: (Boolean) -> Unit = {},
     content: @Composable () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -118,7 +119,8 @@ fun SettingsDrawer(
                             onClearData = onClearData,
                             onDebugToggle = onDebugToggle,
                             blockServiceWorker = blockServiceWorker,
-                            onBlockServiceWorkerChange = onBlockServiceWorkerChange
+                            onBlockServiceWorkerChange = onBlockServiceWorkerChange,
+                            onDjChange = onDjChange
                         )
                     }
                 }

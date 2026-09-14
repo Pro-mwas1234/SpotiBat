@@ -13,6 +13,11 @@
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
+    <!-- Offline Mode: read downloaded songs from Music/SpotiBat via MediaStore -->
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
     <!-- In-app updater: needed to prompt the user to install downloaded APKs -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 

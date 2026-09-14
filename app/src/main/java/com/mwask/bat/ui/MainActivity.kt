@@ -123,6 +123,7 @@ import com.mwask.bat.webview.helpers.DevLogPrelude
 import com.mwask.bat.webview.helpers.LyricsTheme
 import com.mwask.bat.webview.helpers.buildAmoledJs
 import com.mwask.bat.webview.helpers.buildCustomCssJs
+import com.mwask.bat.webview.injections.AutoDj
 import com.mwask.bat.webview.injections.LogoutCheck
 import java.lang.ref.WeakReference
 import java.net.HttpURLConnection
@@ -327,6 +328,12 @@ class MainActivity : ComponentActivity() {
                     onBlockServiceWorkerChange = { enabled ->
                         blockServiceWorkerState.value = enabled
                         prefs.edit { putBoolean("BlockServiceWorker", enabled) }
+                    },
+                    onDjChange = { enabled ->
+                        pushDjConfig()
+                        if (enabled) {
+                            webView?.evaluateJavascript("if(window.splDjKickoff) window.splDjKickoff();", null)
+                        }
                     },
                 ) {
                     Scaffold(
@@ -1388,6 +1395,8 @@ class MainActivity : ComponentActivity() {
             }
             view.evaluateJavascript(js, null)
 
+            pushDjConfig()
+
             view.evaluateJavascript(LogoutCheck.CONTENT) { result ->
                 if (result == "\"out\"") {
                     prefs.edit().putBoolean("LoggedIn", false).apply()
@@ -1395,6 +1404,25 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    /** Push current DJ Mode prefs into the webview (safe before injection: sets window.__splDj* globals). */
+    private fun pushDjConfig() {
+        val wv = webView ?: return
+        val mode = if (prefs.getBoolean("DjMode", false)) "enabled" else "disabled"
+        val lead = prefs.getInt("DjLead", 15)
+        wv.evaluateJavascript(
+            """
+            (function(){
+                try {
+                    window.__splDjEnabled = '${'$'}mode' == 'enabled';
+                    if (window.splDjSetEnabled) window.splDjSetEnabled(window.__splDjEnabled);
+                    if (window.splDjSetLead) window.splDjSetLead(${'$'}lead);
+                } catch(e) {}
+            })();
+            """.trimIndent(),
+            null
+        )
     }
 
     override fun onNewIntent(intent: Intent) {

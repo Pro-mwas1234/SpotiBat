@@ -63,6 +63,7 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
         const val ACTION_PREV = "com.mwask.bat.ACTION_PREV"
         const val ACTION_SHUFFLE = "com.mwask.bat.ACTION_SHUFFLE"
         private const val ACTION_FAVORITE = "com.mwask.bat.ACTION_FAVORITE"
+        private const val ACTION_DJ = "com.mwask.bat.ACTION_DJ"
 
         private const val CUSTOM_ACTION_TOGGLE_FAV = "toggle_fav"
         private const val CUSTOM_ACTION_TOGGLE_SHUFFLE = "toggle_shuffle"
@@ -182,6 +183,8 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
     private var isSmartShuffle = false
     private var isShuffleAvailable = true
     private var isFavorite = false
+    private var isDjMode = false
+    private var lastDjNotification = false
     private var coverBitmap: Bitmap? = null
     private var currentTitle = ""
     private var currentArtist = ""
@@ -202,8 +205,22 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
                 ACTION_PREV -> webView?.evaluateJavascript("actSkipBack()", null)
                 ACTION_SHUFFLE -> webView?.evaluateJavascript("actToggleShuffle()", null)
                 ACTION_FAVORITE -> webView?.evaluateJavascript("actAddToFav()", null)
+                ACTION_DJ -> toggleDjMode()
             }
         }
+    }
+
+    private fun toggleDjMode() {
+        val prefs = getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
+        val on = !prefs.getBoolean("DjMode", false)
+        prefs.edit().putBoolean("DjMode", on).apply()
+        isDjMode = on
+        webView?.evaluateJavascript("if(window.splDjSetEnabled) window.splDjSetEnabled($on);", null)
+        if (on) {
+            wakeAndRun("if(window.splDjKickoff) window.splDjKickoff();")
+        }
+        updatePlaybackState()
+        showNotification()
     }
 
     private val audioBecomingNoisyReceiver = object : BroadcastReceiver() {
@@ -238,6 +255,17 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
             accentCache = 0
             mainHandler.post {
                 showNotification()
+            }
+        }
+        if (key == "DjMode") {
+            val djOn = getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
+                .getBoolean("DjMode", false)
+            if (djOn != isDjMode) {
+                isDjMode = djOn
+                mainHandler.post {
+                    updatePlaybackState()
+                    showNotification()
+                }
             }
         }
         if (key == "AndAuto") {
@@ -540,6 +568,7 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
                 CUSTOM_ACTION_TOGGLE_FAV, "ADDTOFAV_ACTION" -> wakeAndRun("actAddToFav();")
                 CUSTOM_ACTION_TOGGLE_SHUFFLE, "SHUFFLE_ACTION" -> wakeAndRun("actToggleShuffle();")
                 CUSTOM_ACTION_REPEAT, "REPEAT_ACTION" -> wakeAndRun("actRepeat();")
+                "toggle_dj" -> toggleDjMode()
             }
         }
 
@@ -560,6 +589,7 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
             addAction(ACTION_PREV)
             addAction(ACTION_SHUFFLE)
             addAction(ACTION_FAVORITE)
+            addAction(ACTION_DJ)
             addAction(Intent.ACTION_MEDIA_BUTTON)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -652,6 +682,12 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
             isShuffleAvailable = shuffleVal != "disabled"
             currentDuration = obj.optLong("duration", 0L)
             currentPosition = obj.optLong("position", 0L)
+            isDjMode = getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
+                .getBoolean("DjMode", false)
+            if (isDjMode != lastDjNotification) {
+                lastDjNotification = isDjMode
+                updatePlaybackState()
+            }
 
             if (isPlaying) acquireWakeLock() else releaseWakeLock()
 
@@ -707,6 +743,11 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
                     else -> "Enable repeat"
                 },
                 repeatIcon
+            )
+            .addCustomAction(
+                "toggle_dj",
+                if (isDjMode) "Disable DJ Mode" else "Enable DJ Mode",
+                if (isDjMode) R.drawable.ic_dj_on else R.drawable.ic_dj
             )
             .build()
         if (::mediaSession.isInitialized) {
@@ -829,12 +870,19 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
             getActionPendingIntent(ACTION_FAVORITE)
         ).build()
 
+        val djAction = NotificationCompat.Action.Builder(
+            tintedIcon(if (isDjMode) R.drawable.ic_dj_on else R.drawable.ic_dj),
+            if (isDjMode) "Disable DJ" else "DJ",
+            getActionPendingIntent(ACTION_DJ)
+        ).build()
+
         val actions = mutableListOf<NotificationCompat.Action>()
         actions.add(prevAction)
         actions.add(playPauseAction)
         actions.add(nextAction)
         if (isShuffleAvailable) actions.add(shuffleAction)
         actions.add(favAction)
+        if (isDjMode) actions.add(djAction)
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(currentTitle.ifEmpty { "SpotiBat" })
@@ -851,7 +899,6 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
         actions.forEach { builder.addAction(it) }
 
         coverBitmap?.let { builder.setLargeIcon(it) }
-
         return builder.build()
     }
 
