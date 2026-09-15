@@ -14,7 +14,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.AudioManager
 import android.os.Build
-import android.os.Bundle
 import android.os.IBinder
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
@@ -24,10 +23,23 @@ import androidx.core.app.ServiceCompat
 import androidx.media.app.NotificationCompat.MediaStyle
 import androidx.media.session.MediaButtonReceiver
 import com.mwask.bat.R
+import com.mwask.bat.offline.OfflinePlayback
 import com.mwask.bat.ui.OfflineActivity
 import java.io.File
 import kotlin.math.min
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
+/**
+ * Foreground service that renders [OfflinePlayback.state] as the media
+ * notification + media session, and forwards remote user intents (notification
+ * buttons, headset/media buttons) back into [OfflinePlayback.submit] as
+ * commands. It holds no playback state of its own: the screen owns the player
+ * engine and publishes state; this service only reflects it.
+ */
 class OfflineMediaService : Service() {
 
     companion object {
@@ -51,34 +63,25 @@ class OfflineMediaService : Service() {
 
         private const val NOTIF_COLOR = 0xFF1DB954.toInt()
 
-        var controller: OfflineController? = null
         var instance: OfflineMediaService? = null
     }
 
-    interface OfflineController {
-        fun onPlayPause()
-        fun onNext()
-        fun onPrev()
-        fun onStop()
-        fun onSeekTo(position: Long)
-    }
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private lateinit var mediaSession: MediaSessionCompat
-    private var isPlaying = false
+
+    /** Snapshot actually rendered into the notification/session, to dedupe work. */
+    private var lastRendered: OfflinePlayback.Snapshot? = null
+    private var renderedCoverKey: String? = null
     private var coverBitmap: Bitmap? = null
-    private var currentTitle = ""
-    private var currentArtist = ""
-    private var currentAlbum = "SpotiBat"
-    private var currentPosition: Long = 0L
-    private var currentDuration: Long = 0L
 
     private val actionReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
-                ACTION_PLAY_PAUSE -> controller?.onPlayPause()
-                ACTION_NEXT -> controller?.onNext()
-                ACTION_PREV -> controller?.onPrev()
-                ACTION_STOP -> controller?.onStop()
+                ACTION_PLAY_PAUSE -> OfflinePlayback.submit(OfflinePlayback.Command.PlayPause)
+                ACTION_NEXT -> OfflinePlayback.submit(OfflinePlayback.Command.Next)
+                ACTION_PREV -> OfflinePlayback.submit(OfflinePlayback.Command.Prev)
+                ACTION_STOP -> OfflinePlayback.submit(OfflinePlayback.Command.Stop)
             }
         }
     }
@@ -88,7 +91,7 @@ class OfflineMediaService : Service() {
             if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
                 val prefs = getSharedPreferences("spotiBat_prefs", MODE_PRIVATE)
                 if (prefs.getBoolean("BtAutoPause", false)) {
-                    controller?.onPlayPause()
+                    OfflinePlayback.submit(OfflinePlayback.Command.PlayPause)
                 }
             }
         }
@@ -112,6 +115,15 @@ class OfflineMediaService : Service() {
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Failed to register receivers", e)
         }
+        // Single source of truth: render whatever the screen publishes.
+        serviceScope.launch {
+            OfflinePlayback.state.collect { snapshot ->
+                if (snapshot != lastRendered) {
+                    renderState(snapshot)
+                    lastRendered = snapshot
+                }
+            }
+        }
         try {
             ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotificationSafe(), getStartForegroundServiceType())
         } catch (e: Throwable) {
@@ -130,24 +142,9 @@ class OfflineMediaService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
+            OfflinePlayback.submit(OfflinePlayback.Command.Stop)
             stopPlaybackService()
             return START_NOT_STICKY
-        }
-        if (intent?.hasExtra("title") == true) {
-            currentTitle = intent.getStringExtra("title") ?: ""
-            currentArtist = intent.getStringExtra("artist") ?: ""
-            currentAlbum = intent.getStringExtra("album")?.ifBlank { "SpotiBat" } ?: "SpotiBat"
-            currentDuration = intent.getLongExtra("duration", 0L)
-            isPlaying = intent.getBooleanExtra("playing", false)
-            currentPosition = intent.getLongExtra("position", 0L)
-            coverBitmap = null
-            val coverPath = intent.getStringExtra("coverPath")
-            if (!coverPath.isNullOrBlank()) {
-                loadCoverArt(File(coverPath))
-            }
-            updateMetadata()
-            updatePlaybackState()
-            showNotification()
         }
         try {
             ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotificationSafe(), getStartForegroundServiceType())
@@ -166,12 +163,29 @@ class OfflineMediaService : Service() {
 
     override fun onDestroy() {
         instance = null
+        serviceScope.cancel()
         try { unregisterReceiver(actionReceiver) } catch (_: Exception) {}
         try { unregisterReceiver(audioBecomingNoisyReceiver) } catch (_: Exception) {}
         if (::mediaSession.isInitialized) {
             try { mediaSession.release() } catch (_: Exception) {}
         }
         super.onDestroy()
+    }
+
+    /** Push the shared snapshot into the media session and notification. */
+    private fun renderState(s: OfflinePlayback.Snapshot) {
+        // Cover art: decode off the main thread, keyed by path so it reloads
+        // only when the track's artwork actually changes.
+        if (s.coverPath != renderedCoverKey) {
+            renderedCoverKey = s.coverPath
+            coverBitmap = null
+            if (!s.coverPath.isNullOrBlank()) {
+                loadCoverArt(File(s.coverPath))
+            }
+        }
+        updateMetadata(s)
+        updatePlaybackState(s)
+        showNotification()
     }
 
     private fun createNotificationChannel() {
@@ -198,27 +212,27 @@ class OfflineMediaService : Service() {
             )
             setCallback(object : MediaSessionCompat.Callback() {
                 override fun onPlay() {
-                    if (!isPlaying) OfflineMediaService.controller?.onPlayPause()
+                    if (lastRendered?.playing == false) OfflinePlayback.submit(OfflinePlayback.Command.PlayPause)
                 }
 
                 override fun onPause() {
-                    if (isPlaying) OfflineMediaService.controller?.onPlayPause()
+                    if (lastRendered?.playing == true) OfflinePlayback.submit(OfflinePlayback.Command.PlayPause)
                 }
 
                 override fun onSkipToNext() {
-                    OfflineMediaService.controller?.onNext()
+                    OfflinePlayback.submit(OfflinePlayback.Command.Next)
                 }
 
                 override fun onSkipToPrevious() {
-                    OfflineMediaService.controller?.onPrev()
+                    OfflinePlayback.submit(OfflinePlayback.Command.Prev)
                 }
 
                 override fun onStop() {
-                    OfflineMediaService.controller?.onStop()
+                    OfflinePlayback.submit(OfflinePlayback.Command.Stop)
                 }
 
                 override fun onSeekTo(pos: Long) {
-                    OfflineMediaService.controller?.onSeekTo(pos)
+                    OfflinePlayback.submit(OfflinePlayback.Command.Seek(pos))
                 }
             })
             isActive = true
@@ -247,30 +261,6 @@ class OfflineMediaService : Service() {
         }
     }
 
-    fun updateTrack(title: String, artist: String, album: String, coverFile: File?, duration: Long) {
-        currentTitle = title
-        currentArtist = artist
-        currentAlbum = album.ifBlank { "SpotiBat" }
-        currentDuration = duration
-        coverBitmap = null
-        coverFile?.let { loadCoverArt(it) }
-        updateMetadata()
-        updatePlaybackState()
-        showNotification()
-    }
-
-    fun updatePlaying(playing: Boolean, position: Long) {
-        isPlaying = playing
-        currentPosition = position
-        updatePlaybackState()
-        showNotification()
-    }
-
-    fun updatePosition(position: Long) {
-        currentPosition = position
-        updatePlaybackState()
-    }
-
     fun stopPlaybackService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -284,13 +274,13 @@ class OfflineMediaService : Service() {
         stopSelf()
     }
 
-    private fun updatePlaybackState() {
+    private fun updatePlaybackState(s: OfflinePlayback.Snapshot) {
         val state = PlaybackStateCompat.Builder()
             .setActions(PLAYBACK_ACTIONS)
             .setState(
-                if (isPlaying) PlaybackStateCompat.STATE_PLAYING
+                if (s.playing) PlaybackStateCompat.STATE_PLAYING
                 else PlaybackStateCompat.STATE_PAUSED,
-                currentPosition, if (isPlaying) 1f else 0f
+                s.positionMs, if (s.playing) 1f else 0f
             )
             .build()
         if (::mediaSession.isInitialized) {
@@ -298,12 +288,12 @@ class OfflineMediaService : Service() {
         }
     }
 
-    private fun updateMetadata() {
+    private fun updateMetadata(s: OfflinePlayback.Snapshot) {
         val builder = MediaMetadataCompat.Builder()
-            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, currentTitle)
-            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, currentArtist)
-            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, currentAlbum)
-            .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, currentDuration)
+            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, s.title)
+            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, s.artist)
+            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, s.album.ifBlank { "SpotiBat" })
+            .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, s.durationMs)
         coverBitmap?.let { bmp ->
             builder.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bmp)
             builder.putBitmap(MediaMetadataCompat.METADATA_KEY_ART, bmp)
@@ -330,7 +320,7 @@ class OfflineMediaService : Service() {
                 val scaled = Bitmap.createScaledBitmap(raw, w, h, true)
                 if (scaled != raw) raw.recycle()
                 coverBitmap = scaled
-                updateMetadata()
+                lastRendered?.let { updateMetadata(it) }
                 showNotification()
             } catch (_: Exception) {}
         }.start()
@@ -357,6 +347,8 @@ class OfflineMediaService : Service() {
     }
 
     private fun buildNotification(): Notification {
+        val s = lastRendered ?: OfflinePlayback.Snapshot()
+
         val contentIntent = PendingIntent.getActivity(
             this, 0,
             Intent(this, OfflineActivity::class.java).addFlags(
@@ -370,8 +362,8 @@ class OfflineMediaService : Service() {
         ).build()
 
         val playPauseAction = NotificationCompat.Action.Builder(
-            if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play,
-            if (isPlaying) "Pause" else "Play",
+            if (s.playing) R.drawable.ic_pause else R.drawable.ic_play,
+            if (s.playing) "Pause" else "Play",
             getActionPendingIntent(ACTION_PLAY_PAUSE)
         ).build()
 
@@ -388,8 +380,8 @@ class OfflineMediaService : Service() {
         }
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(currentTitle.ifEmpty { "SpotiBat" })
-            .setContentText(currentArtist)
+            .setContentTitle(s.title.ifEmpty { "SpotiBat" })
+            .setContentText(s.artist)
             .setSubText("Offline Mode")
             .setSmallIcon(R.drawable.ic_notification)
             .setContentIntent(contentIntent)

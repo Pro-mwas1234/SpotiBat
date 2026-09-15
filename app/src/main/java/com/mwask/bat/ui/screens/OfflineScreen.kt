@@ -22,6 +22,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -38,6 +39,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Menu
@@ -99,6 +101,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.core.content.ContextCompat
 import com.mwask.bat.R
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mwask.bat.offline.OfflinePlayback
 import com.mwask.bat.offline.OfflineSong
 import com.mwask.bat.offline.OfflineStore
 import com.mwask.bat.service.OfflineMediaService
@@ -150,6 +154,15 @@ fun OfflineScreen(
     var positionMs by remember { mutableIntStateOf(0) }
     var durationMs by remember { mutableIntStateOf(0) }
     var scrubMs by remember { mutableIntStateOf(-1) }
+    var showFullPlayer by remember { mutableStateOf(false) }
+
+    // Single source of truth for every playback surface (mini bar, full-screen
+    // player, media notification). The MediaPlayer engine below is the sole
+    // writer via publishState(); the UI only renders this snapshot.
+    val pb by OfflinePlayback.state.collectAsStateWithLifecycle()
+    val uiPlaying = pb.hasTrack && pb.playing
+    val uiPosition = if (scrubMs >= 0) scrubMs else pb.positionMs.toInt()
+    val uiDuration = pb.durationMs.toInt()
 
     val mediaPlayer = remember { MediaPlayer() }
     var searchQuery by remember { mutableStateOf("") }
@@ -181,20 +194,29 @@ fun OfflineScreen(
             .getOrNull() ?: ""
     }
 
+    fun publishState() {
+        val song = playerSong
+        OfflinePlayback.publish(
+            OfflinePlayback.Snapshot(
+                hasTrack = song != null,
+                title = song?.title.orEmpty(),
+                artist = song?.artist.orEmpty(),
+                album = song?.album.orEmpty(),
+                coverPath = song?.coverFile?.absolutePath,
+                playing = isPlaying,
+                positionMs = positionMs.toLong(),
+                durationMs = durationMs.toLong(),
+            )
+        )
+    }
+
     fun syncService() {
-        val song = playerSong ?: return
+        if (playerSong == null) return
+        publishState()
         runCatching {
             ContextCompat.startForegroundService(
                 context,
-                Intent(context, OfflineMediaService::class.java).apply {
-                    putExtra("title", song.title)
-                    putExtra("artist", song.artist)
-                    putExtra("album", song.album.ifBlank { "SpotiBat" })
-                    putExtra("duration", durationMs.toLong())
-                    putExtra("playing", isPlaying)
-                    putExtra("position", positionMs.toLong())
-                    putExtra("coverPath", song.coverFile?.absolutePath)
-                }
+                Intent(context, OfflineMediaService::class.java)
             )
         }
     }
@@ -227,7 +249,7 @@ fun OfflineScreen(
         if (durationMs <= 0) return
         runCatching { mediaPlayer.seekTo(position.toInt()) }
         positionMs = position.toInt()
-        OfflineMediaService.instance?.updatePosition(position)
+        publishState()
     }
 
     fun stopAndClear() {
@@ -239,6 +261,7 @@ fun OfflineScreen(
         currentIndex = -1
         positionMs = 0
         durationMs = 0
+        OfflinePlayback.clear()
         runCatching { context.stopService(Intent(context, OfflineMediaService::class.java)) }
     }
 
@@ -247,6 +270,7 @@ fun OfflineScreen(
         if (index == -1) return
         if (index == currentIndex) {
             stopAndClear()
+            showFullPlayer = false
         } else if (index < currentIndex) {
             currentIndex -= 1
         }
@@ -259,28 +283,28 @@ fun OfflineScreen(
         }
     }
 
-    BackHandler(enabled = settingsDrawerOpen || searchQuery.isNotBlank()) {
+    BackHandler(enabled = settingsDrawerOpen || showFullPlayer || searchQuery.isNotBlank()) {
         when {
+            showFullPlayer -> showFullPlayer = false
             settingsDrawerOpen -> settingsDrawerOpen = false
             else -> searchQuery = ""
         }
     }
 
+    // Remote intents (notification buttons, media/headset session) arrive as
+    // commands and are executed here, on the engine that owns MediaPlayer.
     DisposableEffect(Unit) {
-        val ctrl = object : OfflineMediaService.OfflineController {
-            override fun onPlayPause() = togglePlayPause()
-            override fun onNext() = step(1)
-            override fun onPrev() = step(-1)
-            override fun onStop() {
-                stopAndClear()
-                runCatching { context.stopService(Intent(context, OfflineMediaService::class.java)) }
+        val job = OfflinePlayback.collectCommands(scope) { cmd ->
+            when (cmd) {
+                OfflinePlayback.Command.PlayPause -> togglePlayPause()
+                OfflinePlayback.Command.Next -> step(1)
+                OfflinePlayback.Command.Prev -> step(-1)
+                OfflinePlayback.Command.Stop -> stopAndClear()
+                is OfflinePlayback.Command.Seek -> seekTo(cmd.positionMs)
             }
-
-            override fun onSeekTo(position: Long) = seekTo(position)
         }
-        OfflineMediaService.controller = ctrl
         onDispose {
-            if (OfflineMediaService.controller === ctrl) OfflineMediaService.controller = null
+            job.cancel()
             runCatching { mediaPlayer.release() }
             runCatching { context.stopService(Intent(context, OfflineMediaService::class.java)) }
         }
@@ -294,7 +318,7 @@ fun OfflineScreen(
             } else {
                 isPlaying = false
                 positionMs = 0
-                OfflineMediaService.instance?.updatePlaying(false, 0)
+                publishState()
             }
         }
         onDispose { }
@@ -372,7 +396,7 @@ fun OfflineScreen(
     LaunchedEffect(isPlaying, currentIndex) {
         while (isPlaying) {
             runCatching { positionMs = mediaPlayer.currentPosition }
-            OfflineMediaService.instance?.updatePosition(positionMs.toLong())
+            publishState()
             delay(500.milliseconds)
         }
     }
@@ -617,6 +641,7 @@ fun OfflineScreen(
                                             play(index)
                                         }
                                     },
+                                    onTitleClick = { showFullPlayer = true },
                                     onDelete = { pendingDelete = song }
                                 )
                             }
@@ -624,8 +649,31 @@ fun OfflineScreen(
                     }
                 }
 
+                if (showFullPlayer) {
+                    playerSong?.let { song ->
+                        FullNowPlayingOverlay(
+                            song = song,
+                            playing = uiPlaying,
+                            positionMs = uiPosition,
+                            durationMs = uiDuration,
+                            scrubMs = scrubMs,
+                            queuePosition = currentIndex + 1,
+                            queueSize = songs.size,
+                            onScrub = { scrubMs = it },
+                            onScrubFinished = {
+                                if (scrubMs >= 0) seekTo(scrubMs.toLong())
+                                scrubMs = -1
+                            },
+                            onTogglePlay = { togglePlayPause() },
+                            onPrev = { step(-1) },
+                            onNext = { step(1) },
+                            onClose = { showFullPlayer = false }
+                        )
+                    }
+                }
+
                 AnimatedVisibility(
-                    visible = currentIndex >= 0,
+                    visible = pb.hasTrack && !showFullPlayer,
                     modifier = Modifier.align(Alignment.BottomCenter),
                     enter = slideInVertically(initialOffsetY = { it }, animationSpec = tween(220)) + fadeIn(tween(220)),
                     exit = slideOutVertically(targetOffsetY = { it }, animationSpec = tween(180)) + fadeOut(tween(180))
@@ -634,9 +682,9 @@ fun OfflineScreen(
                     if (song != null) {
                         NowPlayingBar(
                             song = song,
-                            playing = isPlaying,
-                            positionMs = positionMs,
-                            durationMs = durationMs,
+                            playing = uiPlaying,
+                            positionMs = uiPosition,
+                            durationMs = uiDuration,
                             scrubMs = scrubMs,
                             onScrub = { scrubMs = it },
                             onScrubFinished = {
@@ -813,6 +861,7 @@ private fun playAt(
         setPosition(0)
     }.onFailure {
         setPlaying(false)
+        OfflinePlayback.publish(OfflinePlayback.Snapshot())
     }
 }
 
@@ -821,6 +870,7 @@ private fun OfflineSongRow(
     song: OfflineSong,
     isCurrent: Boolean,
     onClick: () -> Unit,
+    onTitleClick: () -> Unit,
     onDelete: () -> Unit
 ) {
     Row(
@@ -840,7 +890,11 @@ private fun OfflineSongRow(
                 fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold,
                 color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onTitleClick)
+                    .padding(4.dp)
             )
             val subtitle = buildString {
                 append(song.artist.ifBlank { "Unknown artist" })
@@ -945,6 +999,209 @@ private fun decodeCover(context: android.content.Context, song: OfflineSong): Bi
             runCatching { retriever.release() }
         }
     }.getOrNull()
+}
+
+@Composable
+private fun FullNowPlayingOverlay(
+    song: OfflineSong,
+    playing: Boolean,
+    positionMs: Int,
+    durationMs: Int,
+    scrubMs: Int,
+    queuePosition: Int,
+    queueSize: Int,
+    onScrub: (Int) -> Unit,
+    onScrubFinished: () -> Unit,
+    onTogglePlay: () -> Unit,
+    onPrev: () -> Unit,
+    onNext: () -> Unit,
+    onClose: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Top bar: collapse chevron + label
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onClose) {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowDown,
+                        contentDescription = "Collapse player",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                Text(
+                    text = "Now Playing",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.weight(1f))
+                Spacer(Modifier.width(48.dp))
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            // Large cover art
+            FullPlayerCover(song = song)
+
+            Spacer(Modifier.height(32.dp))
+
+            Text(
+                text = song.title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
+            )
+            val artist = song.artist.ifBlank { "Unknown artist" }
+            val album = song.album.ifBlank { "" }.takeIf { it.isNotBlank() }
+            Text(
+                text = if (album != null) "$artist • $album" else artist,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 6.dp)
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            Slider(
+                value = (if (scrubMs >= 0) scrubMs else positionMs)
+                    .toFloat()
+                    .coerceIn(0f, durationMs.toFloat().coerceAtLeast(1f)),
+                onValueChange = { onScrub(it.toInt()) },
+                onValueChangeFinished = onScrubFinished,
+                valueRange = 0f..durationMs.toFloat().coerceAtLeast(1f),
+                modifier = Modifier.fillMaxWidth(),
+                colors = SliderDefaults.colors(
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                    inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
+                    thumbColor = MaterialTheme.colorScheme.primary
+                )
+            )
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = formatTime(if (scrubMs >= 0) scrubMs else positionMs),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.weight(1f))
+                Text(
+                    text = formatTime(durationMs),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            // Transport controls
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onPrev, modifier = Modifier.size(56.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.SkipPrevious,
+                        contentDescription = "Previous",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+                Spacer(Modifier.width(20.dp))
+                Surface(
+                    onClick = onTogglePlay,
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary,
+                    tonalElevation = 6.dp,
+                    shadowElevation = 6.dp,
+                    modifier = Modifier.size(76.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (playing) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = if (playing) "Pause" else "Play",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
+                }
+                Spacer(Modifier.width(20.dp))
+                IconButton(onClick = onNext, modifier = Modifier.size(56.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.SkipNext,
+                        contentDescription = "Next",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            Text(
+                text = if (queueSize > 0) "$queuePosition of $queueSize" else "",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.padding(bottom = 20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun FullPlayerCover(song: OfflineSong) {
+    val context = LocalContext.current
+    var bitmap by remember(song.id, song.uri) { mutableStateOf<Bitmap?>(null) }
+
+    LaunchedEffect(song.id, song.uri) {
+        bitmap = withContext(Dispatchers.IO) { decodeCover(context, song) }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)
+            .shadow(12.dp, RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+        contentAlignment = Alignment.Center
+    ) {
+        val bmp = bitmap
+        if (bmp != null) {
+            Image(
+                bitmap = bmp.asImageBitmap(),
+                contentDescription = "Album art",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Default.MusicNote,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                modifier = Modifier.size(96.dp)
+            )
+        }
+    }
 }
 
 @Composable
