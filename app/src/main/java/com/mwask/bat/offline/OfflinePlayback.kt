@@ -72,4 +72,13 @@ object OfflinePlayback {
     fun clear() {
         _state.value = Snapshot()
     }
+
+    /** Current position, or -1 if nothing is loaded (for audio focus helpers). */
+    fun currentPositionMs(): Long {
+        val s = _state.value
+        return if (s.hasTrack) s.positionMs else -1L
+    }
+
+    /** Current duration, or 0 if nothing is loaded. */
+    fun currentDurationMs(): Long = _state.value.durationMs
 }

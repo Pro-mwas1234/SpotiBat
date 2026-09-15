@@ -47,6 +47,9 @@ class OfflineMediaService : Service() {
         private const val CHANNEL_ID = "spotiBat_offline_playback"
         private const val NOTIFICATION_ID = 2
 
+        /** Extra on the content intent: open the full-screen player, not just the app. */
+        const val EXTRA_OPEN_PLAYER = "open_player"
+
         const val ACTION_PLAY_PAUSE = "com.mwask.bat.offline.ACTION_PLAY_PAUSE"
         const val ACTION_NEXT = "com.mwask.bat.offline.ACTION_NEXT"
         const val ACTION_PREV = "com.mwask.bat.offline.ACTION_PREV"
@@ -349,11 +352,13 @@ class OfflineMediaService : Service() {
     private fun buildNotification(): Notification {
         val s = lastRendered ?: OfflinePlayback.Snapshot()
 
+        // Tapping the notification opens the app straight into the
+        // full-screen player, like Samsung Music / Spotify do.
         val contentIntent = PendingIntent.getActivity(
             this, 0,
             Intent(this, OfflineActivity::class.java).addFlags(
                 Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            ),
+            ).putExtra(EXTRA_OPEN_PLAYER, true),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 

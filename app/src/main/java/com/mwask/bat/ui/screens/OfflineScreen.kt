@@ -1,12 +1,17 @@
 package com.mwask.bat.ui.screens
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.media.AudioManager
 import android.media.MediaMetadataRetriever
 import android.media.MediaPlayer
 import android.os.Build
+import android.bluetooth.BluetoothDevice
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -105,6 +110,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mwask.bat.offline.OfflinePlayback
 import com.mwask.bat.offline.OfflineSong
 import com.mwask.bat.offline.OfflineStore
+import com.mwask.bat.service.OfflineAudioFocus
 import com.mwask.bat.service.OfflineMediaService
 import com.mwask.bat.ui.components.SettingsDrawer
 import kotlinx.coroutines.Dispatchers
@@ -117,6 +123,8 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 fun OfflineScreen(
     modifier: Modifier = Modifier,
+    openPlayer: Boolean = false,
+    onOpenPlayerHandled: () -> Unit = {},
     prefs: SharedPreferences,
     materialYou: Boolean,
     onMaterialYouChange: (Boolean) -> Unit,
@@ -164,6 +172,14 @@ fun OfflineScreen(
     val uiPosition = if (scrubMs >= 0) scrubMs else pb.positionMs.toInt()
     val uiDuration = pb.durationMs.toInt()
 
+    // Notification tap (or an already-running launch) opens the full player.
+    LaunchedEffect(openPlayer) {
+        if (openPlayer) {
+            if (OfflinePlayback.state.value.hasTrack) showFullPlayer = true
+            onOpenPlayerHandled()
+        }
+    }
+
     val mediaPlayer = remember { MediaPlayer() }
     var searchQuery by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<OfflineSong>?>(null) }
@@ -210,6 +226,39 @@ fun OfflineScreen(
         )
     }
 
+    // ---- Audio focus: pause for calls, duck past notification sounds ----
+    val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
+    val audioFocus = remember {
+        OfflineAudioFocus(
+            audioManager = audioManager,
+            onPause = {
+                runCatching {
+                    if (mediaPlayer.isPlaying) {
+                        mediaPlayer.pause()
+                        isPlaying = false
+                        publishState()
+                    }
+                }
+            },
+            onDuck = { target ->
+                if (target >= 0) {
+                    runCatching {
+                        mediaPlayer.seekTo(target.toInt())
+                        positionMs = target.toInt()
+                        publishState()
+                    }
+                }
+            },
+            onUnduck = { restore ->
+                runCatching {
+                    mediaPlayer.seekTo(restore.toInt())
+                    positionMs = restore.toInt()
+                    publishState()
+                }
+            }
+        )
+    }
+
     fun syncService() {
         if (playerSong == null) return
         publishState()
@@ -223,6 +272,11 @@ fun OfflineScreen(
 
     fun play(index: Int) {
         playAt(mediaPlayer, context, songs, index, { currentIndex = it }, { playerSong = it }, { isPlaying = it }, { durationMs = it }, { positionMs = it })
+        if (isPlaying && !audioFocus.request()) {
+            // Focus denied (e.g. during a call): don't play over it.
+            runCatching { mediaPlayer.pause() }
+            isPlaying = false
+        }
         syncService()
     }
 
@@ -232,8 +286,10 @@ fun OfflineScreen(
                 mediaPlayer.pause()
                 isPlaying = false
             } else if (durationMs > 0) {
-                mediaPlayer.start()
-                isPlaying = true
+                if (audioFocus.request()) {
+                    mediaPlayer.start()
+                    isPlaying = true
+                }
             }
         }
         syncService()
@@ -257,6 +313,7 @@ fun OfflineScreen(
             if (mediaPlayer.isPlaying) mediaPlayer.pause()
             mediaPlayer.reset()
         }
+        audioFocus.abandon()
         isPlaying = false
         currentIndex = -1
         positionMs = 0
@@ -291,6 +348,62 @@ fun OfflineScreen(
         }
     }
 
+    // ---- Headset events: auto-open offline mode and/or resume playback ----
+    val headsetReceiver = remember {
+        object : BroadcastReceiver() {
+            private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
+            // Resume a paused track shortly after the device settles. Plug
+            // events can fire more than once; re-checking inside the delayed
+            // runnable avoids toggling straight back into pause.
+            private fun resumeIfEnabled(prefKey: String) {
+                if (!prefs.getBoolean(prefKey, false)) return
+                mainHandler.postDelayed({
+                    val s = OfflinePlayback.state.value
+                    if (s.hasTrack && !s.playing) togglePlayPause()
+                }, 600)
+            }
+
+            override fun onReceive(ctx: Context, intent: Intent) {
+                when (intent.action ?: return) {
+                    AudioManager.ACTION_HEADSET_PLUG -> {
+                        if (intent.getIntExtra("state", 0) != 1) return
+                        if (prefs.getBoolean("HpAutoOffline", false)) {
+                            // Wired: wait for the plug event to settle.
+                            mainHandler.postDelayed({ enterOfflineViaHeadset(context) }, 800)
+                        }
+                        resumeIfEnabled("HpAutoResume")
+                    }
+                    BluetoothDevice.ACTION_ACL_CONNECTED -> {
+                        val dev = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+                        val isAudio = dev?.bluetoothClass
+                            ?.hasService(android.bluetooth.BluetoothClass.Service.AUDIO) ?: true
+                        if (!isAudio) return
+                        if (prefs.getBoolean("HpAutoOffline", false)) {
+                            enterOfflineViaHeadset(context)
+                        }
+                        resumeIfEnabled("BtAutoResume")
+                    }
+                }
+            }
+        }
+    }
+    DisposableEffect(Unit) {
+        val filter = IntentFilter().apply {
+            addAction(AudioManager.ACTION_HEADSET_PLUG)
+            addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(headsetReceiver, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            context.registerReceiver(headsetReceiver, filter)
+        }
+        onDispose {
+            runCatching { context.unregisterReceiver(headsetReceiver) }
+        }
+    }
+
     // Remote intents (notification buttons, media/headset session) arrive as
     // commands and are executed here, on the engine that owns MediaPlayer.
     DisposableEffect(Unit) {
@@ -305,6 +418,7 @@ fun OfflineScreen(
         }
         onDispose {
             job.cancel()
+            audioFocus.abandon()
             runCatching { mediaPlayer.release() }
             runCatching { context.stopService(Intent(context, OfflineMediaService::class.java)) }
         }
@@ -681,6 +795,7 @@ fun OfflineScreen(
                     val song = playerSong
                     if (song != null) {
                         NowPlayingBar(
+                            modifier = Modifier.clickable { showFullPlayer = true },
                             song = song,
                             playing = uiPlaying,
                             positionMs = uiPosition,
@@ -1206,6 +1321,7 @@ private fun FullPlayerCover(song: OfflineSong) {
 
 @Composable
 private fun NowPlayingBar(
+    modifier: Modifier = Modifier,
     song: OfflineSong,
     playing: Boolean,
     positionMs: Int,
@@ -1218,7 +1334,7 @@ private fun NowPlayingBar(
     onNext: () -> Unit
 ) {
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 12.dp),
         shape = RoundedCornerShape(20.dp),
@@ -1299,6 +1415,21 @@ private fun NowPlayingBar(
             }
         }
     }
+}
+
+/** Headset plugged in while the streaming app is up -> hand over to offline mode. */
+private fun enterOfflineViaHeadset(context: Context) {
+    val prefs = context.getSharedPreferences("spotiBat_prefs", Context.MODE_PRIVATE)
+    if (prefs.getBoolean("OfflineMode", false)) return
+    prefs.edit()
+        .putBoolean("OfflineMode", true)
+        .putBoolean("ServiceOn", false)
+        .apply()
+    context.startActivity(
+        Intent(context, com.mwask.bat.ui.SplashActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+    )
 }
 
 private fun formatTime(ms: Int): String {

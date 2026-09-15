@@ -189,6 +189,7 @@ fun SettingsContent(
     var amoledTheme by remember { mutableStateOf(amoledThemeState) }
     var swipeStop by remember { mutableStateOf(prefs.getBoolean("SwipeStop", true)) }
     var btAutoPause by remember { mutableStateOf(prefs.getBoolean("BtAutoPause", false)) }
+    var hpAutoOffline by remember { mutableStateOf(prefs.getBoolean("HpAutoOffline", false)) }
     var btAutoResume by remember { mutableStateOf(prefs.getBoolean("BtAutoResume", false)) }
     var hpAutoResume by remember { mutableStateOf(prefs.getBoolean("HpAutoResume", false)) }
     var playerMode by remember { mutableStateOf(prefs.getString("PlayerMode", "spotiBat") ?: "spotiBat") }
@@ -540,6 +541,19 @@ fun SettingsContent(
                 onCheckedChange = {
                     hpAutoResume = it
                     prefs.edit().putBoolean("HpAutoResume", it).apply()
+                }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingSwitchTile(
+                title = "Open Offline Mode on Connect",
+                subtitle = "Plugging in headphones or connecting Bluetooth opens Offline Mode",
+                icon = Icons.Default.Smartphone,
+                checked = hpAutoOffline,
+                onCheckedChange = {
+                    hpAutoOffline = it
+                    prefs.edit().putBoolean("HpAutoOffline", it).apply()
                 }
             )
         }

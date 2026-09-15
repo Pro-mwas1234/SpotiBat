@@ -15,6 +15,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
 import com.mwask.bat.profile.ProfileManager
+import com.mwask.bat.service.OfflineMediaService
 import com.mwask.bat.ui.screens.OfflineScreen
 import com.mwask.bat.ui.theme.SpotifyTheme
 
@@ -29,6 +30,17 @@ class OfflineActivity : ComponentActivity() {
     private val keepScreenOnState = mutableStateOf(false)
     private val paletteSeedState = mutableStateOf<String?>(null)
 
+    /** Set when launched via the media notification tap: open the full player. */
+    private val openPlayerRequest = mutableStateOf(false)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra(OfflineMediaService.EXTRA_OPEN_PLAYER, false)) {
+            openPlayerRequest.value = true
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -41,6 +53,8 @@ class OfflineActivity : ComponentActivity() {
         landscapeState.value = prefs.getBoolean("LandscapeMode", false)
         keepScreenOnState.value = prefs.getBoolean("KeepScreenOn", false)
         paletteSeedState.value = prefs.getString("PaletteSeed", null)
+        openPlayerRequest.value =
+            intent?.getBooleanExtra(OfflineMediaService.EXTRA_OPEN_PLAYER, false) == true
 
         applyOrientation()
         applyKeepScreenOn()
@@ -54,6 +68,8 @@ class OfflineActivity : ComponentActivity() {
                 }
             ) {
                 OfflineScreen(
+                    openPlayer = openPlayerRequest.value,
+                    onOpenPlayerHandled = { openPlayerRequest.value = false },
                     prefs = prefs,
                     materialYou = materialYouState.value,
                     onMaterialYouChange = { enabled ->
@@ -125,8 +141,10 @@ class OfflineActivity : ComponentActivity() {
     }
 
     private fun applyOrientation() {
-        requestedOrientation = if (landscapeState.value) {
-            ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        // While the full-screen player is up, always allow rotation (the
+        // player adapts); otherwise honor the user's setting.
+        requestedOrientation = if (landscapeState.value || openPlayerRequest.value) {
+            ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
         } else {
             ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }
