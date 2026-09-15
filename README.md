@@ -70,6 +70,10 @@ download the `.apk` and install it on your device. you may need to toggle **"Ins
 - media notification: play/pause, skip, seek, like/unlike, shuffle, repeat with custom actions
 - **Android Auto**: browse your playlists, albums, artists, and podcasts; search and play from the car dashboard
 - **offline downloads**: download songs and play them offline — audio is sourced via the InnerTube API
+  - full-screen player with real album art, scrub-and-release seeking, and time labels — tap the mini bar or the media notification to open it
+  - lock screen media card with album art and full transport controls
+  - respects calls & notifications: pauses for phone calls, hops over notification beeps without losing your place
+  - optional auto-offline: plugging in headphones or connecting Bluetooth audio jumps straight into Offline Mode (toggle in Settings), and resume-on-connect works offline too
 - lock screen, Bluetooth, and Wear OS controls
 - autoplay modes: off, once at start, or permanent
 - **DJ Mode**: keeps the music going forever, modeled on Spotify's AI DJ — seeds a taste profile from your top artists, then blends familiar picks, discovery from your wider taste pool, and liked-songs deep cuts (vibe switches every few tracks; tap the DJ chip in the player to switch it up instantly; never repeats what you just heard), with a quick toggle in the media notification
