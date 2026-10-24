@@ -1,4 +1,4 @@
-﻿package com.mwask.bat.ui.screens
+package com.mwask.bat.ui.screens
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -792,11 +792,21 @@ fun OfflineScreen(
                             positionMs = uiPosition,
                             durationMs = uiDuration,
                             scrubMs = scrubMs,
-                            queuePosition = currentIndex + 1,`r`n                            queueSize = songs.size,`r`n                            onScrub = { scrubMs = it },`r`n                            onScrubFinished = {
+                            queuePosition = currentIndex + 1,
+                            queueSize = songs.size,
+                            onScrub = { scrubMs = it },
+                            onScrubFinished = {
                                 if (scrubMs >= 0) seekTo(scrubMs.toLong())
                                 scrubMs = -1
                             },
-                            onTogglePlay = { togglePlayPause() },`r`n                            onPrev = { step(-1) },`r`n                            onNext = { step(1) },`r`n                            onClose = { showFullPlayer = false },`r`n                            shuffleMode = shuffleMode,`r`n                            repeatMode = repeatMode,`r`n                            onToggleShuffle = { toggleShuffle() },`r`n                            onToggleRepeat = { toggleRepeat() }
+                            onTogglePlay = { togglePlayPause() },
+                            onPrev = { step(-1) },
+                            onNext = { step(1) },
+                            onClose = { showFullPlayer = false },
+                            shuffleMode = shuffleMode,
+                            repeatMode = repeatMode,
+                            onToggleShuffle = { toggleShuffle() },
+                            onToggleRepeat = { toggleRepeat() }
                         )
                     }
                 }
@@ -821,7 +831,14 @@ fun OfflineScreen(
                                 if (scrubMs >= 0) seekTo(scrubMs.toLong())
                                 scrubMs = -1
                             },
-                            onTogglePlay = { togglePlayPause() },`r`n                            onPrev = { step(-1) },`r`n                            onNext = { step(1) },`r`n                            shuffleMode = shuffleMode,`r`n                            repeatMode = repeatMode,`r`n                            onToggleShuffle = { toggleShuffle() },`r`n                            onToggleRepeat = { toggleRepeat() },
+                            onTogglePlay = { togglePlayPause() },
+                            onPrev = { step(-1) },
+                            onNext = { step(1) },
+                            shuffleMode = shuffleMode,
+                            repeatMode = repeatMode,
+                            onToggleShuffle = { toggleShuffle() },
+                            onToggleRepeat = { toggleRepeat() }
+                        )
                     }
                 }
 

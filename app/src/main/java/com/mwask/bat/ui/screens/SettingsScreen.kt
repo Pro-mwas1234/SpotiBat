@@ -60,6 +60,7 @@ import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -419,7 +420,7 @@ fun SettingsContent(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Settings,
+                        imageVector = Icons.Default.Tune,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
@@ -449,7 +450,8 @@ fun SettingsContent(
                 valueRange = -10f..10f,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, bottom = 12.dp),
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 12.dp),
                 colors = SliderDefaults.colors(
                     activeTrackColor = MaterialTheme.colorScheme.primary,
                     inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
