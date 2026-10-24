@@ -1,4 +1,4 @@
-package com.mwask.bat.ui.screens
+﻿package com.mwask.bat.ui.screens
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -54,6 +54,9 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -163,6 +166,8 @@ fun OfflineScreen(
     var durationMs by remember { mutableIntStateOf(0) }
     var scrubMs by remember { mutableIntStateOf(-1) }
     var showFullPlayer by remember { mutableStateOf(false) }
+    var shuffleMode by remember { mutableStateOf(false) }
+    var repeatMode by remember { mutableStateOf(0) } // 0=off, 1=all, 2=one
 
     // Single source of truth for every playback surface (mini bar, full-screen
     // player, media notification). The MediaPlayer engine below is the sole
@@ -297,8 +302,24 @@ fun OfflineScreen(
 
     fun step(delta: Int) {
         if (songs.isEmpty()) return
-        val next = ((currentIndex + delta) % songs.size + songs.size) % songs.size
+        var next = ((currentIndex + delta) % songs.size + songs.size) % songs.size
+        if (shuffleMode) {
+            do { next = (0 until songs.size).random() } while (next == currentIndex && songs.size > 1)
+        }
         play(next)
+    }
+
+    fun toggleShuffle() {
+        shuffleMode = !shuffleMode
+        if (shuffleMode && currentIndex >= 0) {
+            var next = (0 until songs.size).random()
+            while (next == currentIndex && songs.size > 1) { next = (0 until songs.size).random() }
+            play(next)
+        }
+    }
+
+    fun toggleRepeat() {
+        repeatMode = (repeatMode + 1) % 3 // 0Ã¢â€ â€™1Ã¢â€ â€™2Ã¢â€ â€™0
     }
 
     fun seekTo(position: Long) {
@@ -489,10 +510,10 @@ fun OfflineScreen(
         val missingIds = songs.filter { it.coverFile == null }.map { it.id }
         if (missingIds.isEmpty()) return@LaunchedEffect
         val total = missingIds.size
-        coverRestore = "Restoring 0/$total album covers…"
+        coverRestore = "Restoring 0/$total album coversÃ¢â‚¬Â¦"
         val restored = withContext(Dispatchers.IO) {
             OfflineStore.restoreMissingCovers(context, missingIds) { done, t ->
-                coverRestore = "Restoring $done/$t album covers…"
+                coverRestore = "Restoring $done/$t album coversÃ¢â‚¬Â¦"
             }
         }
         coverRestore = if (restored > 0) {
@@ -601,7 +622,7 @@ fun OfflineScreen(
                 Column(modifier = Modifier.fillMaxSize()) {
                     Text(
                         text = when {
-                            loading -> "Loading…"
+                            loading -> "LoadingÃ¢â‚¬Â¦"
                             searchQuery.isNotBlank() -> {
                                 val n = visibleSongs.size
                                 if (n == 0) {
@@ -614,7 +635,7 @@ fun OfflineScreen(
                             else -> {
                                 val n = songs.size
                                 val base = "$n song${if (n == 1) "" else "s"} available offline"
-                                coverRestore?.let { suffix -> "$base — $suffix" } ?: base
+                                coverRestore?.let { suffix -> "$base Ã¢â‚¬â€ $suffix" } ?: base
                             }
                         },
                         style = MaterialTheme.typography.bodySmall,
@@ -774,14 +795,15 @@ fun OfflineScreen(
                             queuePosition = currentIndex + 1,
                             queueSize = songs.size,
                             onScrub = { scrubMs = it },
+                             shuffleMode = shuffleMode,
+                             repeatMode = repeatMode,
                             onScrubFinished = {
                                 if (scrubMs >= 0) seekTo(scrubMs.toLong())
                                 scrubMs = -1
                             },
                             onTogglePlay = { togglePlayPause() },
                             onPrev = { step(-1) },
-                            onNext = { step(1) },
-                            onClose = { showFullPlayer = false }
+                            onNext = { step(1) }, onClose = { showFullPlayer = false }, shuffleMode = shuffleMode, repeatMode = repeatMode, onToggleShuffle = { toggleShuffle() }, onToggleRepeat = { toggleRepeat() }
                         )
                     }
                 }
@@ -808,8 +830,9 @@ fun OfflineScreen(
                             },
                             onTogglePlay = { togglePlayPause() },
                             onPrev = { step(-1) },
-                            onNext = { step(1) }
-                        )
+                            onNext = { step(1) }, shuffleMode = shuffleMode, repeatMode = repeatMode, onToggleShuffle = { toggleShuffle() }, onToggleRepeat = { toggleRepeat() }
+                             shuffleMode = shuffleMode,
+                             repeatMode = repeatMode,
                     }
                 }
 
@@ -1014,7 +1037,7 @@ private fun OfflineSongRow(
             val subtitle = buildString {
                 append(song.artist.ifBlank { "Unknown artist" })
                 song.album.ifBlank { "" }.takeIf { it.isNotBlank() }?.let {
-                    append(" • $it")
+                    append(" Ã¢â‚¬Â¢ $it")
                 }
             }
             Text(
@@ -1028,12 +1051,12 @@ private fun OfflineSongRow(
                 if (song.explicit) append("Explicit")
                 song.durationSec?.let {
                     if (it > 0) {
-                        if (isNotEmpty()) append(" • ")
+                        if (isNotEmpty()) append(" Ã¢â‚¬Â¢ ")
                         append(formatSeconds(it))
                     }
                 }
                 song.videoId?.let {
-                    if (isNotEmpty()) append(" • ")
+                    if (isNotEmpty()) append(" Ã¢â‚¬Â¢ ")
                     append("YouTube")
                 }
             }
@@ -1125,12 +1148,16 @@ private fun FullNowPlayingOverlay(
     scrubMs: Int,
     queuePosition: Int,
     queueSize: Int,
+    shuffleMode: Boolean,
+    repeatMode: Int,
     onScrub: (Int) -> Unit,
     onScrubFinished: () -> Unit,
     onTogglePlay: () -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onToggleShuffle: () -> Unit = {},
+    onToggleRepeat: () -> Unit = {}
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -1186,7 +1213,7 @@ private fun FullNowPlayingOverlay(
             val artist = song.artist.ifBlank { "Unknown artist" }
             val album = song.album.ifBlank { "" }.takeIf { it.isNotBlank() }
             Text(
-                text = if (album != null) "$artist • $album" else artist,
+                text = if (album != null) "$artist Ã¢â‚¬Â¢ $album" else artist,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -1270,6 +1297,34 @@ private fun FullNowPlayingOverlay(
                 }
             }
 
+            Spacer(Modifier.height(12.dp))
+
+            // Secondary controls: shuffle, repeat
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { toggleShuffle() }, modifier = Modifier.size(44.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Shuffle,
+                        contentDescription = "Shuffle",
+                        tint = if (shuffleMode) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+                IconButton(onClick = { toggleRepeat() }, modifier = Modifier.size(44.dp)) {
+                    Icon(
+                        imageVector = if (repeatMode == 2) Icons.Default.RepeatOne else Icons.Default.Repeat,
+                        contentDescription = "Repeat",
+                        tint = if (repeatMode > 0) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+
             Spacer(Modifier.height(16.dp))
 
             Text(
@@ -1331,7 +1386,11 @@ private fun NowPlayingBar(
     onScrubFinished: () -> Unit,
     onTogglePlay: () -> Unit,
     onPrev: () -> Unit,
-    onNext: () -> Unit
+    onNext: () -> Unit,
+    shuffleMode: Boolean = false,
+    repeatMode: Int = 0,
+    onToggleShuffle: () -> Unit = {},
+    onToggleRepeat: () -> Unit = {}
 ) {
     Surface(
         modifier = modifier
@@ -1382,6 +1441,24 @@ private fun NowPlayingBar(
                         imageVector = Icons.Default.SkipNext,
                         contentDescription = "Next",
                         tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                IconButton(onClick = onToggleShuffle) {
+                    Icon(
+                        imageVector = Icons.Default.Shuffle,
+                        contentDescription = "Shuffle",
+                        tint = if (shuffleMode) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+                IconButton(onClick = onToggleRepeat) {
+                    Icon(
+                        imageVector = if (repeatMode == 2) Icons.Default.RepeatOne else Icons.Default.Repeat,
+                        contentDescription = "Repeat",
+                        tint = if (repeatMode > 0) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        modifier = Modifier.size(28.dp)
                     )
                 }
             }
@@ -1443,3 +1520,5 @@ private fun formatSeconds(sec: Int): String {
     val s = sec % 60
     return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
 }
+
+

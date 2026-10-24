@@ -241,6 +241,7 @@ class SpotifyWebViewClient(
         val takeControl = prefs.getBoolean("TakeControl", true)
         val hideEmptyPlayer = prefs.getBoolean("HideEmptyPlayer", false)
         val lyricsStyle = prefs.getString("LyricsStyle", LyricsTheme.DEFAULT_STYLE) ?: LyricsTheme.DEFAULT_STYLE
+        val lyricsOffset = prefs.getFloat("LyricsOffset", 0f)
 
         val js = buildString {
             append("window.autoPlayMode='$autoPlayMode';\n")
@@ -248,6 +249,7 @@ class SpotifyWebViewClient(
             append("window.__spotiBatUseProxy=$useProxy;\n")
             append("window.__splTakeControl=$takeControl;\n")
             append("window.__splHideEmpty=$hideEmptyPlayer;\n")
+            append("window.__splLyricsOffsetPref=$lyricsOffset;\n")
             if (debugOverlay) {
                 append(DevLogPrelude.js())
                 append("\n")
@@ -289,6 +291,7 @@ class SpotifyWebViewClient(
             append(ErrorDialogRestyle.CONTENT)
             append(ToastFix.CONTENT)
             append(LyricsSyncFix.CONTENT)
+            append(LyricsOffset.CONTENT)
             append(QueueAutoClose.CONTENT)
             append(LibraryAutoClose.CONTENT)
             if (playerMode == "spotiBat") {
@@ -359,6 +362,10 @@ class SpotifyWebViewClient(
                 "HideEmptyPlayer" -> {
                     val hideEmpty = prefs.getBoolean("HideEmptyPlayer", false)
                     wv.evaluateJavascript("window.__splHideEmpty=$hideEmpty; if(window.splApplyEmpty) window.splApplyEmpty();", null)
+                }
+                "LyricsOffset" -> {
+                    val off = prefs.getFloat("LyricsOffset", 0f)
+                    wv.evaluateJavascript("window.__splLyricsOffsetPref=$off; if(window.__splSetLyricsOffsetPref) window.__splSetLyricsOffsetPref($off);", null)
                 }
             }
         }

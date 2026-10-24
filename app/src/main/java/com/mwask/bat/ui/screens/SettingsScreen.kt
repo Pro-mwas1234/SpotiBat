@@ -198,6 +198,7 @@ fun SettingsContent(
     var blockSW by remember { mutableStateOf(blockServiceWorker) }
     var hideEmptyPlayer by remember { mutableStateOf(prefs.getBoolean("HideEmptyPlayer", false)) }
     var lyricsStyle by remember { mutableStateOf(prefs.getString("LyricsStyle", LyricsTheme.DEFAULT_STYLE) ?: LyricsTheme.DEFAULT_STYLE) }
+    var lyricsOffset by remember { mutableStateOf(prefs.getFloat("LyricsOffset", 0f)) }
 
     val context = LocalContext.current
     var profiles by remember { mutableStateOf(ProfileManager.getProfiles(context)) }
@@ -398,6 +399,32 @@ fun SettingsContent(
                 icon = Icons.AutoMirrored.Filled.QueueMusic,
                 onClick = { showLyricsStyleDialog = true }
             )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+
+            SettingTile(
+                title = "Lyrics Offset",
+                subtitle = "${lyricsOffset} s",
+                icon = Icons.Default.Tune,
+                onClick = {}
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Slider(
+                        value = lyricsOffset,
+                        onValueChange = { newVal ->
+                            lyricsOffset = newVal
+                            prefs.edit().putFloat("LyricsOffset", newVal).apply()
+                        },
+                        valueRange = -10f..10f,
+                        steps = 200,
+                        label = { stringResource(id = com.mwask.bat.R.string.app_name) }
+                    )
+                }
+            }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
 
