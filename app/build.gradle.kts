@@ -1,4 +1,4 @@
-import java.util.Properties
+﻿import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -24,8 +24,8 @@ android {
         applicationId = "com.mwask.bat"
         minSdk = 28
         targetSdk = 36
-        versionCode = 22
-        versionName = "1.2.1"
+        versionCode = 23
+        versionName = "1.2.2"
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
