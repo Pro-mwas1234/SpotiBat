@@ -402,30 +402,60 @@ fun SettingsContent(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
 
-            SettingTile(
-                title = "Lyrics Offset",
-                subtitle = "${lyricsOffset} s",
-                icon = Icons.Default.Tune,
-                onClick = {}
+            // Lyrics Offset slider (custom inline)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .size(40.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            shape = RoundedCornerShape(12.dp)
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Slider(
-                        value = lyricsOffset,
-                        onValueChange = { newVal ->
-                            lyricsOffset = newVal
-                            prefs.edit().putFloat("LyricsOffset", newVal).apply()
-                        },
-                        valueRange = -10f..10f,
-                        steps = 200,
-                        label = { stringResource(id = com.mwask.bat.R.string.app_name) }
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Lyrics Offset",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "${lyricsOffset} s",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
-
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+            Slider(
+                value = lyricsOffset,
+                onValueChange = { newVal ->
+                    lyricsOffset = newVal
+                    prefs.edit().putFloat("LyricsOffset", newVal).apply()
+                },
+                valueRange = -10f..10f,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, bottom = 12.dp),
+                colors = SliderDefaults.colors(
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                    inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
+                    thumbColor = MaterialTheme.colorScheme.primary
+                )
+            )
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
 
             SettingSwitchTile(

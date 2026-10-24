@@ -792,18 +792,11 @@ fun OfflineScreen(
                             positionMs = uiPosition,
                             durationMs = uiDuration,
                             scrubMs = scrubMs,
-                            queuePosition = currentIndex + 1,
-                            queueSize = songs.size,
-                            onScrub = { scrubMs = it },
-                             shuffleMode = shuffleMode,
-                             repeatMode = repeatMode,
-                            onScrubFinished = {
+                            queuePosition = currentIndex + 1,`r`n                            queueSize = songs.size,`r`n                            onScrub = { scrubMs = it },`r`n                            onScrubFinished = {
                                 if (scrubMs >= 0) seekTo(scrubMs.toLong())
                                 scrubMs = -1
                             },
-                            onTogglePlay = { togglePlayPause() },
-                            onPrev = { step(-1) },
-                            onNext = { step(1) }, onClose = { showFullPlayer = false }, shuffleMode = shuffleMode, repeatMode = repeatMode, onToggleShuffle = { toggleShuffle() }, onToggleRepeat = { toggleRepeat() }
+                            onTogglePlay = { togglePlayPause() },`r`n                            onPrev = { step(-1) },`r`n                            onNext = { step(1) },`r`n                            onClose = { showFullPlayer = false },`r`n                            shuffleMode = shuffleMode,`r`n                            repeatMode = repeatMode,`r`n                            onToggleShuffle = { toggleShuffle() },`r`n                            onToggleRepeat = { toggleRepeat() }
                         )
                     }
                 }
@@ -828,11 +821,7 @@ fun OfflineScreen(
                                 if (scrubMs >= 0) seekTo(scrubMs.toLong())
                                 scrubMs = -1
                             },
-                            onTogglePlay = { togglePlayPause() },
-                            onPrev = { step(-1) },
-                            onNext = { step(1) }, shuffleMode = shuffleMode, repeatMode = repeatMode, onToggleShuffle = { toggleShuffle() }, onToggleRepeat = { toggleRepeat() }
-                             shuffleMode = shuffleMode,
-                             repeatMode = repeatMode,
+                            onTogglePlay = { togglePlayPause() },`r`n                            onPrev = { step(-1) },`r`n                            onNext = { step(1) },`r`n                            shuffleMode = shuffleMode,`r`n                            repeatMode = repeatMode,`r`n                            onToggleShuffle = { toggleShuffle() },`r`n                            onToggleRepeat = { toggleRepeat() },
                     }
                 }
 
@@ -1520,5 +1509,7 @@ private fun formatSeconds(sec: Int): String {
     val s = sec % 60
     return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
 }
+
+
 
 
