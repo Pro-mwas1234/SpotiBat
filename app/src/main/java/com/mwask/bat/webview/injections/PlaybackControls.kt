@@ -109,6 +109,7 @@ object PlaybackControls {
             };
             window.actAddToFav = function() {
                 var fb = document.querySelector('div[data-testid=now-playing-widget]>div:last-child>button');
+                 if(!fb) fb = document.querySelector('[data-testid="now-playing-widget-v2"] button[aria-checked]');
                 if(fb) {
                     if(fb.getAttribute('aria-checked')==='false') {
                         fb.click();

@@ -124,6 +124,7 @@ object AutoDj {
             function nowPlayingArtistId() {
                 try {
                     var a = document.querySelector('div[data-testid="now-playing-widget"] a[href*="/artist/"]');
+                    if (!a) a = document.querySelector('div[data-testid="now-playing-widget-v2-byline"] a[href*="/artist/"]');
                     if (a) {
                         var m = (a.getAttribute('href') || '').match(/\/artist\/([a-zA-Z0-9]{22})/);
                         if (m) return m[1];

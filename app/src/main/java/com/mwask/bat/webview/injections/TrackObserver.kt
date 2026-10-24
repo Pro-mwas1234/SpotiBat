@@ -17,9 +17,10 @@ object TrackObserver {
         (function(){
             window.__npStop && window.__npStop();
 
-            const SEL   = '[data-testid="now-playing-widget"]';
-            const LINK  = 'a[href*="/track/"]';
-            const ID_RE = /\/track\/([a-zA-Z0-9]{22})/;
+            // Match both legacy and v2 (Spotify 2025+) widget
+            const SEL   = '[data-testid="now-playing-widget"],[data-testid="now-playing-widget-v2"]';
+            const LINK  = 'a[href*="/track/"],a[href*="/album/"]';
+            const ID_RE = /\/(?:track|album)\/([a-zA-Z0-9]{22})/;
             const FIBER = '__reactFiber$';
 
             window.splTrackId = null;
@@ -42,6 +43,10 @@ object TrackObserver {
             function currentId() {
                 if (!root) return null;
                 if (!anchor || !anchor.isConnected) anchor = root.querySelector(LINK);
+                if (!anchor) {
+                    // Fallback: any track/album link inside the widget
+                    anchor = root.querySelector('a[href*="/track/"],a[href*="/album/"]');
+                }
                 if (!anchor) return null;
                 const href = anchor.getAttribute('href');
                 if (!href) return null;

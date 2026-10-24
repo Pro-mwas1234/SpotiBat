@@ -1,22 +1,22 @@
-package com.mwask.bat.webview.injections
+﻿package com.mwask.bat.webview.injections
 /*
  * CREDIT: SpotiBat - Custom Player.
  *
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⡀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣾⠙⠻⢶⣄⡀⠀⠀⠀⢀⣤⠶⠛⠛⡇⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣇⠀⠀⣙⣿⣦⣤⣴⣿⣁⠀⠀⣸⠇⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⣡⣾⣿⣿⣿⣿⣿⣿⣿⣷⣌⠋⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⣿⣷⣄⡈⢻⣿⡟⢁⣠⣾⣿⣦⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣿⣿⣿⣿⠘⣿⠃⣿⣿⣿⣿⡏⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⠀⠈⠛⣰⠿⣆⠛⠁⠀⡀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣼⣿⣦⠀⠘⠛⠋⠀⣴⣿⠁⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣤⣶⣾⣿⣿⣿⣿⡇⠀⠀⠀⢸⣿⣏⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⣠⣶⣿⣿⣿⣿⣿⣿⣿⣿⠿⠿⠀⠀⠀⠾⢿⣿⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⣠⣿⣿⣿⣿⣿⣿⡿⠟⠋⣁⣠⣤⣤⡶⠶⠶⣤⣄⠈⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⢰⣿⣿⣮⣉⣉⣉⣤⣴⣶⣿⣿⣋⡥⠄⠀⠀⠀⠀⠉⢻⣄⠀⠀⠀⠀⠀
-⠀⠀⠀⠸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣟⣋⣁⣤⣀⣀⣤⣤⣤⣤⣄⣿⡄⠀⠀⠀⠀
-⠀⠀⠀⠀⠙⠿⣿⣿⣿⣿⣿⣿⣿⡿⠿⠛⠋⠉⠁⠀⠀⠀⠀⠈⠛⠃⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠉⠉⠉⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+â €â €â €â €â €â €â €â €â €â €â €â €â¢€â£€â €â €â €â €â €â €â €â €â €â €â €â£€â¡€â €â €â €
+â €â €â €â €â €â €â €â €â €â €â €â €â£¾â ™â »â¢¶â£„â¡€â €â €â €â¢€â£¤â ¶â ›â ›â¡‡â €â €â €
+â €â €â €â €â €â €â €â €â €â €â €â €â¢¹â£‡â €â €â£™â£¿â£¦â£¤â£´â£¿â£â €â €â£¸â ‡â €â €â €
+â €â €â €â €â €â €â €â €â €â €â €â €â €â ™â£¡â£¾â£¿â£¿â£¿â£¿â£¿â£¿â£¿â£·â£Œâ ‹â €â €â €â €
+â €â €â €â €â €â €â €â €â €â €â €â €â €â£´â£¿â£·â£„â¡ˆâ¢»â£¿â¡Ÿâ¢â£ â£¾â£¿â£¦â €â €â €â €
+â €â €â €â €â €â €â €â €â €â €â €â €â €â¢¹â£¿â£¿â£¿â£¿â ˜â£¿â ƒâ£¿â£¿â£¿â£¿â¡â €â €â €â €
+â €â €â €â €â €â €â €â €â €â €â €â €â €â €â£€â €â ˆâ ›â£°â ¿â£†â ›â â €â¡€â €â €â €â €â €
+â €â €â €â €â €â €â €â €â €â €â €â €â €â¢€â£¼â£¿â£¦â €â ˜â ›â ‹â €â£´â£¿â â €â €â €â €â €
+â €â €â €â €â €â €â €â €â €â£€â£¤â£¶â£¾â£¿â£¿â£¿â£¿â¡‡â €â €â €â¢¸â£¿â£â €â €â €â €â €â €
+â €â €â €â €â €â €â£ â£¶â£¿â£¿â£¿â£¿â£¿â£¿â£¿â£¿â ¿â ¿â €â €â €â ¾â¢¿â£¿â €â €â €â €â €â €
+â €â €â €â €â£ â£¿â£¿â£¿â£¿â£¿â£¿â¡¿â Ÿâ ‹â£â£ â£¤â£¤â¡¶â ¶â ¶â£¤â£„â ˆâ €â €â €â €â €â €
+â €â €â €â¢°â£¿â£¿â£®â£‰â£‰â£‰â£¤â£´â£¶â£¿â£¿â£‹â¡¥â „â €â €â €â €â ‰â¢»â£„â €â €â €â €â €
+â €â €â €â ¸â£¿â£¿â£¿â£¿â£¿â£¿â£¿â£¿â£¿â£Ÿâ£‹â£â£¤â£€â£€â£¤â£¤â£¤â£¤â£„â£¿â¡„â €â €â €â €
+â €â €â €â €â ™â ¿â£¿â£¿â£¿â£¿â£¿â£¿â£¿â¡¿â ¿â ›â ‹â ‰â â €â €â €â €â ˆâ ›â ƒâ €â €â €â €
+â €â €â €â €â €â €â €â ‰â ‰â ‰â ‰â ‰â €â €â €â €â €â €â €â €â €â €â €â €â €â €
  */
 
 
@@ -24,7 +24,7 @@ object SpotiBatPlayer {
     const val CONTENT = """
             window.initSpotiBatPlayer=function(){
                 if(document.getElementById('spotiBatPlayerControls')) return;
-                var npb=document.querySelector('aside[data-testid="now-playing-bar"]');
+                var npb=document.querySelector('aside[data-testid="now-playing-bar"]');if(!npb) npb=document.querySelector('[data-testid="now-playing-widget-v2"]')?.closest('aside');
                 if(!npb) return;
                 npb.style.display='none';
 
@@ -192,6 +192,8 @@ object SpotiBatPlayer {
                     if(pl.classList.contains('spl-mini'))return;
                     if(typeof closeNowPlay==='function') closeNowPlay();
                     var rl=document.querySelector('a[data-testid=context-item-link]');
+                    if(!rl) rl=document.querySelector('[data-testid="now-playing-widget-v2"] a[href*="/album/"]');
+                    if(!rl) rl=document.querySelector('a[href*="/track/"]');
                     if(rl){rl.click();}
                 };
                 splArtist.onclick=function(){
@@ -199,6 +201,7 @@ object SpotiBatPlayer {
                     if(typeof closeNowPlay==='function') closeNowPlay();
                     var al=document.querySelector('a[data-testid=context-item-info-artist]');
                     if(!al) al=document.querySelector('a[data-testid=context-item-info-show]');
+                    if(!al) al=document.querySelector('[data-testid="now-playing-widget-v2-byline"] a[href*="/artist/"]');
                     if(al){al.click();}
                 };
 
@@ -259,11 +262,17 @@ object SpotiBatPlayer {
                 document.addEventListener('mouseup',function(){splDragEnd();});
                 pl.addEventListener('click',function(e){if(splSuppressClick)return;if(Date.now()-splLastDragEnd<400)return;if(splMini&&!e.target.closest('button')&&!e.target.closest('#spl-bar')&&!e.target.closest('#spl-edgebar'))splSetMini(false);});                    /* DOM cache: our elements persist, so look each one up once and reuse it
    while it stays connected. Spotify's own widgets get re-queried only when
-   disconnected (React remounts) or missing. Cuts ~30 queries/tick to ~0. */
+   disconnected (React remounts) or missing. Cuts ~30 queries/tick to ~0.
+   Cache invalidates every 15s to handle Spotify changing data-testid attrs. */
                     var splCache={};
+                    var splCacheTs=0;
+                    function splInvalidateCache(){ splCache={}; splCacheTs=Date.now(); }
+                    setInterval(splInvalidateCache, 15000);
                     var splIsPlaying=false;
                     function splId(id){var el=splCache['i'+id];if(el&&el.isConnected)return el;el=document.getElementById(id);splCache['i'+id]=el;return el;}
                     function splQ(sel,key){var el=splCache['q'+key];if(el&&el.isConnected)return el;el=document.querySelector(sel);splCache['q'+key]=el;return el;}
+                    // Fallback query without cache for critical track/artist (handles testid changes)
+                    function splQFresh(sel){ return document.querySelector(sel); }
                     window.splUpdate=function(){
                         var ci=splId('spl-cover-img');
                         var tk=splId('spl-track');
@@ -283,16 +292,54 @@ object SpotiBatPlayer {
                         var tm=splId('spl-timer');
                         var djc=splId('spl-dj-chip');
 
-                        var npb=splQ('[data-testid="now-playing-widget"]','npb');
+                        // Widget: support both legacy and v2 (Spotify 2025+)
+                        var npb=splQ('[data-testid="now-playing-widget"]','npb')||splQ('[data-testid="now-playing-widget-v2"]','npbv2');
                         var imgEl=npb?npb.querySelector('img[data-testid="cover-art-image"]'):null;
+                        if(!imgEl) imgEl=splQFresh('img[data-testid="cover-art-image"]');
                         if(ci&&imgEl&&imgEl.src&&ci.src!==imgEl.src) ci.src=imgEl.src;
 
+                        // Track: legacy testid -> v2 album-link span -> aria-label parse -> any track href
                         var trackEl=splQ('a[data-testid=context-item-link]','track');
-                        if(tk&&trackEl&&trackEl.textContent&&tk.textContent!==trackEl.textContent) tk.textContent=trackEl.textContent;
+                        if(!trackEl) trackEl=splQFresh('[data-testid="now-playing-widget-v2"] a[href*="/album/"] span[dir="auto"]');
+                        if(!trackEl) trackEl=splQFresh('[data-testid="now-playing-widget"] a[href*="/track/"]');
+                        if(!trackEl) trackEl=splQFresh('a[href*="/track/"]');
+                        if(tk){
+                            if(trackEl&&trackEl.textContent&&tk.textContent!==trackEl.textContent){
+                                tk.textContent=trackEl.textContent;
+                            } else if(!trackEl&&npb&&tk.textContent==='No track'){
+                                // Fallback: parse aria-label "Now playing: TrackName by Artist1, Artist2"
+                                var al=npb.getAttribute('aria-label')||'';
+                                var m=al.match(/Now playing:\s*(.+?)\s+by\s+/i);
+                                if(m&&m[1]) tk.textContent=m[1];
+                            }
+                        }
 
+                        // Artist: legacy testid -> v2 byline -> aria-label parse -> any artist href
                         var artistEl=splQ('a[data-testid=context-item-info-artist]','artist');
                         if(!artistEl) artistEl=splQ('a[data-testid=context-item-info-show]','artistShow');
-                        if(ar&&artistEl&&tk.textContent!=='No track') ar.textContent=artistEl.textContent||'';
+                        if(!artistEl) artistEl=splQFresh('[data-testid="now-playing-widget-v2-byline"] a[href*="/artist/"]');
+                        if(!artistEl) artistEl=splQFresh('[data-testid="now-playing-widget"] a[href*="/artist/"]');
+                        if(!artistEl) artistEl=splQFresh('[data-testid="now-playing-widget"] a[href*="/show/"]');
+                        if(ar){
+                            if(artistEl&&(tk.textContent!=='No track'||trackEl)){
+                                // v2 byline has multiple artist links separated by commas; collect all
+                                var byline=npb?npb.querySelector('[data-testid="now-playing-widget-v2-byline"]'):null;
+                                if(byline){
+                                    var aLinks=byline.querySelectorAll('a[href*="/artist/"]');
+                                    var names=[];
+                                    for(var ai=0;ai<aLinks.length;ai++) names.push(aLinks[ai].textContent.trim());
+                                    var joined=names.join(', ');
+                                    if(joined&&ar.textContent!==joined) ar.textContent=joined;
+                                } else if(ar.textContent!==artistEl.textContent){
+                                    ar.textContent=artistEl.textContent||'';
+                                }
+                            } else if(!artistEl&&npb&&tk.textContent!=='No track'){
+                                // Fallback: parse aria-label
+                                var al2=npb.getAttribute('aria-label')||'';
+                                var m2=al2.match(/Now playing:.+?\s+by\s+(.+)/i);
+                                if(m2&&m2[1]) ar.textContent=m2[1];
+                            }
+                        }
 
                         var rg=splQ('[data-testid="playback-progressbar"] input[type=range]','prange');
                         if(pp||ppm){
@@ -334,7 +381,9 @@ object SpotiBatPlayer {
                         }
                         if(lk){
                             var fb=splQ('div[data-testid=now-playing-widget]>div:last-child>button','likebtn');
-                            var liked=fb&&fb.getAttribute('aria-checked')==='true';
+                            if(!fb) fb=splQFresh('[data-testid="now-playing-widget-v2"] button[aria-label*="Liked"],[data-testid="now-playing-widget-v2"] button[aria-label*="Like"],[data-testid="now-playing-widget-v2"] button[aria-label*="Save"]');
+                            if(!fb) fb=splQFresh('[data-testid="now-playing-widget-v2"] button[aria-checked]');
+                            var liked=fb&&(fb.getAttribute('aria-checked')==='true'||fb.getAttribute('aria-label')==='Remove from Liked Songs');
                             lk.classList.toggle('spl-active',liked===true);
                         }
                         if(djc){
@@ -413,9 +462,13 @@ object SpotiBatPlayer {
             else window.addEventListener('load',initSpotiBatPlayer);
             setInterval(function(){
                 if(window.__splBg) return;
-                var npb=document.querySelector('aside[data-testid="now-playing-bar"]');
+                var npb=document.querySelector('aside[data-testid="now-playing-bar"]');if(!npb) npb=document.querySelector('[data-testid="now-playing-widget-v2"]')?.closest('aside');
                 if(npb&&npb.style.display!=='none') initSpotiBatPlayer();
             },3000);
         
     """
 }
+
+
+
+

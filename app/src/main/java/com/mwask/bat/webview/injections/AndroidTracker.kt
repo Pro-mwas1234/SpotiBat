@@ -8,11 +8,38 @@ object AndroidTracker {
                     else { clearInterval(aaint); }
                 }
                 function readTrackState(){
+                    // Track title: legacy testid -> v2 album-link span -> v2 aria-label parse
                     var ta = document.querySelector('a[data-testid=context-item-link]');
-                    if(ta) track=ta.text; else track=null;
+                    if(!ta) ta = document.querySelector('[data-testid="now-playing-widget-v2"] a[href*="/album/"] span[dir="auto"]');
+                    if(!ta){
+                        var npw = document.querySelector('[data-testid="now-playing-widget-v2"]');
+                        if(npw){
+                            var al = npw.getAttribute('aria-label') || '';
+                            var m = al.match(/Now playing:\s*(.+?)\s+by\s+/i);
+                            if(m && m[1]) track = m[1]; else track = null;
+                        } else { track = null; }
+                    } else { track = ta.text || ta.textContent; }
+                    // Artist: legacy testid -> v2 byline -> fallback aria-label
                     var aa = document.querySelector('a[data-testid=context-item-info-artist]');
                     if(!aa) aa = document.querySelector('a[data-testid=context-item-info-show]');
-                    if(aa) artist=aa.text; else artist='';
+                    if(!aa){
+                        var byline = document.querySelector('[data-testid="now-playing-widget-v2-byline"]');
+                        if(byline){
+                            var links = byline.querySelectorAll('a[href*="/artist/"],a[href*="/show/"]');
+                            var names = [];
+                            for(var i=0;i<links.length;i++) names.push(links[i].textContent.trim());
+                            aa = names.length ? { text: names.join(', '), textContent: names.join(', ') } : null;
+                        }
+                    }
+                    if(!aa){
+                        var npw2 = document.querySelector('[data-testid="now-playing-widget-v2"]');
+                        if(npw2){
+                            var al2 = npw2.getAttribute('aria-label') || '';
+                            var m2 = al2.match(/Now playing:.+?\s+by\s+(.+)/i);
+                            if(m2 && m2[1]) aa = { text: m2[1], textContent: m2[1] };
+                        }
+                    }
+                    if(aa) artist = aa.text || aa.textContent || ''; else artist = '';
                     var rr = document.querySelector('button[data-testid=control-button-repeat]');
                     if(rr) repmode=rr.getAttribute('aria-checked'); else repmode='false';
                     var sbb = document.querySelector('button[data-testid="control-button-shuffle"]');
@@ -33,6 +60,7 @@ object AndroidTracker {
                         }
                     } else shuffle='off';
                     var fb = document.querySelector('div[data-testid=now-playing-widget]>div:last-child>button');
+                    if(!fb) fb = document.querySelector('[data-testid="now-playing-widget-v2"] button[aria-checked]');
                     if(fb && fb.getAttribute('aria-checked')==='true') isfav=true; else isfav=false;
                     var pb = document.querySelector('button[data-testid=control-button-playpause]');
                     if(pb) playing=pb.getAttribute('aria-label')!=='Play';
