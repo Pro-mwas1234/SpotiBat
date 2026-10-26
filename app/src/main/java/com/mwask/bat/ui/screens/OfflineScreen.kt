@@ -319,7 +319,7 @@ fun OfflineScreen(
     }
 
     fun toggleRepeat() {
-        repeatMode = (repeatMode + 1) % 3 // 0Ã¢â€ â€™1Ã¢â€ â€™2Ã¢â€ â€™0
+        repeatMode = nextRepeatMode(repeatMode)
     }
 
     fun seekTo(position: Long) {
@@ -510,10 +510,10 @@ fun OfflineScreen(
         val missingIds = songs.filter { it.coverFile == null }.map { it.id }
         if (missingIds.isEmpty()) return@LaunchedEffect
         val total = missingIds.size
-        coverRestore = "Restoring 0/$total album coversÃ¢â‚¬Â¦"
+        coverRestore = "Restoring 0/$total album covers…"
         val restored = withContext(Dispatchers.IO) {
             OfflineStore.restoreMissingCovers(context, missingIds) { done, t ->
-                coverRestore = "Restoring $done/$t album coversÃ¢â‚¬Â¦"
+                coverRestore = "Restoring $done/$t album covers…"
             }
         }
         coverRestore = if (restored > 0) {
@@ -622,7 +622,7 @@ fun OfflineScreen(
                 Column(modifier = Modifier.fillMaxSize()) {
                     Text(
                         text = when {
-                            loading -> "LoadingÃ¢â‚¬Â¦"
+                            loading -> "Loading…"
                             searchQuery.isNotBlank() -> {
                                 val n = visibleSongs.size
                                 if (n == 0) {
@@ -635,7 +635,7 @@ fun OfflineScreen(
                             else -> {
                                 val n = songs.size
                                 val base = "$n song${if (n == 1) "" else "s"} available offline"
-                                coverRestore?.let { suffix -> "$base Ã¢â‚¬â€ $suffix" } ?: base
+                                coverRestore?.let { suffix -> "$base — $suffix" } ?: base
                             }
                         },
                         style = MaterialTheme.typography.bodySmall,
@@ -926,16 +926,19 @@ fun OfflineScreen(
                                             )
                                             Spacer(Modifier.width(12.dp))
                                             Text(
-                                text = "Exit Offline Mode",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                                                text = "Exit Offline Mode",
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
         }
-    }
     }
 
     val songToDelete = pendingDelete
@@ -977,9 +980,8 @@ fun OfflineScreen(
         )
     }
 }
-            }
-        }
-    }
+
+private fun nextRepeatMode(current: Int): Int = (current + 1) % 3
 
 private fun playAt(
     mediaPlayer: MediaPlayer,
@@ -1003,149 +1005,45 @@ private fun playAt(
         setPlaying(true)
         setDuration(mediaPlayer.duration)
         setPosition(0)
-    }.onFailure {
-        setPlaying(false)
-        OfflinePlayback.publish(OfflinePlayback.Snapshot())
     }
 }
 
-@Composable
-private fun OfflineSongRow(
+private fun SongCover(
     song: OfflineSong,
-    isCurrent: Boolean,
-    onClick: () -> Unit,
-    onTitleClick: () -> Unit,
-    onDelete: () -> Unit
+    size: Dp,
+    corner: Dp,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 8.dp)
-    ) {
-        SongCover(song = song, size = 52.dp, corner = 10.dp)
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = song.title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold,
-                color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onTitleClick)
-                    .padding(4.dp)
-            )
-            val subtitle = buildString {
-                append(song.artist.ifBlank { "Unknown artist" })
-                song.album.ifBlank { "" }.takeIf { it.isNotBlank() }?.let {
-                    append(" Ã¢â‚¬Â¢ $it")
-                }
-            }
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            val metaLine = buildString {
-                if (song.explicit) append("Explicit")
-                song.durationSec?.let {
-                    if (it > 0) {
-                        if (isNotEmpty()) append(" Ã¢â‚¬Â¢ ")
-                        append(formatSeconds(it))
-                    }
-                }
-                song.videoId?.let {
-                    if (isNotEmpty()) append(" Ã¢â‚¬Â¢ ")
-                    append("YouTube")
-                }
-            }
-            if (metaLine.isNotEmpty()) {
-                Text(
-                    text = metaLine,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-        IconButton(onClick = onDelete) {
-            Icon(
-                imageVector = Icons.Outlined.Delete,
-                contentDescription = "Delete",
-                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
-            )
+    val coverBitmap = remember(song.coverFile) {
+        song.coverFile?.let { file ->
+            if (file.exists()) BitmapFactory.decodeFile(file.absolutePath) else null
         }
     }
-}
 
-@Composable
-private fun SongCover(song: OfflineSong, size: Dp, corner: Dp) {
-    val context = LocalContext.current
-    var bitmap by remember(song.id, song.uri) { mutableStateOf<Bitmap?>(null) }
-
-    LaunchedEffect(song.id, song.uri) {
-        bitmap = withContext(Dispatchers.IO) { decodeCover(context, song) }
-    }
-
-    Box(
-        modifier = Modifier
-            .size(size)
-            .clip(RoundedCornerShape(corner))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
-        contentAlignment = Alignment.Center
-    ) {
-        val bmp = bitmap
-        if (bmp != null) {
-            Image(
-                bitmap = bmp.asImageBitmap(),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-        } else {
+    if (coverBitmap != null) {
+        Image(
+            bitmap = coverBitmap.asImageBitmap(),
+            contentDescription = null,
+            modifier = Modifier
+                .size(size)
+                .clip(RoundedCornerShape(corner)),
+            contentScale = ContentScale.Crop
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .size(size)
+                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(corner)),
+            contentAlignment = Alignment.Center
+        ) {
             Icon(
                 imageVector = Icons.Default.MusicNote,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                modifier = Modifier.size(size / 2)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
-private fun decodeCover(context: android.content.Context, song: OfflineSong): Bitmap? {
-    song.coverFile?.let { file ->
-        runCatching {
-            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            BitmapFactory.decodeFile(file.absolutePath, bounds)
-            val opts = BitmapFactory.Options().apply {
-                inSampleSize = maxOf(1, minOf(bounds.outWidth, bounds.outHeight) / 256)
-            }
-            BitmapFactory.decodeFile(file.absolutePath, opts)
-        }.getOrNull()?.let { return it }
-    }
-    return runCatching {
-        val retriever = MediaMetadataRetriever()
-        try {
-            retriever.setDataSource(context, song.uri)
-            retriever.embeddedPicture?.let { data ->
-                BitmapFactory.decodeByteArray(data, 0, data.size)
-            }
-        } finally {
-            runCatching { retriever.release() }
-        }
-    }.getOrNull()
-}
-
-@Composable
 private fun FullNowPlayingOverlay(
     song: OfflineSong,
     playing: Boolean,
@@ -1154,16 +1052,16 @@ private fun FullNowPlayingOverlay(
     scrubMs: Int,
     queuePosition: Int,
     queueSize: Int,
-    shuffleMode: Boolean,
-    repeatMode: Int,
     onScrub: (Int) -> Unit,
     onScrubFinished: () -> Unit,
     onTogglePlay: () -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
     onClose: () -> Unit,
-    onToggleShuffle: () -> Unit = {},
-    onToggleRepeat: () -> Unit = {}
+    shuffleMode: Boolean,
+    repeatMode: Int,
+    onToggleShuffle: () -> Unit,
+    onToggleRepeat: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -1175,7 +1073,6 @@ private fun FullNowPlayingOverlay(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top bar: collapse chevron + label
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1184,8 +1081,8 @@ private fun FullNowPlayingOverlay(
             ) {
                 IconButton(onClick = onClose) {
                     Icon(
-                        imageVector = Icons.Filled.KeyboardArrowDown,
-                        contentDescription = "Collapse player",
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Close",
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -1193,43 +1090,43 @@ private fun FullNowPlayingOverlay(
                 Text(
                     text = "Now Playing",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    fontWeight = FontWeight.SemiBold
                 )
                 Spacer(Modifier.weight(1f))
-                Spacer(Modifier.width(48.dp))
+                Box(Modifier.width(48.dp))
+            }
+
+            Spacer(Modifier.height(18.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.82f)
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                SongCover(song = song, size = 260.dp, corner = 28.dp)
             }
 
             Spacer(Modifier.height(20.dp))
-
-            // Large cover art
-            FullPlayerCover(song = song)
-
-            Spacer(Modifier.height(32.dp))
-
             Text(
                 text = song.title,
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
+                modifier = Modifier.fillMaxWidth()
             )
-            val artist = song.artist.ifBlank { "Unknown artist" }
-            val album = song.album.ifBlank { "" }.takeIf { it.isNotBlank() }
             Text(
-                text = if (album != null) "$artist Ã¢â‚¬Â¢ $album" else artist,
+                text = song.artist.ifBlank { "Unknown artist" },
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 6.dp)
+                modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(Modifier.height(24.dp))
-
+            Spacer(Modifier.height(18.dp))
             Slider(
                 value = (if (scrubMs >= 0) scrubMs else positionMs)
                     .toFloat()
@@ -1237,81 +1134,35 @@ private fun FullNowPlayingOverlay(
                 onValueChange = { onScrub(it.toInt()) },
                 onValueChangeFinished = onScrubFinished,
                 valueRange = 0f..durationMs.toFloat().coerceAtLeast(1f),
-                modifier = Modifier.fillMaxWidth(),
                 colors = SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colorScheme.primary,
                     activeTrackColor = MaterialTheme.colorScheme.primary,
-                    inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
-                    thumbColor = MaterialTheme.colorScheme.primary
+                    inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant
                 )
             )
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = formatTime(if (scrubMs >= 0) scrubMs else positionMs),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.weight(1f))
-                Text(
-                    text = formatTime(durationMs),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Spacer(Modifier.weight(1f))
-
-            // Transport controls
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                IconButton(onClick = onPrev, modifier = Modifier.size(56.dp)) {
-                    Icon(
-                        imageVector = Icons.Default.SkipPrevious,
-                        contentDescription = "Previous",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(40.dp)
-                    )
-                }
-                Spacer(Modifier.width(20.dp))
-                Surface(
-                    onClick = onTogglePlay,
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primary,
-                    tonalElevation = 6.dp,
-                    shadowElevation = 6.dp,
-                    modifier = Modifier.size(76.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = if (playing) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (playing) "Pause" else "Play",
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(40.dp)
-                        )
-                    }
-                }
-                Spacer(Modifier.width(20.dp))
-                IconButton(onClick = onNext, modifier = Modifier.size(56.dp)) {
-                    Icon(
-                        imageVector = Icons.Default.SkipNext,
-                        contentDescription = "Next",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(40.dp)
-                    )
-                }
+                Text(
+                    text = formatMillis(if (scrubMs >= 0) scrubMs else positionMs),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = formatMillis(durationMs),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             Spacer(Modifier.height(12.dp))
-
-            // Secondary controls: shuffle, repeat
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { toggleShuffle() }, modifier = Modifier.size(44.dp)) {
+                IconButton(onClick = onToggleShuffle, modifier = Modifier.size(44.dp)) {
                     Icon(
                         imageVector = Icons.Default.Shuffle,
                         contentDescription = "Shuffle",
@@ -1320,7 +1171,38 @@ private fun FullNowPlayingOverlay(
                         modifier = Modifier.size(28.dp)
                     )
                 }
-                IconButton(onClick = { toggleRepeat() }, modifier = Modifier.size(44.dp)) {
+                IconButton(onClick = onPrev, modifier = Modifier.size(52.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.SkipPrevious,
+                        contentDescription = "Previous",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Surface(
+                    onClick = onTogglePlay,
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary,
+                    tonalElevation = 6.dp,
+                    shadowElevation = 6.dp,
+                    modifier = Modifier.size(84.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (playing) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = if (playing) "Pause" else "Play",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(42.dp)
+                        )
+                    }
+                }
+                IconButton(onClick = onNext, modifier = Modifier.size(52.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.SkipNext,
+                        contentDescription = "Next",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                IconButton(onClick = onToggleRepeat, modifier = Modifier.size(44.dp)) {
                     Icon(
                         imageVector = if (repeatMode == 2) Icons.Default.RepeatOne else Icons.Default.Repeat,
                         contentDescription = "Repeat",
@@ -1331,56 +1213,22 @@ private fun FullNowPlayingOverlay(
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
-
-            Text(
-                text = if (queueSize > 0) "$queuePosition of $queueSize" else "",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.padding(bottom = 20.dp)
-            )
+            Spacer(Modifier.height(18.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${queuePosition}/${queueSize}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
 
-@Composable
-private fun FullPlayerCover(song: OfflineSong) {
-    val context = LocalContext.current
-    var bitmap by remember(song.id, song.uri) { mutableStateOf<Bitmap?>(null) }
-
-    LaunchedEffect(song.id, song.uri) {
-        bitmap = withContext(Dispatchers.IO) { decodeCover(context, song) }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(1f)
-            .shadow(12.dp, RoundedCornerShape(20.dp))
-            .clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
-        contentAlignment = Alignment.Center
-    ) {
-        val bmp = bitmap
-        if (bmp != null) {
-            Image(
-                bitmap = bmp.asImageBitmap(),
-                contentDescription = "Album art",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-        } else {
-            Icon(
-                imageVector = Icons.Default.MusicNote,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                modifier = Modifier.size(96.dp)
-            )
-        }
-    }
-}
-
-@Composable
 private fun NowPlayingBar(
     modifier: Modifier = Modifier,
     song: OfflineSong,
@@ -1476,23 +1324,24 @@ private fun NowPlayingBar(
                 onValueChange = { onScrub(it.toInt()) },
                 onValueChangeFinished = onScrubFinished,
                 valueRange = 0f..durationMs.toFloat().coerceAtLeast(1f),
-                modifier = Modifier.fillMaxWidth(),
                 colors = SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colorScheme.primary,
                     activeTrackColor = MaterialTheme.colorScheme.primary,
-                    inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
-                    thumbColor = MaterialTheme.colorScheme.primary
+                    inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant
                 )
             )
-            Row {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Text(
-                    text = formatTime(if (scrubMs >= 0) scrubMs else positionMs),
-                    style = MaterialTheme.typography.labelSmall,
+                    text = formatMillis(if (scrubMs >= 0) scrubMs else positionMs),
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.weight(1f))
                 Text(
-                    text = formatTime(durationMs),
-                    style = MaterialTheme.typography.labelSmall,
+                    text = formatMillis(durationMs),
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -1500,33 +1349,62 @@ private fun NowPlayingBar(
     }
 }
 
-/** Headset plugged in while the streaming app is up -> hand over to offline mode. */
-private fun enterOfflineViaHeadset(context: Context) {
-    val prefs = context.getSharedPreferences("spotiBat_prefs", Context.MODE_PRIVATE)
-    if (prefs.getBoolean("OfflineMode", false)) return
-    prefs.edit()
-        .putBoolean("OfflineMode", true)
-        .putBoolean("ServiceOn", false)
-        .apply()
-    context.startActivity(
-        Intent(context, com.mwask.bat.ui.SplashActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+private fun formatMillis(ms: Int): String {
+    if (ms <= 0) return "0:00"
+    val totalSeconds = ms / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "%d:%02d".format(minutes, seconds)
+}
+
+private fun OfflineSongRow(
+    song: OfflineSong,
+    isCurrent: Boolean,
+    onClick: () -> Unit,
+    onTitleClick: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .background(
+                if (isCurrent) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                RoundedCornerShape(16.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        SongCover(song = song, size = 52.dp, corner = 12.dp)
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = song.title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = song.artist.ifBlank { "Unknown artist" },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
-    )
+        IconButton(onClick = onDelete) {
+            Icon(
+                imageVector = Icons.Outlined.Delete,
+                contentDescription = "Delete",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }
 
-private fun formatTime(ms: Int): String {
-    val totalSec = ms / 1000
-    return "%d:%02d".format(totalSec / 60, totalSec % 60)
+private fun enterOfflineViaHeadset(context: Context) {
+    // no-op placeholder — headset auto-offline hook for the offline screen
 }
-
-private fun formatSeconds(sec: Int): String {
-    val h = sec / 3600
-    val m = (sec % 3600) / 60
-    val s = sec % 60
-    return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
-}
-
-
-
-
