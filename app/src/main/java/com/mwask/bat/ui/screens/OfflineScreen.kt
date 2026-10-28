@@ -1008,6 +1008,15 @@ private fun playAt(
     }
 }
 
+private fun formatMillis(ms: Int): String {
+    if (ms <= 0) return "0:00"
+    val totalSeconds = ms / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "%d:%02d".format(minutes, seconds)
+}
+
+@Composable
 private fun SongCover(
     song: OfflineSong,
     size: Dp,
@@ -1044,6 +1053,7 @@ private fun SongCover(
     }
 }
 
+@Composable
 private fun FullNowPlayingOverlay(
     song: OfflineSong,
     playing: Boolean,
@@ -1058,170 +1068,160 @@ private fun FullNowPlayingOverlay(
     onPrev: () -> Unit,
     onNext: () -> Unit,
     onClose: () -> Unit,
-    shuffleMode: Boolean,
-    repeatMode: Int,
-    onToggleShuffle: () -> Unit,
-    onToggleRepeat: () -> Unit,
+    shuffleMode: Boolean = false,
+    repeatMode: Int = 0,
+    onToggleShuffle: () -> Unit = {},
+    onToggleRepeat: () -> Unit = {},
 ) {
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+        contentAlignment = Alignment.Center
     ) {
-        Column(
+        Surface(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxWidth(0.92f)
+                .padding(horizontal = 12.dp),
+            shape = RoundedCornerShape(32.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 2.dp
         ) {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 18.dp, vertical = 18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                IconButton(onClick = onClose) {
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = "Close",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                Spacer(Modifier.weight(1f))
-                Text(
-                    text = "Now Playing",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(Modifier.weight(1f))
-                Box(Modifier.width(48.dp))
-            }
-
-            Spacer(Modifier.height(18.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.82f)
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                SongCover(song = song, size = 260.dp, corner = 28.dp)
-            }
-
-            Spacer(Modifier.height(20.dp))
-            Text(
-                text = song.title,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Text(
-                text = song.artist.ifBlank { "Unknown artist" },
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(Modifier.height(18.dp))
-            Slider(
-                value = (if (scrubMs >= 0) scrubMs else positionMs)
-                    .toFloat()
-                    .coerceIn(0f, durationMs.toFloat().coerceAtLeast(1f)),
-                onValueChange = { onScrub(it.toInt()) },
-                onValueChangeFinished = onScrubFinished,
-                valueRange = 0f..durationMs.toFloat().coerceAtLeast(1f),
-                colors = SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                    inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant
-                )
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = formatMillis(if (scrubMs >= 0) scrubMs else positionMs),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = formatMillis(durationMs),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Spacer(Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onToggleShuffle, modifier = Modifier.size(44.dp)) {
-                    Icon(
-                        imageVector = Icons.Default.Shuffle,
-                        contentDescription = "Shuffle",
-                        tint = if (shuffleMode) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-                IconButton(onClick = onPrev, modifier = Modifier.size(52.dp)) {
-                    Icon(
-                        imageVector = Icons.Default.SkipPrevious,
-                        contentDescription = "Previous",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                Surface(
-                    onClick = onTogglePlay,
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primary,
-                    tonalElevation = 6.dp,
-                    shadowElevation = 6.dp,
-                    modifier = Modifier.size(84.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
+                    IconButton(onClick = onClose) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowDown,
+                            contentDescription = "Close",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        text = "Now Playing",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.weight(1f))
+                    Box(Modifier.width(48.dp))
+                }
+
+                Spacer(Modifier.height(18.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.82f)
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    SongCover(song = song, size = 260.dp, corner = 28.dp)
+                }
+
+                Spacer(Modifier.height(20.dp))
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = song.artist.ifBlank { "Unknown artist" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(Modifier.height(18.dp))
+                Slider(
+                    value = if (scrubMs >= 0) scrubMs.toFloat() else positionMs.toFloat().coerceIn(0f, durationMs.toFloat().coerceAtLeast(0f)),
+                    onValueChange = { onScrub(it.toInt()) },
+                    valueRange = 0f..durationMs.coerceAtLeast(1).toFloat(),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colorScheme.primary,
+                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                        inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant
+                    )
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = formatMillis(if (scrubMs >= 0) scrubMs else positionMs),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = formatMillis(durationMs),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Spacer(Modifier.height(18.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onPrev) {
+                        Icon(
+                            imageVector = Icons.Default.SkipPrevious,
+                            contentDescription = "Previous",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    IconButton(onClick = onToggleShuffle) {
+                        Icon(
+                            imageVector = Icons.Default.Shuffle,
+                            contentDescription = "Shuffle",
+                            tint = if (shuffleMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    IconButton(onClick = onTogglePlay) {
                         Icon(
                             imageVector = if (playing) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = if (playing) "Pause" else "Play",
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(42.dp)
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(44.dp)
+                        )
+                    }
+                    IconButton(onClick = onToggleRepeat) {
+                        Icon(
+                            imageVector = when (repeatMode) {
+                                1 -> Icons.Default.Repeat
+                                2 -> Icons.Default.RepeatOne
+                                else -> Icons.Default.Repeat
+                            },
+                            contentDescription = "Repeat",
+                            tint = if (repeatMode != 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    IconButton(onClick = onNext) {
+                        Icon(
+                            imageVector = Icons.Default.SkipNext,
+                            contentDescription = "Next",
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
-                IconButton(onClick = onNext, modifier = Modifier.size(52.dp)) {
-                    Icon(
-                        imageVector = Icons.Default.SkipNext,
-                        contentDescription = "Next",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                IconButton(onClick = onToggleRepeat, modifier = Modifier.size(44.dp)) {
-                    Icon(
-                        imageVector = if (repeatMode == 2) Icons.Default.RepeatOne else Icons.Default.Repeat,
-                        contentDescription = "Repeat",
-                        tint = if (repeatMode > 0) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            }
 
-            Spacer(Modifier.height(18.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+                Spacer(Modifier.height(8.dp))
                 Text(
                     text = "${queuePosition}/${queueSize}",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -1229,6 +1229,7 @@ private fun FullNowPlayingOverlay(
     }
 }
 
+@Composable
 private fun NowPlayingBar(
     modifier: Modifier = Modifier,
     song: OfflineSong,
@@ -1252,17 +1253,19 @@ private fun NowPlayingBar(
             .padding(horizontal = 12.dp, vertical = 12.dp),
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.97f),
-        tonalElevation = 4.dp,
-        shadowElevation = 8.dp
+        tonalElevation = 4.dp
     ) {
-        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SongCover(song = song, size = 44.dp, corner = 10.dp)
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SongCover(song = song, size = 54.dp, corner = 14.dp)
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = song.title,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -1286,8 +1289,7 @@ private fun NowPlayingBar(
                     Icon(
                         imageVector = if (playing) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = if (playing) "Pause" else "Play",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(32.dp)
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 IconButton(onClick = onNext) {
@@ -1297,33 +1299,15 @@ private fun NowPlayingBar(
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
-                IconButton(onClick = onToggleShuffle) {
-                    Icon(
-                        imageVector = Icons.Default.Shuffle,
-                        contentDescription = "Shuffle",
-                        tint = if (shuffleMode) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-                IconButton(onClick = onToggleRepeat) {
-                    Icon(
-                        imageVector = if (repeatMode == 2) Icons.Default.RepeatOne else Icons.Default.Repeat,
-                        contentDescription = "Repeat",
-                        tint = if (repeatMode > 0) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
             }
-            Spacer(Modifier.height(4.dp))
+
+            Spacer(Modifier.height(8.dp))
             Slider(
-                value = (if (scrubMs >= 0) scrubMs else positionMs)
-                    .toFloat()
-                    .coerceIn(0f, durationMs.toFloat().coerceAtLeast(1f)),
+                value = if (scrubMs >= 0) scrubMs.toFloat() else positionMs.toFloat().coerceIn(0f, durationMs.toFloat().coerceAtLeast(0f)),
                 onValueChange = { onScrub(it.toInt()) },
                 onValueChangeFinished = onScrubFinished,
-                valueRange = 0f..durationMs.toFloat().coerceAtLeast(1f),
+                valueRange = 0f..durationMs.coerceAtLeast(1).toFloat(),
+                modifier = Modifier.fillMaxWidth(),
                 colors = SliderDefaults.colors(
                     thumbColor = MaterialTheme.colorScheme.primary,
                     activeTrackColor = MaterialTheme.colorScheme.primary,
@@ -1349,14 +1333,7 @@ private fun NowPlayingBar(
     }
 }
 
-private fun formatMillis(ms: Int): String {
-    if (ms <= 0) return "0:00"
-    val totalSeconds = ms / 1000
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    return "%d:%02d".format(minutes, seconds)
-}
-
+@Composable
 private fun OfflineSongRow(
     song: OfflineSong,
     isCurrent: Boolean,
@@ -1368,24 +1345,27 @@ private fun OfflineSongRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp)
-            .background(
-                if (isCurrent) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
-                RoundedCornerShape(16.dp)
-            )
-            .clickable(onClick = onClick)
-            .padding(12.dp),
+            .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        SongCover(song = song, size = 52.dp, corner = 12.dp)
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            SongCover(song = song, size = 48.dp, corner = 12.dp)
+        }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = song.title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
+                modifier = Modifier.clickable(onClick = onTitleClick)
             )
             Text(
                 text = song.artist.ifBlank { "Unknown artist" },
