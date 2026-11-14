@@ -1863,7 +1863,7 @@ private fun NowPlayingFooterRow(
                 iconRes = R.drawable.encore_icon_devices_24,
                 contentDescription = stringResource(R.string.connected_devices),
                 onClick = onDeviceClick,
-                tint = EncoreColors.Green,
+                tint = if (connectedDeviceName.isNotBlank()) EncoreColors.Green else EncoreColors.TextPrimary,
                 size = 32.dp,
                 iconSize = 20.dp
             )
