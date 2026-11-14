@@ -87,6 +87,7 @@ private fun resolveDeviceIcon(kind: DeviceKind?): Int = when (kind) {
     DeviceKind.TABLET -> R.drawable.encore_icon_device_tablet_24
     DeviceKind.CAR -> R.drawable.encore_icon_device_car_24
     DeviceKind.CAST -> R.drawable.encore_icon_chromecast_connected_24
+    DeviceKind.HEADPHONES -> R.drawable.encore_icon_device_headphones_24
     else -> R.drawable.encore_icon_device_computer_24
 }
 
@@ -240,7 +241,7 @@ fun EncoreMiniPlayer(
                                         velocity = 30.dp
                                     )
                             ) {
-                                if (connectedDeviceName != null) {
+                                if (!connectedDeviceName.isNullOrBlank()) {
                                     Icon(
                                         painter = painterResource(id = R.drawable.encore_icon_connect_24),
                                         contentDescription = null,
