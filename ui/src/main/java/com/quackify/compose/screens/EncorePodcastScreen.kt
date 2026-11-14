@@ -347,7 +347,7 @@ fun EncorePodcastScreen(
                     }
 
                     Text(
-                        text = "★ $rating",
+                        text = stringResource(R.string.rating_stars, rating),
                         style = EncoreTheme.typography.marginal.copy(
                             color = EncoreColors.TextSecondary,
                             fontSize = 12.sp,
@@ -682,7 +682,7 @@ fun EncorePodcastScreen(
                                             )
                                         )
                                         Text(
-                                            text = "Podcast • $host",
+                                            text = stringResource(R.string.podcast_with_host, host),
                                             style = EncoreTheme.typography.bodySmall.copy(
                                                 color = EncoreColors.TextSecondary
                                             )
