@@ -2,6 +2,7 @@ package com.quackify.app
 
 import android.content.Context
 import android.content.Intent
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat
 import com.quackify.backend.core.log.Logs
 
@@ -15,6 +16,17 @@ object PlaybackHost {
     @Volatile
     private var foreground = false
 
+    /**
+     * Bumped every time the live bridge is created, replaced or stopped, so
+     * the UI can re-link to whatever instance is current instead of holding
+     * a stale one whose scope was cancelled while the activity stayed alive.
+     */
+    val generation = mutableStateOf(0)
+
+    private fun bump() {
+        generation.value = generation.value + 1
+    }
+
     val started: Boolean get() = instance != null
 
     /** The live bridge behind the service's notification, if one is running. */
@@ -27,6 +39,7 @@ object PlaybackHost {
                 bridge.start()
                 log.i("bridge created device=${bridge.deviceId}")
                 instance = bridge
+                bump()
             }
         }
     }
@@ -45,6 +58,7 @@ object PlaybackHost {
         val bridge = instance
         instance = null
         foreground = false
+        bump()
         if (bridge != null) {
             runCatching { bridge.handOff() }
                 .onFailure { log.w("hand off failed ${it.javaClass.simpleName}: ${it.message}") }
@@ -59,6 +73,7 @@ object PlaybackHost {
         instance?.reset()
         instance = null
         foreground = false
+        bump()
         runCatching { context.stopService(Intent(context, PlaybackService::class.java)) }
         log.i("bridge reset, next start mints a new device")
     }
@@ -67,6 +82,7 @@ object PlaybackHost {
         instance?.stop()
         instance = null
         foreground = false
+        bump()
         log.i("bridge released")
     }
 }
