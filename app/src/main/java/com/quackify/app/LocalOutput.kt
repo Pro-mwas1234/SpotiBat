@@ -21,5 +21,7 @@ object LocalOutput {
 
     private fun isWired(type: Int) = type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
             type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
-            type == AudioDeviceInfo.TYPE_USB_HEADSET
+            type == AudioDeviceInfo.TYPE_USB_HEADSET ||
+            type == AudioDeviceInfo.TYPE_USB_DEVICE ||
+            type == AudioDeviceInfo.TYPE_USB_ACCESSORY
 }
