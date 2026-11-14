@@ -29,6 +29,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.quackify.app.search.decorateSearchTracks
 import com.quackify.backend.api.Browse
+import com.quackify.backend.api.ArtistBanStore
 import com.quackify.backend.api.Collection2
 import com.quackify.backend.api.HomeFeed
 import com.quackify.backend.api.Library
@@ -1603,6 +1604,7 @@ class MainActivity : ComponentActivity() {
             scope.launch {
                 val ok = Collection2.setArtistBanned(context, uri, false)
                 if (ok && uri == artistUri) artistBanned = false
+                if (ok) ArtistBanStore.invalidate()
             }
         },
         onArtistBanChanged = { uri, banned ->
