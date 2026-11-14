@@ -10,7 +10,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.quackify.backend.api.ArtistBanStore
 import com.quackify.backend.api.Collection2
-import com.quackify.backend.api.Library
 import com.quackify.backend.core.auth.EncoreAuth
 import com.quackify.backend.model.AlbumDetail
 import com.quackify.backend.model.ArtistDetail
@@ -247,13 +246,6 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
         onDismissSleepTimer = { flags.isSleepTimerOpen = false },
         onCanvasResolutionClick = { flags.isCanvasResolutionSheetOpen = true },
         onDismissCanvasResolution = { flags.isCanvasResolutionSheetOpen = false },
-        onAddToPlaylist = {
-            local.trackForOptions?.let { track ->
-                flags.isAddToPlaylistOpen = true
-                local.addTrackTarget = track
-                env.onAddToPlaylist?.invoke(track)
-            }
-        },
         onShowCredits = {
             local.trackForOptions?.let { track ->
                 flags.isCreditsOpen = true
@@ -295,26 +287,6 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
         },
         onSettings = env.handleOpenSettings,
         onLogout = { env.onLogout?.invoke() },
-        onLikeToggle = { liked ->
-            val uri = local.trackForOptions?.uri.orEmpty()
-            when {
-                uri.isNotBlank() && uri == currentTrackUri && env.playerListener != null ->
-                    if (playbackState?.isLiked != liked) env.playerListener.onLikeToggle()
-                uri.startsWith("spotify:track:") -> {
-                    local.trackForOptions = local.trackForOptions?.copy(saved = liked)
-                    local.trackOptionsSaved = liked
-                    env.shellScope.launch {
-                        val ok = Library.setSaved(env.context, listOf(uri), liked)
-                        if (!ok && uri == local.trackForOptions?.uri) {
-                            local.trackForOptions = local.trackForOptions?.copy(saved = !liked)
-                            local.trackOptionsSaved = !liked
-                        }
-                    }
-                }
-                env.playerListener != null -> env.playerListener.onLikeToggle()
-                else -> local.isLiked = liked
-            }
-        },
         onAddToQueue = { track -> env.handleQueueAdd(track.uri) },
         onViewArtist = { artist, uri ->
             flags.isTrackOptionsOpen = false
@@ -326,13 +298,12 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
             env.setIsPlayerExpanded(false)
             env.openAlbum(album, local.trackForOptions?.artist ?: "", uri)
         },
-        onSleepTimerClick = { flags.isSleepTimerOpen = true },
+        onSortSelected = { selected, direction -> local.sortOption = selected; local.sortDirection = direction },
         onGoToArtist = { artist ->
             flags.isAlbumOptionsOpen = false
             env.setIsPlayerExpanded(false)
             env.openArtist(artist, env.albumDetail?.artistUri.orEmpty())
         },
-        onSortSelected = { selected, direction -> local.sortOption = selected; local.sortDirection = direction },
         onCreatePlaylist = {
             env.shellScope.launch {
                 local.playlistCreateName = env.onPlaylistDefaultName?.invoke() ?: "My Playlist"
@@ -345,7 +316,6 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
         onVolumeChange = { id, level -> env.playerListener?.onVolumeChange(id, level) },
         userQueue = playbackState?.queue.orEmpty(),
         trackTasteExcluded = env.trackTasteExcluded,
-        trackSavedOverride = local.trackOptionsSaved,
         trackPlaysOverride = local.trackOptionsPlays,
         onToggleTasteExclusion = toggle@{ exclude ->
             val track = local.trackForOptions
