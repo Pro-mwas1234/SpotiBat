@@ -124,7 +124,7 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
     else EntityOptions(
         title = env.playlistDetail?.title?.takeIf { it.isNotBlank() } ?: active.playlistTitle,
         subtitle = if (active.playlistUri.startsWith("spotify:playlist:"))
-            stringResource(R.string.playlist_with_dot) + (env.playlistDetail?.creator?.takeIf { it.isNotBlank() } ?: env.userDisplayName)
+            stringResource(R.string.playlist_by, env.playlistDetail?.creator?.takeIf { it.isNotBlank() } ?: env.userDisplayName)
         else "",
         imageUrl = active.playlistCoverUrl ?: env.playlistDetail?.imageUrl?.takeIf { it.isNotBlank() },
         uri = active.playlistUri,
@@ -209,7 +209,7 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
                 env.shellScope.launch {
                     val radio = env.onArtistRadio?.invoke(artistUriNow)
                     if (radio != null && radio.startsWith("spotify:playlist:")) {
-                        env.openPlaylist(sheetArtistName + stringResource(R.string.radio_suffix), radio)
+                        env.openPlaylist(stringResource(R.string.radio_title, sheetArtistName), radio)
                     }
                 }
             }
@@ -396,7 +396,7 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
                 env.shellScope.launch {
                     val radio = env.onArtistRadio?.invoke(trackNow.uri)
                     if (radio != null && radio.startsWith("spotify:playlist:")) {
-                        env.openPlaylist(trackNow.title + stringResource(R.string.radio_suffix), radio)
+                        env.openPlaylist(stringResource(R.string.radio_title, trackNow.title), radio)
                     }
                 }
             }
@@ -409,7 +409,7 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
                 env.shellScope.launch {
                     val radio = env.onArtistRadio?.invoke(albumUriNow)
                     if (radio != null && radio.startsWith("spotify:playlist:")) {
-                        env.openPlaylist(active.albumTitle + stringResource(R.string.radio_suffix), radio)
+                        env.openPlaylist(stringResource(R.string.radio_title, active.albumTitle), radio)
                     }
                 }
             }
