@@ -194,6 +194,7 @@ fun TrackRow.toTrackItem(): TrackItem = TrackItem(
     discNumber = discNumber,
     trackNumber = trackNumber,
     hasVideo = video,
+    plays = plays,
 )
 
 fun ShelfItem.toArtistRelease(): ArtistRelease {
