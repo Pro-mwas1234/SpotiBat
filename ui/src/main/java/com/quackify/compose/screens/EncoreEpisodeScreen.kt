@@ -47,6 +47,7 @@ import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.theme.rememberBottomPadding
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun EncoreEpisodeScreen(
@@ -97,14 +98,14 @@ fun EncoreEpisodeScreen(
         ) {
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_arrow_left_24,
-                contentDescription = "Back",
+                contentDescription = stringResource(R.string.back),
                 onClick = onBackClick,
                 tint = EncoreColors.TextPrimary,
             )
             if (onMoreClick != null) {
                 EncoreIconButton(
                     iconRes = R.drawable.encore_icon_more_android_24,
-                    contentDescription = "More options",
+                    contentDescription = stringResource(R.string.more_options),
                     onClick = onMoreClick,
                     tint = EncoreColors.TextPrimary,
                 )
@@ -210,7 +211,7 @@ fun EncoreEpisodeScreen(
                         )
                         if (descriptionOverflows || descriptionExpanded) {
                             Text(
-                                text = if (descriptionExpanded) "Show less" else "Show more",
+                                text = if (descriptionExpanded) stringResource(R.string.show_less) else stringResource(R.string.show_more),
                                 style = EncoreTheme.typography.bodySmallBold.copy(color = EncoreColors.TextPrimary),
                                 modifier = Modifier
                                     .padding(top = 6.dp)
@@ -233,7 +234,7 @@ fun EncoreEpisodeScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = "Go to show",
+                                    text = stringResource(R.string.go_to_show),
                                     style = EncoreTheme.typography.bodyMedium.copy(
                                         fontWeight = FontWeight.SemiBold,
                                         color = EncoreColors.TextPrimary,
