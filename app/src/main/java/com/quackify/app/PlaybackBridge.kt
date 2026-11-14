@@ -1372,6 +1372,7 @@ class PlaybackBridge(private val context: Context) {
                 val known = enhancedRows.mapTo(HashSet()) { it.uri }
                 enhancedRows = enhancedRows + rows.filter { it.uri !in known }
                 publishQueue(connect.cluster.value)
+                if (player.hasSource) publishLocalFromEngine()
             }
         }
     }
@@ -1403,6 +1404,7 @@ class PlaybackBridge(private val context: Context) {
                 log.i("smart shuffle reset on '${lens.takeLast(24)}' rows=${rows.size} " +
                     "enhanced=${rows.count { it.enhanced }}")
                 publishQueue(connect.cluster.value)
+                if (player.hasSource) publishLocalFromEngine()
             } finally {
                 enhanceInFlight = false
             }
@@ -1460,6 +1462,7 @@ class PlaybackBridge(private val context: Context) {
                     "rows=${rows.size} enhanced=${rows.count { it.enhanced }}"
                 )
                 publishQueue(connect.cluster.value)
+                if (player.hasSource) publishLocalFromEngine()
             } finally {
                 enhanceInFlight = false
             }
@@ -2111,9 +2114,14 @@ class PlaybackBridge(private val context: Context) {
     private fun queueTailRows(contextUri: String): List<ClusterTrack> {
         val enhanced = enhancedQueue(contextUri)
         if (enhanced.isNotEmpty()) {
-            return enhanced.take(20).map { row ->
-                clusterTrackFor(row.uri)
-                    .copy(provider = if (row.enhanced) "enhanced_recommendation" else "")
+            val kept = connect.cluster.value?.window().orEmpty()
+            val rows = enhanced
+                .filter { it.enhanced && it.uri != state.trackUri }
+                .distinctBy { it.uri }
+                .take(ENHANCED_TAIL_MAX)
+            return rows.map { row ->
+                kept.firstOrNull { it.uri == row.uri }?.takeIf { it.title.isNotBlank() }
+                    ?: clusterTrackFor(row.uri).copy(provider = if (row.enhanced) "enhanced_recommendation" else "")
             }
         }
         val at = connect.cluster.value
@@ -4109,5 +4117,6 @@ class PlaybackBridge(private val context: Context) {
         const val AUTOPLAY_WINDOW_MS = 30_000L
         const val GONE_READS = 2
         const val TRANSFER_FRESH_MS = 120_000L
+        const val ENHANCED_TAIL_MAX = 80
     }
 }
