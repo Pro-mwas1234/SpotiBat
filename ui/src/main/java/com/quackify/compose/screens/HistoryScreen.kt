@@ -49,6 +49,7 @@ import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.theme.EncoreCornerRadii
 import com.quackify.compose.theme.rememberBottomPadding
+import androidx.compose.ui.res.stringResource
 
 /**
  * artist that follow each other collapse into one expandable artist group,
@@ -107,13 +108,13 @@ fun HistoryScreen(
         ) {
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_arrow_left_24,
-                contentDescription = "Back",
+                contentDescription = stringResource(R.string.back),
                 onClick = onBackClick,
                 tint = EncoreColors.TextPrimary
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Listening History",
+                text = stringResource(R.string.listening_history),
                 style = EncoreTheme.typography.titleLarge.copy(fontSize = 20.sp)
             )
         }
@@ -134,7 +135,7 @@ fun HistoryScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Tracks you play will show up here.",
+                    text = stringResource(R.string.tracks_you_play_will_show_up_here),
                     style = EncoreTheme.typography.bodyMedium.copy(
                         color = EncoreColors.TextSecondary,
                         textAlign = TextAlign.Center
@@ -154,7 +155,7 @@ fun HistoryScreen(
                     }
                 }
                 historySection(
-                    label = "Today",
+                    label = stringResource(R.string.today),
                     tracks = todayTracks,
                     currentTrackTitle = currentTrackTitle,
                     isPlaying = isPlaying,
@@ -164,7 +165,7 @@ fun HistoryScreen(
                     expandedGroups = expandedGroups
                 )
                 historySection(
-                    label = "Yesterday",
+                    label = stringResource(R.string.yesterday),
                     tracks = yesterdayTracks,
                     currentTrackTitle = currentTrackTitle,
                     isPlaying = isPlaying,
@@ -174,7 +175,7 @@ fun HistoryScreen(
                     expandedGroups = expandedGroups
                 )
                 historySection(
-                    label = "Earlier",
+                    label = stringResource(R.string.earlier),
                     tracks = earlierTracks,
                     currentTrackTitle = currentTrackTitle,
                     isPlaying = isPlaying,
@@ -388,7 +389,7 @@ private fun HistoryStatsSection(
             .padding(bottom = 4.dp)
     ) {
         Text(
-            text = "Your stats",
+            text = stringResource(R.string.your_stats),
             style = EncoreTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.Bold,
                 color = Color.White
@@ -397,12 +398,12 @@ private fun HistoryStatsSection(
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             HistoryStatCard(
-                label = "Minutes played",
+                label = stringResource(R.string.minutes_played),
                 value = formatMinutes(stats.totalPlayedMs),
                 modifier = Modifier.weight(1f)
             )
             HistoryStatCard(
-                label = "Listening streak",
+                label = stringResource(R.string.listening_streak),
                 value = daysLabel(stats.listenStreakDays),
                 modifier = Modifier.weight(1f)
             )
@@ -410,12 +411,12 @@ private fun HistoryStatsSection(
         Spacer(modifier = Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             HistoryStatCard(
-                label = "Login streak",
+                label = stringResource(R.string.login_streak),
                 value = daysLabel(stats.loginStreakDays),
                 modifier = Modifier.weight(1f)
             )
             HistoryStatCard(
-                label = "Top artist",
+                label = stringResource(R.string.top_artist),
                 value = stats.topArtistName.ifBlank { "—" },
                 sub = playsLabel(stats.topArtistPlays),
                 modifier = Modifier.weight(1f)
@@ -424,13 +425,13 @@ private fun HistoryStatsSection(
         Spacer(modifier = Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             HistoryStatCard(
-                label = "Top playlist",
+                label = stringResource(R.string.top_playlist),
                 value = stats.topPlaylistName.ifBlank { "—" },
                 sub = playsLabel(stats.topPlaylistPlays),
                 modifier = Modifier.weight(1f)
             )
             HistoryStatCard(
-                label = "Most replayed",
+                label = stringResource(R.string.most_replayed),
                 value = stats.topReplayTitle.ifBlank { "—" },
                 sub = listOfNotNull(
                     stats.topReplayArtist.takeIf { it.isNotBlank() },
@@ -490,10 +491,10 @@ private fun formatMinutes(totalMs: Long): String {
 }
 
 private fun daysLabel(days: Int): String =
-    if (days == 1) "1 day" else "$days days"
+    if (days == 1) stringResource(R.string.one_day) else "$days days"
 
 private fun playsLabel(plays: Int): String =
-    if (plays <= 1) "1 play" else "${formatCount(plays.toLong())} plays"
+    if (plays <= 1) stringResource(R.string.one_play) else "${formatCount(plays.toLong())} plays"
 
 @Preview
 @Composable
