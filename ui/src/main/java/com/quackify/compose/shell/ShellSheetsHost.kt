@@ -324,7 +324,6 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
         onCreateFolder = { local.folderDraft = FolderDraft(mode = FolderMode.CREATE) },
         onSelectDevice = { id -> env.setLocalDevice(id); flags.isDeviceSheetOpen = false; env.playerListener?.onSelectDevice(id) },
         onDeviceVisible = { visible -> env.playerListener?.onDeviceSheetVisible(visible) },
-        onVolumeChange = { id, level -> env.playerListener?.onVolumeChange(id, level) },
         userQueue = playbackState?.queue.orEmpty(),
         trackTasteExcluded = env.trackTasteExcluded,
         trackPlaysOverride = local.trackOptionsPlays,
