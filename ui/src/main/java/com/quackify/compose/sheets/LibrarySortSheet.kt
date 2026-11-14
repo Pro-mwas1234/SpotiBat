@@ -39,10 +39,10 @@ enum class LibrarySortOption(
     val reversible: Boolean = true,
     val defaultDirection: SortDirection = SortDirection.ASCENDING
 ) {
-    RECENTS(R.string.recents, stringResource(R.string.recents), reversible = true, defaultDirection = SortDirection.DESCENDING),
+    RECENTS(R.string.recents, "Recents", reversible = true, defaultDirection = SortDirection.DESCENDING),
     RECENTLY_ADDED(R.string.recently_added, "Recently Added", reversible = true, defaultDirection = SortDirection.DESCENDING),
-    ALPHABETICAL(R.string.alphabetical, stringResource(R.string.alphabetical), reversible = true, defaultDirection = SortDirection.ASCENDING),
-    CREATOR(R.string.creator, stringResource(R.string.creator), reversible = true, defaultDirection = SortDirection.ASCENDING);
+    ALPHABETICAL(R.string.alphabetical, "Alphabetical", reversible = true, defaultDirection = SortDirection.ASCENDING),
+    CREATOR(R.string.creator, "Creator", reversible = true, defaultDirection = SortDirection.ASCENDING);
 
     companion object {
         fun fromApiId(id: String?): LibrarySortOption? =
