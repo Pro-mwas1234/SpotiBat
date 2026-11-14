@@ -3152,6 +3152,11 @@ class PlaybackBridge(private val context: Context) {
             )
         }
         val noneActive = active == null && !player.hasSource && !localPlaybackActive
+        val connectedLabel = when {
+            localPlaybackActive -> localOutputLabel()
+            label.isBlank() -> if (mine || player.hasSource || noneActive) localOutputLabel() else ""
+            else -> label
+        }
         val remoteActive = (!mine || noneActive) && !player.hasSource && !localPlaybackActive
         state = state.copy(
             devices = devices,
@@ -3162,9 +3167,7 @@ class PlaybackBridge(private val context: Context) {
             remoteCanSkipPrev = !remoteActive || cluster.canSkipPrev,
             remoteCanShuffle = !remoteActive || cluster.canShuffle,
             remoteCanRepeat = !remoteActive || (cluster.canRepeatContext || cluster.canRepeatTrack),
-            connectedDevice = label.ifBlank {
-                if (mine || player.hasSource || noneActive) localOutputLabel() else ""
-            },
+            connectedDevice = connectedLabel,
         )
         if (active != null && !mine && player.hasSource && held == null) {
             log.i("the stream moved to '$label', releasing this device's engine")
