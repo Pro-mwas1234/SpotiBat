@@ -2,6 +2,7 @@ package com.quackify.compose.sheets
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheetProperties
+import androidx.compose.ui.window.SecureFlagPolicy
 
 /**
  * A modal sheet is its own window, so the Activity's edge-to-edge setup does
@@ -11,6 +12,15 @@ import androidx.compose.material3.ModalBottomSheetProperties
  */
 @OptIn(ExperimentalMaterial3Api::class)
 internal val DarkSystemBarsSheet = ModalBottomSheetProperties(
+    isAppearanceLightStatusBars = false,
+    isAppearanceLightNavigationBars = false
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+internal val BackNotDismissSheet = ModalBottomSheetProperties(
+    shouldDismissOnBackPress = false,
+    shouldDismissOnClickOutside = true,
+    securePolicy = SecureFlagPolicy.Inherit,
     isAppearanceLightStatusBars = false,
     isAppearanceLightNavigationBars = false
 )
