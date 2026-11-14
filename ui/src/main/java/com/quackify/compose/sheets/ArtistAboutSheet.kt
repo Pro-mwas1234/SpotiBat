@@ -41,6 +41,8 @@ import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreCornerRadii
 import com.quackify.compose.theme.EncoreSpacers
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
+import com.quackify.compose.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,7 +101,7 @@ fun ArtistAboutSheet(
                 Spacer(modifier = Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "About",
+                        text = stringResource(R.string.about),
                         style = EncoreTheme.typography.marginal.copy(color = EncoreColors.TextSecondary)
                     )
                     Text(
@@ -119,7 +121,7 @@ fun ArtistAboutSheet(
                 horizontalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 if (monthlyListeners.isNotBlank()) {
-                    AboutStat(monthlyListeners, "monthly listeners")
+                    AboutStat(monthlyListeners, stringResource(R.string.monthly_listeners))
                 }
                 if (followers.isNotBlank()) {
                     AboutStat(followers, "followers")
@@ -140,7 +142,7 @@ fun ArtistAboutSheet(
             if (topCities.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(EncoreSpacers.Looser))
                 Text(
-                    text = "Popular in",
+                    text = stringResource(R.string.popular_in),
                     style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                 )
                 Spacer(modifier = Modifier.height(EncoreSpacers.Tighter))
@@ -157,7 +159,7 @@ fun ArtistAboutSheet(
                             modifier = Modifier.weight(1f)
                         )
                         Text(
-                            text = compact(stat.listeners) + " listeners",
+                            text = compact(stat.listeners) + stringResource(R.string.listeners_suffix),
                             style = EncoreTheme.typography.bodySmall.copy(
                                 color = EncoreColors.TextSecondary
                             )
@@ -169,7 +171,7 @@ fun ArtistAboutSheet(
             if (externalLinks.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(EncoreSpacers.Looser))
                 Text(
-                    text = "Links",
+                    text = stringResource(R.string.links),
                     style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                 )
                 Spacer(modifier = Modifier.height(EncoreSpacers.Tighter))
@@ -194,7 +196,7 @@ fun ArtistAboutSheet(
             if (gallery.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(EncoreSpacers.Looser))
                 Text(
-                    text = "Gallery",
+                    text = stringResource(R.string.gallery),
                     style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                 )
                 Spacer(modifier = Modifier.height(EncoreSpacers.Tighter))
