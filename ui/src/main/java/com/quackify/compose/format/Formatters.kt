@@ -2,6 +2,9 @@ package com.quackify.compose.format
 
 import androidx.compose.ui.graphics.Color
 
+import java.text.NumberFormat
+import java.util.Locale
+
 fun formatDuration(ms: Long): String {
     val seconds = ms / 1000
     if (seconds <= 0L) return ""
@@ -27,6 +30,9 @@ fun formatTrackLength(ms: Long): String {
     val seconds = ms / 1000
     return "%d:%02d".format(seconds / 60, seconds % 60)
 }
+
+fun formatExactCount(value: Long): String =
+    NumberFormat.getIntegerInstance(Locale.US).format(value)
 
 fun formatCount(value: Long): String = when {
     value >= 1_000_000_000L -> "%.1fB".format(value / 1_000_000_000.0)
