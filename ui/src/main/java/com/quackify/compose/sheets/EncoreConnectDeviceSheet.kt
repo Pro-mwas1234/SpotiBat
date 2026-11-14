@@ -144,6 +144,12 @@ fun EncoreConnectDeviceSheet(
                     if (currentTrackTitle.isNotBlank()) {
                         Spacer(modifier = Modifier.height(EncoreSpacers.Tighter))
                         Row(verticalAlignment = Alignment.CenterVertically) {
+                            EncorePlayIndicator(
+                                isPlaying = true,
+                                color = EncoreColors.Green,
+                                size = 16.dp
+                            )
+                            Spacer(modifier = Modifier.width(EncoreSpacers.Tighter4))
                             Text(
                                 text = if (currentDeviceName.isBlank()) {
                                     currentTrackTitle
@@ -154,12 +160,6 @@ fun EncoreConnectDeviceSheet(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f)
-                            )
-                            Spacer(modifier = Modifier.width(EncoreSpacers.Tighter4))
-                            EncorePlayIndicator(
-                                isPlaying = true,
-                                color = EncoreColors.Green,
-                                size = 16.dp
                             )
                         }
                     }
