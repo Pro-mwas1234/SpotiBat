@@ -207,7 +207,7 @@ fun EncoreShowScreen(
                     }
 
                     val ratingLabel = if (ratingCount > 0) {
-                        "%.1f ★ • %s ratings".format(rating, formatCount(ratingCount.toLong()))
+                        stringResource(R.string.show_rating, "%.1f".format(rating), formatCount(ratingCount.toLong()))
                     } else {
                         ""
                     }
