@@ -3,6 +3,11 @@ package com.quackify.compose.shell
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.quackify.backend.api.Collection2
 import com.quackify.backend.api.Library
 import com.quackify.backend.core.auth.EncoreAuth
@@ -94,6 +99,23 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
     val local = env.local
     val currentTrackUri = playbackState?.trackUri.orEmpty()
 
+    val sheetArtistFromPlayer = flags.isArtistOptionsFromPlayer
+    val sheetArtistName = if (sheetArtistFromPlayer) local.artistOptionsName else active.artistName
+    val sheetArtistUri = if (sheetArtistFromPlayer) local.artistOptionsUri else active.artistUri
+    val sheetArtistAvatarUrl = if (sheetArtistFromPlayer) {
+        local.artistOptionsAvatarUrl
+    } else {
+        active.artistAvatarUrl
+            ?: env.artistDetail?.imageUrl?.takeIf { it.isNotBlank() }
+            ?: env.artistDetail?.headerImageUrl?.takeIf { it.isNotBlank() }
+    }
+    var artistBannedState by remember { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(flags.isArtistOptionsOpen, sheetArtistUri) {
+        if (!flags.isArtistOptionsOpen) return@LaunchedEffect
+        if (!sheetArtistUri.startsWith("spotify:artist:")) return@LaunchedEffect
+        artistBannedState = runCatching { Collection2.artistBanned(env.context, sheetArtistUri) }.getOrNull()
+    }
+
     val playlistEntity = if (active.playlistUri.isBlank() && active.playlistTitle.isBlank()) null
     else EntityOptions(
         title = env.playlistDetail?.title?.takeIf { it.isNotBlank() } ?: active.playlistTitle,
@@ -140,25 +162,43 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
         albumArtist = active.albumArtist,
         albumCoverUrl = active.albumCoverUrl,
         albumUri = active.albumUri.ifBlank { env.albumDetail?.uri.orEmpty() },
-        artistName = active.artistName,
-        artistAvatarUrl = active.artistAvatarUrl
-            ?: env.artistDetail?.imageUrl?.takeIf { it.isNotBlank() }
-            ?: env.artistDetail?.headerImageUrl?.takeIf { it.isNotBlank() },
-        artistUri = active.artistUri,
+        artistName = sheetArtistName,
+        artistAvatarUrl = sheetArtistAvatarUrl,
+        artistUri = sheetArtistUri,
         artistFollowing = env.artistFollowed == true,
+        artistBanned = artistBannedState == true,
         onArtistFollowToggle = {
-            if (active.artistUri.startsWith("spotify:artist:")) {
-                env.onArtistFollowToggle?.invoke(active.artistUri, env.artistFollowed != true)
+            if (sheetArtistUri.startsWith("spotify:artist:")) {
+                env.onArtistFollowToggle?.invoke(sheetArtistUri, env.artistFollowed != true)
+            }
+        },
+        onDontPlayArtist = toggle@{
+            if (!sheetArtistUri.startsWith("spotify:artist:")) return@toggle
+            val previous = artistBannedState
+            val next = previous != true
+            artistBannedState = next
+            env.shellScope.launch {
+                val ok = Collection2.setArtistBanned(env.context, sheetArtistUri, next)
+                if (!ok) artistBannedState = previous
+                Toast.makeText(
+                    env.context,
+                    when {
+                        ok && next -> "Artist blocked"
+                        ok -> "Artist unblocked"
+                        else -> "Couldn't update this artist"
+                    },
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         },
         onArtistRadio = {
             flags.isArtistOptionsOpen = false
-            val artistUriNow = active.artistUri
+            val artistUriNow = sheetArtistUri
             if (artistUriNow.startsWith("spotify:artist:")) {
                 env.shellScope.launch {
                     val radio = env.onArtistRadio?.invoke(artistUriNow)
                     if (radio != null && radio.startsWith("spotify:playlist:")) {
-                        env.openPlaylist(active.artistName + " Radio", radio)
+                        env.openPlaylist(sheetArtistName + " Radio", radio)
                     }
                 }
             }
@@ -186,7 +226,10 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
         onDismissTrackOptions = { flags.isTrackOptionsOpen = false },
         onDismissPlaylistOptions = { flags.isPlaylistOptionsOpen = false },
         onDismissAlbumOptions = { flags.isAlbumOptionsOpen = false },
-        onDismissArtistOptions = { flags.isArtistOptionsOpen = false },
+        onDismissArtistOptions = {
+            flags.isArtistOptionsOpen = false
+            flags.isArtistOptionsFromPlayer = false
+        },
         onDismissSort = { flags.isSortSheetOpen = false },
         onDismissCreate = { flags.isCreateSheetOpen = false },
         onDismissDevice = { flags.isDeviceSheetOpen = false },
