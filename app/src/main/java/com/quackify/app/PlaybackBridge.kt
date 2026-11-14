@@ -648,9 +648,17 @@ class PlaybackBridge(private val context: Context) {
                     log.w("queue set ignored, no cluster yet")
                     return@launch
                 }
-                if (!writeQueue(uris, cluster)) return@launch
+                val allowed = uris.filter { uri ->
+                    val artist = artistUriOf(uri)
+                    artist.isBlank() || !ArtistBanStore.banned(context, artist)
+                }
+                if (allowed.size < uris.size) {
+                    log.i("queue set: dropped ${uris.size - allowed.size} banned row(s)")
+                }
+                if (allowed.isEmpty()) return@launch
+                if (!writeQueue(allowed, cluster)) return@launch
                 val local = queuedTail.associateBy { it.uri }
-                queuedTail = uris.map { local[it] ?: TrackItem(title = "", artist = "", uri = it) }
+                queuedTail = allowed.map { local[it] ?: TrackItem(title = "", artist = "", uri = it) }
                 publishQueue(cluster)
                 connect.refreshCluster()
             }
@@ -1639,6 +1647,11 @@ class PlaybackBridge(private val context: Context) {
     private fun queueAdd(uri: String) {
         scope.launch {
             if (uri.isBlank()) return@launch
+            val bannedArtist = artistUriOf(uri).takeIf { it.isNotBlank() }
+            if (bannedArtist != null && ArtistBanStore.banned(context, bannedArtist)) {
+                log.i("queue: '$uri' refused, artist '$bannedArtist' is banned")
+                return@launch
+            }
             if (queuedTail.none { it.uri == uri }) {
                 queuedTail = queuedTail + TrackItem(title = "", artist = "", uri = uri)
             }
@@ -3238,12 +3251,15 @@ class PlaybackBridge(private val context: Context) {
                 (clusterContext == context || (single && context.isBlank()))
         val smartActive = smartOn(cluster)
         val serverTracks = if (server && follows) {
-            if (smartActive) cluster!!.fromContext else cluster!!.fromContext.filterNot { it.isEnhanced }
+            if (smartActive) cluster!!.fromContext else cluster!!.fromContext
+                .filterNot { it.isEnhanced }
+                .filterNot { bannedCachedUri(it.uri) }
         } else emptyList()
         val serverRows = serverTracks.map { it.asTrackItem() }
         val localRows = sessionQueue
             .takeIf { sessionQueueContext == context && it.isNotEmpty() }
             ?.map { uri -> decorated[uri] ?: TrackItem(title = "", artist = "", uri = uri) }
+            ?.filterNot { bannedCachedUri(it.uri) }
             .orEmpty()
         val contextRows = localRows.ifEmpty { serverRows }
         val radio = server && follows &&
@@ -3254,12 +3270,13 @@ class PlaybackBridge(private val context: Context) {
             }.ifBlank { playlistLabelOf(context) }
         } else ""
         val queued = if (server) {
-            val onServer = cluster!!.queued.map { it.asTrackItem() }
+            val onServer = cluster!!.queued.map { it.asTrackItem() }.filterNot { bannedCachedUri(it.uri) }
             val known = onServer.mapTo(HashSet()) { it.uri }
             (onServer + queuedTail.filterNot { it.uri in known })
+                .filterNot { bannedCachedUri(it.uri) }
                 .map { if (it.title.isBlank()) decorated[it.uri] ?: it else it }
         } else {
-            queuedTail
+            queuedTail.filterNot { bannedCachedUri(it.uri) }
         }
         val queuedUris = buildSet {
             if (server) cluster!!.queued.forEach { add(it.uri) }
@@ -3274,7 +3291,7 @@ class PlaybackBridge(private val context: Context) {
                 else -> -1
             }
             if (from >= 0) {
-                chain.drop(from).filterNot { it in queuedUris }.take(20)
+                chain.drop(from).filterNot { it in queuedUris }.filterNot { bannedCachedUri(it) }.take(20)
             } else {
                 emptyList()
             }
@@ -3287,6 +3304,7 @@ class PlaybackBridge(private val context: Context) {
             enhancedUpcoming(context, anchor)
                 .asSequence()
                 .filterNot { it.uri in queuedUris }
+                .filterNot { bannedCachedUri(it.uri) }
                 .map { it.uri }
                 .distinct()
                 .take(20)
