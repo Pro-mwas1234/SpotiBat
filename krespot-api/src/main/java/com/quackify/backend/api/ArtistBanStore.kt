@@ -10,15 +10,18 @@ object ArtistBanStore {
 
     suspend fun banned(context: Context, artistUri: String): Boolean {
         if (!artistUri.startsWith("spotify:artist:")) return false
-        val now = SystemClock.elapsedRealtime()
-        if (now - fetchedAt > TTL_MS) {
-            val fresh = runCatching { Collection2.items(context, Collection2.ARTIST_BAN).toSet() }.getOrNull()
-            if (fresh != null) {
-                uris = fresh
-                fetchedAt = now
-            }
-        }
+        warm(context)
         return artistUri in uris
+    }
+
+    suspend fun warm(context: Context) {
+        val now = SystemClock.elapsedRealtime()
+        if (now - fetchedAt <= TTL_MS) return
+        val fresh = runCatching { Collection2.items(context, Collection2.ARTIST_BAN).toSet() }.getOrNull()
+        if (fresh != null) {
+            uris = fresh
+            fetchedAt = now
+        }
     }
 
     fun bannedCached(artistUri: String): Boolean =
