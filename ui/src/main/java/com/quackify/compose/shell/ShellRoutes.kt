@@ -42,6 +42,8 @@ import com.quackify.compose.sheets.LibrarySortOption
 import com.quackify.compose.sheets.SortDirection
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.quackify.compose.R
 
 internal class ShellRouteEnv(
     val active: ShellActiveEntity,
@@ -720,7 +722,7 @@ internal fun ShellFolderRoute(
     ShellFolderPane(
         items = items,
         loading = loading,
-        title = env.active.folderTitle.ifBlank { "Your Library" },
+        title = env.active.folderTitle.ifBlank { stringResource(R.string.your_library) },
         userDisplayName = env.userDisplayName,
         userAvatarUrl = env.userAvatarUrl,
         userColorHex = env.userColorHex,
@@ -797,7 +799,7 @@ internal fun ShellProfileRoute(
                 card.uri.startsWith("spotify:playlist:") -> env.openPlaylist(card.title, card.uri)
             }
         },
-        contextsTitle = if (profile?.isCurrentUser == false) "Public playlists" else "Recently played",
+        contextsTitle = if (profile?.isCurrentUser == false) stringResource(R.string.public_playlists) else stringResource(R.string.recently_played),
         fallbackName = if (profile?.isCurrentUser == false) profile.name else env.userDisplayName,
         avatarUrl = when {
             profile == null -> env.userAvatarUrl
