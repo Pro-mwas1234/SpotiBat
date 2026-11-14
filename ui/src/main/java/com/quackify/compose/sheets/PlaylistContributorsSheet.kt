@@ -349,6 +349,7 @@ private fun rankOf(member: PlaylistMember): Int = when (member.permissionLevel) 
     else -> 3
 }
 
+@Composable
 private fun statusOf(member: PlaylistMember): String = when {
     member.isOwner -> stringResource(R.string.owner)
     member.permissionLevel == PlaylistMember.PERMISSION_CONTRIBUTOR -> stringResource(R.string.contributor)
