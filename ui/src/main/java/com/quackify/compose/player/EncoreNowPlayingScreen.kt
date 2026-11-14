@@ -22,6 +22,7 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -236,6 +237,7 @@ fun EncoreNowPlayingScreen(
     onShareClick: () -> Unit = {},
     onTitleClick: () -> Unit = {},
     onArtistClick: () -> Unit = {},
+    onArtistLongClick: (() -> Unit)? = null,
     canvasFilePath: String? = null,
     isCanvasAllowed: Boolean = true,
     isCanvasEnabled: Boolean = false,
@@ -581,6 +583,7 @@ fun EncoreNowPlayingScreen(
                             showSmartShuffleBadge = isEnhancedTrack,
                             onTitleClick = onTitleClick,
                             onArtistClick = onArtistClick,
+                            onArtistLongClick = onArtistLongClick,
                             onLikeClick = onLikeClick,
                             onBanClick = onBanClick
                         )
@@ -775,6 +778,7 @@ fun EncoreNowPlayingScreen(
                                 showSmartShuffleBadge = isEnhancedTrack,
                                 onTitleClick = onTitleClick,
                                 onArtistClick = onArtistClick,
+                                onArtistLongClick = onArtistLongClick,
                                 onLikeClick = onLikeClick,
                                 onBanClick = onBanClick,
                                 coverUrl = if (canvasImmersive) coverUrl else null
@@ -1471,6 +1475,7 @@ private fun NowPlayingSyncedLyricLine(
  * Reference: track_info_nowplaying_view.xml & revised_template_overlay.xml (@id/track_info_feedback_container)
  * Live dump: track_info_view_title [63, 1598], feedback_buttons_container [765, 1596][1038, 1722]
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun NowPlayingTrackInfoRow(
     title: String,
@@ -1480,6 +1485,7 @@ private fun NowPlayingTrackInfoRow(
     showSmartShuffleBadge: Boolean,
     onTitleClick: () -> Unit,
     onArtistClick: () -> Unit,
+    onArtistLongClick: (() -> Unit)? = null,
     onLikeClick: () -> Unit,
     onBanClick: (() -> Unit)? = null,
     coverUrl: String? = null,
@@ -1538,7 +1544,10 @@ private fun NowPlayingTrackInfoRow(
                     style = EncoreTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = 0.70f)),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.clickable(onClick = onArtistClick)
+                    modifier = Modifier.combinedClickable(
+                        onClick = onArtistClick,
+                        onLongClick = onArtistLongClick
+                    )
                 )
             }
         }
