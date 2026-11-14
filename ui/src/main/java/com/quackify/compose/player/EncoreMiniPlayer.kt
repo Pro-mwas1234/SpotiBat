@@ -249,7 +249,7 @@ fun EncoreMiniPlayer(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "$connectedDeviceName • $artist",
+                                        text = stringResource(R.string.connected_device_artist, connectedDeviceName, artist),
                                         style = EncoreTheme.typography.marginal.copy(
                                             color = EncoreColors.Green
                                         ),
@@ -281,7 +281,7 @@ fun EncoreMiniPlayer(
 
                 EncoreIconButton(
                     iconRes = connectIconRes,
-                    contentDescription = if (hasConnectedDevice) "Connected to $connectedDeviceName" else "Connect to device",
+                    contentDescription = if (hasConnectedDevice) stringResource(R.string.connected_to_device, connectedDeviceName) else stringResource(R.string.connect_to_device),
                     onClick = onDeviceClick,
                     size = EncoreControlSizes.FloatingPlayerButtonSize,
                     iconSize = 20.dp,
