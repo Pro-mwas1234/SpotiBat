@@ -2,6 +2,7 @@ package com.quackify.compose.sheets
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -80,6 +81,7 @@ fun EncoreQueueSheet(
     onReorderQueue: (List<TrackItem>) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    BackHandler { onDismissRequest() }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val listState = rememberLazyListState()
     val haptics = LocalHapticFeedback.current
@@ -106,7 +108,7 @@ fun EncoreQueueSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        properties = DarkSystemBarsSheet,
+        properties = BackNotDismissSheet,
         sheetState = sheetState,
         containerColor = EncoreColors.Background,
         contentColor = EncoreColors.TextPrimary,
