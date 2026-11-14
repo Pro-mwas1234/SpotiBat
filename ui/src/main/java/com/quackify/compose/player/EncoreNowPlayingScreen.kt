@@ -86,6 +86,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.input.pointer.positionChangeIgnoreConsumed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalConfiguration
@@ -442,7 +443,7 @@ fun EncoreNowPlayingScreen(
                         val event = awaitPointerEvent(PointerEventPass.Final)
                         val change = event.changes.firstOrNull { it.id == down.id } ?: break
                         if (change.isConsumed) consumed = true
-                        dragDistance += change.positionChange().getDistance()
+                        dragDistance += change.positionChangeIgnoreConsumed().getDistance()
                         if (canvasImmersive && !canvasControlsRevealed && dragDistance > viewConfiguration.touchSlop) {
                             canvasControlsRevealed = true
                         }
