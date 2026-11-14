@@ -3,6 +3,7 @@ package com.quackify.compose.sheets
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -75,6 +76,8 @@ fun PlaylistContributorsSheet(
 ) {
     if (!isOpen) return
 
+    BackHandler { onDismiss() }
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     var addSearchOpen by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
@@ -114,7 +117,7 @@ fun PlaylistContributorsSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DarkSystemBarsSheet,
+        properties = BackNotDismissSheet,
         sheetState = sheetState,
         containerColor = EncoreColors.Card,
         dragHandle = {
