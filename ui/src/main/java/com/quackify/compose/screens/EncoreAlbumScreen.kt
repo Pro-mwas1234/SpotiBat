@@ -761,7 +761,7 @@ private fun AlbumTrackRow(
 ) {
     val isBanned = com.quackify.compose.bans.ArtistBans.isBanned(track.artistUri)
     SwipeToQueueBox(
-        onAddToQueue = onAddToQueue,
+        onAddToQueue = onAddToQueue?.takeIf { !isBanned },
         modifier = modifier
     ) {
         Row(
@@ -841,12 +841,14 @@ private fun AlbumTrackRow(
                 )
             }
 
-            EncoreHeartButton(
-                isLiked = track.saved == true,
-                onLikeToggle = onLikeToggle,
-                size = 36.dp,
-                iconSize = 20.dp
-            )
+            if (!isBanned) {
+                EncoreHeartButton(
+                    isLiked = track.saved == true,
+                    onLikeToggle = onLikeToggle,
+                    size = 36.dp,
+                    iconSize = 20.dp
+                )
+            }
 
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_more_android_24,
