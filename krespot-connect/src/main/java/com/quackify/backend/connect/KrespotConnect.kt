@@ -76,7 +76,6 @@ private const val CONNECT_TRANSFER_URI = "hm://connect-state/v1/connect/transfer
 /** How often the connect-state player member is re-published while polling. */
 private const val MEMBER_PUT_MS = 60_000L
 
-/** Re-mint the access token before dialling when less than this is left. */
 private const val TOKEN_RENEW_MS = 60_000L
 
 /** Window sizes the native clients cap their published queue at. */
@@ -181,12 +180,6 @@ class KrespotConnect(private val context: Context) {
         return (1000L shl shift).coerceAtMost(15_000L)
     }
 
-    /**
-     * The cached access token is used as-is unless it is expired or about to
-     * expire, in which case a fresh one is minted before dialling. Without
-     * this a token that expired while the app sat in the background would
-     * ride every reconnect until a 401 happened to be recognised.
-     */
     private suspend fun usableToken(): String {
         val left = EncoreAuth.tokenRemainingMs(context)
         if (left == -1L || left >= TOKEN_RENEW_MS) return EncoreAuth.token(context)
