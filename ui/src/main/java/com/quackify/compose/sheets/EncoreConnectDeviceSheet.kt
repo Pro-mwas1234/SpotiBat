@@ -72,6 +72,7 @@ fun EncoreConnectDeviceSheet(
     currentDeviceName: String,
     currentTrackTitle: String,
     currentDeviceKind: DeviceKind?,
+    currentDeviceLocal: Boolean,
     onSelectDevice: (EncoreDevice) -> Unit,
     devices: List<EncoreDevice> = emptyList(),
     modifier: Modifier = Modifier
@@ -133,16 +134,22 @@ fun EncoreConnectDeviceSheet(
                         text = currentDeviceName.ifBlank { stringResource(R.string.this_phone) },
                         style = EncoreTheme.typography.bodyMediumBold.copy(color = EncoreColors.TextPrimary)
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = Build.MODEL,
-                        style = EncoreTheme.typography.marginal.copy(color = EncoreColors.TextSecondary)
-                    )
+                    if (currentDeviceName.isBlank()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = Build.MODEL,
+                            style = EncoreTheme.typography.marginal.copy(color = EncoreColors.TextSecondary)
+                        )
+                    }
                     if (currentTrackTitle.isNotBlank()) {
                         Spacer(modifier = Modifier.height(EncoreSpacers.Tighter))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = currentTrackTitle,
+                                text = if (currentDeviceName.isBlank()) {
+                                    currentTrackTitle
+                                } else {
+                                    stringResource(R.string.track_on_device, currentTrackTitle, currentDeviceName)
+                                },
                                 style = EncoreTheme.typography.marginal.copy(color = EncoreColors.TextSecondary),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -161,7 +168,7 @@ fun EncoreConnectDeviceSheet(
                 Spacer(modifier = Modifier.width(EncoreSpacers.Base))
 
                 Icon(
-                    painter = painterResource(id = currentDeviceIconRes(currentDeviceKind)),
+                    painter = painterResource(id = currentDeviceIconRes(currentDeviceKind, currentDeviceLocal)),
                     contentDescription = stringResource(R.string.active_device),
                     tint = EncoreColors.TextPrimary,
                     modifier = Modifier.size(36.dp)
@@ -241,7 +248,7 @@ private fun DeviceRow(
 @Composable
 fun ConnectDevice.toEncoreDevice(): EncoreDevice = EncoreDevice(
     id = id,
-    name = name.ifBlank { stringResource(R.string.unknown_device) },
+    name = if (local) stringResource(R.string.this_phone) else name.ifBlank { stringResource(R.string.unknown_device) },
     type = when (kind) {
         DeviceKind.PHONE, DeviceKind.TABLET, DeviceKind.HEADPHONES -> DeviceType.PHONE
         DeviceKind.COMPUTER -> DeviceType.COMPUTER
@@ -256,15 +263,15 @@ fun ConnectDevice.toEncoreDevice(): EncoreDevice = EncoreDevice(
     local = local
 )
 
-private fun currentDeviceIconRes(kind: DeviceKind?): Int = when (kind) {
-    DeviceKind.HEADPHONES -> R.drawable.encore_icon_device_headphones_24
-    DeviceKind.PHONE, DeviceKind.TABLET -> R.drawable.encore_icon_device_mobile_24
-    DeviceKind.SPEAKER, DeviceKind.RECEIVER -> R.drawable.encore_icon_device_speaker_24
-    DeviceKind.TV, DeviceKind.STICK -> R.drawable.encore_icon_device_tv_24
-    DeviceKind.CAR -> R.drawable.encore_icon_device_car_24
-    DeviceKind.CAST -> R.drawable.encore_icon_chromecast_connected_24
-    DeviceKind.COMPUTER, DeviceKind.CONSOLE, DeviceKind.DONGLE, DeviceKind.UNKNOWN, null ->
-        R.drawable.encore_icon_devices_24
+private fun currentDeviceIconRes(kind: DeviceKind?, isLocal: Boolean): Int = when {
+    isLocal -> R.drawable.encore_icon_device_mobile_24
+    kind == DeviceKind.HEADPHONES -> R.drawable.encore_icon_device_headphones_24
+    kind == DeviceKind.PHONE || kind == DeviceKind.TABLET -> R.drawable.encore_icon_device_mobile_24
+    kind == DeviceKind.SPEAKER || kind == DeviceKind.RECEIVER -> R.drawable.encore_icon_device_speaker_24
+    kind == DeviceKind.TV || kind == DeviceKind.STICK -> R.drawable.encore_icon_device_tv_24
+    kind == DeviceKind.CAR -> R.drawable.encore_icon_device_car_24
+    kind == DeviceKind.CAST -> R.drawable.encore_icon_chromecast_connected_24
+    else -> R.drawable.encore_icon_devices_24
 }
 
 @Preview
@@ -276,6 +283,7 @@ fun PreviewEncoreConnectDeviceSheet() {
             currentDeviceName = "",
             currentTrackTitle = "Blinding Lights",
             currentDeviceKind = null,
+            currentDeviceLocal = true,
             onSelectDevice = {}
         )
     }
