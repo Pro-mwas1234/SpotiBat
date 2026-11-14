@@ -150,7 +150,9 @@ fun EncoreArtistScreen(
     /** The artist's real follow state from the library; the pill only flips
      *  once addToLibrary/removeFromLibrary has answered. */
     isFollowing: Boolean = false,
-    onFollowToggle: (Boolean) -> Unit = {}
+    onFollowToggle: (Boolean) -> Unit = {},
+    isBanned: Boolean = false,
+    onUnbanClick: () -> Unit = {}
 ) {
     val density = LocalDensity.current
     var isShuffle by remember { mutableStateOf(false) }
@@ -407,6 +409,23 @@ fun EncoreArtistScreen(
                                 tint = EncoreColors.TextSecondary,
                                 modifier = Modifier.size(22.dp)
                             )
+                        }
+
+                        if (isBanned) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .clickable(onClick = onUnbanClick),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.encore_icon_ban_24),
+                                    contentDescription = "Blocked artist, tap to allow",
+                                    tint = EncoreColors.TextSecondary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
                         }
                     }
 
