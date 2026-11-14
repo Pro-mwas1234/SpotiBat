@@ -517,7 +517,7 @@ fun EncoreTrackRow(
 
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_more_android_24,
-                contentDescription = "More options for $title",
+                contentDescription = stringResource(R.string.more_options_for, title),
                 onClick = onMoreClick,
                 size = 36.dp,
                 iconSize = 20.dp
