@@ -258,6 +258,13 @@ internal fun BoxScope.ShellPlayerLayer(env: ShellPlayerEnv) {
         onArtistClick = {
             env.setIsPlayerExpanded(false)
             env.openArtist(env.currentArtist, env.resolvedArtistUri)
+        },
+        onArtistLongClick = {
+            env.local.artistOptionsName = env.currentArtist
+            env.local.artistOptionsUri = env.resolvedArtistUri
+            env.local.artistOptionsAvatarUrl = null
+            env.flags.isArtistOptionsFromPlayer = true
+            env.flags.isArtistOptionsOpen = true
         }
     )
 }
