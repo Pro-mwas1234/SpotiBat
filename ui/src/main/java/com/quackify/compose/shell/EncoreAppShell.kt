@@ -22,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalContext
 import com.quackify.backend.api.Collection2
-import com.quackify.backend.api.Library
 import com.quackify.backend.core.auth.EncoreAuth
 import com.quackify.backend.core.net.Pathfinder
 import com.quackify.backend.model.AlbumDetail
@@ -372,7 +371,6 @@ fun EncoreAppShell(
     }
 
     var trackTasteExcluded by local::trackTasteExcluded
-    var trackOptionsSaved by local::trackOptionsSaved
     var trackOptionsPlays by local::trackOptionsPlays
     val tasteExclusionCache = remember { mutableMapOf<String, Boolean>() }
     var currentSortOption by local::sortOption
@@ -427,12 +425,10 @@ fun EncoreAppShell(
         val uri = selectedTrackForOptions?.uri.orEmpty()
         if (!flags.isTrackOptionsOpen || !uri.startsWith("spotify:track:")) {
             trackTasteExcluded = null
-            trackOptionsSaved = null
             trackOptionsPlays = null
             return@LaunchedEffect
         }
         trackTasteExcluded = tasteExclusionCache[uri]
-        trackOptionsSaved = null
         trackOptionsPlays = selectedTrackForOptions?.plays?.takeIf { it > 0L }
         if (trackOptionsPlays == null) {
             val variables = org.json.JSONObject()
@@ -450,14 +446,6 @@ fun EncoreAppShell(
             if (uri == selectedTrackForOptions?.uri) {
                 tasteExclusionCache[uri] = excluded
                 trackTasteExcluded = excluded
-            }
-        }
-        if (uri == playbackState?.trackUri) {
-            trackOptionsSaved = playbackState?.isLiked
-        } else {
-            val saved = Library.saved(context, listOf(uri))
-            if (uri == selectedTrackForOptions?.uri) {
-                trackOptionsSaved = uri in saved
             }
         }
     }
