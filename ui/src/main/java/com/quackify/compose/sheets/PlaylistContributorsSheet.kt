@@ -75,7 +75,7 @@ fun PlaylistContributorsSheet(
 ) {
     if (!isOpen) return
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     var addSearchOpen by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var searching by remember { mutableStateOf(false) }
