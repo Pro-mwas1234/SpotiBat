@@ -3,6 +3,7 @@ package com.quackify.compose.sheets
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -85,13 +86,14 @@ fun EncoreConnectDeviceSheet(
     onVolumeChange: (String, Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
+    BackHandler { onDismissRequest() }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     var volume by remember { mutableFloatStateOf(initialVolume.coerceIn(0f, 1f)) }
     val volumeEnabled = devices.firstOrNull { it.isCurrent }?.local ?: true
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        properties = DarkSystemBarsSheet,
+        properties = BackNotDismissSheet,
         sheetState = sheetState,
         containerColor = EncoreColors.Card,
         contentColor = EncoreColors.TextPrimary,
