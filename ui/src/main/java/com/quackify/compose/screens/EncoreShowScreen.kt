@@ -513,6 +513,7 @@ private fun RelatedShowCard(card: ShowCard, onClick: () -> Unit) {
     }
 }
 
+@Composable
 private fun episodeSubtitle(episode: EpisodeRow): String {
     val parts = ArrayList<String>(4)
     if (episode.played) {
