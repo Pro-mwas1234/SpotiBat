@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.quackify.backend.api.ArtistBanStore
 import com.quackify.app.bridge.QueueNavigatorState
 import com.quackify.app.bridge.QueueTarget
 import com.quackify.app.bridge.UriSources
@@ -2453,6 +2454,11 @@ class PlaybackBridge(private val context: Context) {
     }
 
     private suspend fun playTrack(uri: String, contextUri: String, hint: Int) {
+        val bannedArtist = artistUriOf(uri)
+        if (bannedArtist.isNotBlank() && ArtistBanStore.banned(context, bannedArtist)) {
+            log.i("playTrack '$uri' blocked, artist '$bannedArtist' is banned")
+            return
+        }
         val cluster = connect.cluster.value
         if (cluster != null && contextUri.isNotBlank()) {
             val window = cluster.window()
