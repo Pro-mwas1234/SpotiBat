@@ -759,6 +759,7 @@ private fun AlbumTrackRow(
     onAddToQueue: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val isBanned = com.quackify.compose.bans.ArtistBans.isBanned(track.artistUri)
     SwipeToQueueBox(
         onAddToQueue = onAddToQueue,
         modifier = modifier
@@ -801,7 +802,11 @@ private fun AlbumTrackRow(
                     text = track.title,
                     style = EncoreTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        color = if (isPlaying) EncoreColors.Green else EncoreColors.TextPrimary
+                        color = when {
+                            isPlaying -> EncoreColors.Green
+                            isBanned -> EncoreColors.TextSecondary.copy(alpha = 0.55f)
+                            else -> EncoreColors.TextPrimary
+                        }
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -817,7 +822,10 @@ private fun AlbumTrackRow(
 
                     Text(
                         text = track.artist,
-                        style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
+                        style = EncoreTheme.typography.bodySmall.copy(
+                            color = EncoreColors.TextSecondary.takeIf { !isBanned }
+                                ?: EncoreColors.TextSecondary.copy(alpha = 0.55f)
+                        ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
