@@ -862,7 +862,7 @@ fun EncoreSearchScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "Couldn't find \"$searchQuery\"",
+                            text = stringResource(R.string.couldnt_find_query, searchQuery),
                             style = EncoreTheme.typography.titleLarge,
                             textAlign = TextAlign.Center
                         )
@@ -1253,7 +1253,7 @@ fun EncoreSearchScreen(
                                         InlineLoadingDots(color = EncoreColors.TextSecondary)
                                     } else {
                                         Text(
-                                            text = "No ${kindLabel(tabKind)} found for \"$searchQuery\"",
+                                            text = stringResource(R.string.no_kind_found_for_query, kindLabel(tabKind), searchQuery),
                                             style = EncoreTheme.typography.bodyMedium.copy(
                                                 color = EncoreColors.TextSecondary
                                             ),
@@ -1686,7 +1686,7 @@ private fun PlaylistRow(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "Playlist • By ${playlist.creator}",
+                text = stringResource(R.string.playlist_by_creator, playlist.creator),
                 style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
