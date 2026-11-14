@@ -213,6 +213,7 @@ fun ArtistOptionsSheet(
     isFollowing: Boolean = false,
     onFollowToggle: () -> Unit = {},
     onGoToRadio: () -> Unit = {},
+    isBanned: Boolean = false,
     onDontPlayArtist: () -> Unit = {},
     onShare: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -298,7 +299,7 @@ fun ArtistOptionsSheet(
             )
 
             ContextMenuRowItem(
-                title = "Don't play this artist",
+                title = if (isBanned) "Allow this artist to play" else "Don't play this artist",
                 iconRes = R.drawable.encore_icon_ban_24,
                 onClick = {
                     onDismiss()
