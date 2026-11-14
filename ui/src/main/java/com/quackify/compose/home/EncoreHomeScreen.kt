@@ -52,6 +52,7 @@ import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.theme.rememberBottomPadding
 import java.util.Calendar
+import androidx.compose.ui.res.stringResource
 
 data class QuickAccessItem(
     val title: String,
@@ -125,7 +126,7 @@ fun EncoreHomeScreen(
 
     val filterChips = remember(chips) {
         buildList {
-            add(HomeChip(id = "", label = "All"))
+            add(HomeChip(id = "", label = stringResource(R.string.all)))
             addAll(chips)
         }
     }
@@ -287,7 +288,7 @@ fun EncoreHomeScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Couldn't load your feed",
+                            text = stringResource(R.string.couldn_t_load_your_feed),
                             style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextSecondary)
                         )
                     }
@@ -641,7 +642,7 @@ private fun ArtistShelfSection(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Artist",
+                        text = stringResource(R.string.artist),
                         style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary)
                     )
                 }
@@ -727,9 +728,9 @@ private fun getGreeting(name: String, feedGreeting: String = ""): String {
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     val base = feedGreeting.ifBlank {
         when (hour) {
-            in 5..11 -> "Good morning"
-            in 12..17 -> "Good afternoon"
-            else -> "Good evening"
+            in 5..11 -> stringResource(R.string.good_morning)
+            in 12..17 -> stringResource(R.string.good_afternoon)
+            else -> stringResource(R.string.good_evening)
         }
     }
     val who = name.trim()
