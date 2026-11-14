@@ -29,6 +29,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.quackify.app.search.decorateSearchTracks
 import com.quackify.backend.api.Browse
+import com.quackify.backend.api.Collection2
 import com.quackify.backend.api.HomeFeed
 import com.quackify.backend.api.Library
 import com.quackify.backend.api.Podcasts
@@ -233,6 +234,7 @@ class MainActivity : ComponentActivity() {
     private var artistReleases by mutableStateOf<List<ArtistRelease>?>(null)
     private var artistListeners by mutableStateOf<String?>(null)
     private var artistFollowed by mutableStateOf<Boolean?>(null)
+    private var artistBanned by mutableStateOf<Boolean?>(null)
     internal var nowPlayingArtist by mutableStateOf<ArtistDetail?>(null)
     internal var nowPlayingArtistFollowed by mutableStateOf<Boolean?>(null)
     internal var nowPlayingLyrics by mutableStateOf<TrackLyrics?>(null)
@@ -653,6 +655,7 @@ class MainActivity : ComponentActivity() {
                                 artistReleases = null
                                 artistListeners = null
                                 artistFollowed = null
+                                artistBanned = null
                                 artistLoading = false
                                 artistFailed = false
                                 return@LaunchedEffect
@@ -663,6 +666,7 @@ class MainActivity : ComponentActivity() {
                             artistReleases = null
                             artistListeners = null
                             artistFollowed = null
+                            artistBanned = null
                             artistFailed = false
                             artistLoading = true
                             try {
@@ -674,6 +678,7 @@ class MainActivity : ComponentActivity() {
                                 artistReleases = load.releases
                                 artistListeners = load.listeners
                                 artistFollowed = load.followed
+                                artistBanned = runCatching { Collection2.artistBanned(context, uri) }.getOrNull()
                             } finally {
                                 artistLoading = false
                             }
@@ -1593,6 +1598,16 @@ class MainActivity : ComponentActivity() {
         artistReleases = artistReleases,
         artistMonthlyListeners = artistListeners,
         artistFollowed = artistFollowed,
+        artistBanned = artistBanned,
+        onArtistUnban = { uri ->
+            scope.launch {
+                val ok = Collection2.setArtistBanned(context, uri, false)
+                if (ok && uri == artistUri) artistBanned = false
+            }
+        },
+        onArtistBanChanged = { uri, banned ->
+            if (uri == artistUri) artistBanned = banned
+        },
         onArtistFollowToggle = { uri, follow ->
             scope.launch {
                 val ok = setArtistFollow(uri, follow)
