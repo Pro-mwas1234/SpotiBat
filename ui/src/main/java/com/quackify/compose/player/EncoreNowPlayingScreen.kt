@@ -126,6 +126,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.util.rememberDominantColor
+import androidx.compose.ui.res.stringResource
 
 private const val LANDSCAPE_ARTWORK_PANE_WEIGHT = 0.40f
 private const val LANDSCAPE_CONTROLS_PANE_WEIGHT = 0.60f
@@ -501,8 +502,8 @@ fun EncoreNowPlayingScreen(
             LocalOverscrollConfiguration provides null
         ) {
             val resolvedContextTitle = contextHeaderTitle ?: when {
-                albumOrPlaylistContext.isBlank() || albumOrPlaylistContext.equals("Recommended for you", ignoreCase = true) -> "Recommended for you"
-                else -> "Playing from playlist"
+                albumOrPlaylistContext.isBlank() || albumOrPlaylistContext.equals("Recommended for you", ignoreCase = true) -> stringResource(R.string.recommended_for_you)
+                else -> stringResource(R.string.playing_from_playlist)
             }
             val hasSubtitle = albumOrPlaylistContext.isNotBlank() && !albumOrPlaylistContext.equals("Recommended for you", ignoreCase = true)
 
@@ -1079,7 +1080,7 @@ private fun NowPlayingHeaderRow(
     ) {
         EncoreIconButton(
             iconRes = R.drawable.encore_icon_chevron_down_24,
-            contentDescription = "Collapse player",
+            contentDescription = stringResource(R.string.collapse_player),
             onClick = onCollapseClick,
             tint = ink,
             size = 48.dp,
@@ -1118,7 +1119,7 @@ private fun NowPlayingHeaderRow(
 
         EncoreIconButton(
             iconRes = R.drawable.encore_icon_more_android_24,
-            contentDescription = "More options",
+            contentDescription = stringResource(R.string.more_options),
             onClick = onMoreClick,
             tint = ink,
             size = 48.dp,
@@ -1226,7 +1227,7 @@ private fun NowPlayingArtworkCard(
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.encore_icon_fullscreen_24),
-                                        contentDescription = "Toggle fullscreen video",
+                                        contentDescription = stringResource(R.string.toggle_fullscreen_video),
                                         tint = Color.White,
                                         modifier = Modifier.size(18.dp)
                                     )
@@ -1241,7 +1242,7 @@ private fun NowPlayingArtworkCard(
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.encore_icon_settings_24),
-                                            contentDescription = "Video quality",
+                                            contentDescription = stringResource(R.string.video_quality),
                                             tint = Color.White,
                                             modifier = Modifier.size(18.dp)
                                         )
@@ -1251,7 +1252,7 @@ private fun NowPlayingArtworkCard(
                                         onDismiss = { menuOpen = false },
                                     ) {
                                         EncoreMenuItem(
-                                            label = "Auto",
+                                            label = stringResource(R.string.auto),
                                             onClick = {
                                                 onVideoQuality(0)
                                                 menuOpen = false
@@ -1370,7 +1371,7 @@ private fun MusicVideoSwitchRow(
             .padding(horizontal = 24.dp)
     ) {
         MusicVideoSwitchPill(
-            label = if (active) "Audio" else "Music video",
+            label = if (active) stringResource(R.string.audio) else stringResource(R.string.music_video),
             iconRes = if (active) R.drawable.encore_icon_audio_24 else R.drawable.encore_icon_video_24,
             switching = switching,
             onClick = { onSwitch(!active) }
@@ -1532,7 +1533,7 @@ private fun NowPlayingTrackInfoRow(
                 if (showSmartShuffleBadge) {
                     Icon(
                         painter = painterResource(id = R.drawable.encore_icon_enhance_badge_16),
-                        contentDescription = "Smart Shuffle on",
+                        contentDescription = stringResource(R.string.smart_shuffle_on),
                         tint = EncoreColors.Green,
                         modifier = Modifier
                             .padding(end = 6.dp)
@@ -1556,7 +1557,7 @@ private fun NowPlayingTrackInfoRow(
             if (onBanClick != null) {
                 EncoreIconButton(
                     iconRes = R.drawable.encore_icon_ban_24,
-                    contentDescription = "Don't play this",
+                    contentDescription = stringResource(R.string.don_t_play_this),
                     onClick = onBanClick,
                     tint = Color.White.copy(alpha = 0.70f),
                     size = 48.dp,
@@ -1664,7 +1665,7 @@ private fun EpisodeControlsRow(
 
         EncoreIconButton(
             iconRes = R.drawable.encore_icon_seek_back_15,
-            contentDescription = "Back 15 seconds",
+            contentDescription = stringResource(R.string.back_15_seconds),
             onClick = { onSkipSeek(-15_000L) },
             tint = EncoreColors.TextPrimary,
             size = 48.dp,
@@ -1673,7 +1674,7 @@ private fun EpisodeControlsRow(
 
         EncoreIconButton(
             iconRes = R.drawable.encore_icon_skip_back_24,
-            contentDescription = "Previous",
+            contentDescription = stringResource(R.string.previous),
             onClick = onSkipPreviousClick,
             tint = EncoreColors.TextPrimary,
             size = 44.dp,
@@ -1692,7 +1693,7 @@ private fun EpisodeControlsRow(
 
         EncoreIconButton(
             iconRes = R.drawable.encore_icon_skip_forward_24,
-            contentDescription = "Next",
+            contentDescription = stringResource(R.string.next),
             onClick = onSkipNextClick,
             tint = EncoreColors.TextPrimary,
             size = 48.dp,
@@ -1701,7 +1702,7 @@ private fun EpisodeControlsRow(
 
         EncoreIconButton(
             iconRes = R.drawable.encore_icon_seek_forward_15,
-            contentDescription = "Forward 15 seconds",
+            contentDescription = stringResource(R.string.forward_15_seconds),
             onClick = { onSkipSeek(15_000L) },
             tint = EncoreColors.TextPrimary,
             size = 48.dp,
@@ -1796,7 +1797,7 @@ private fun NowPlayingControlsRow(
 
         EncoreIconButton(
             iconRes = R.drawable.encore_icon_skip_back_24,
-            contentDescription = "Previous",
+            contentDescription = stringResource(R.string.previous),
             onClick = onSkipPreviousClick,
             tint = EncoreColors.TextPrimary,
             size = 48.dp,
@@ -1816,7 +1817,7 @@ private fun NowPlayingControlsRow(
 
         EncoreIconButton(
             iconRes = R.drawable.encore_icon_skip_forward_24,
-            contentDescription = "Next",
+            contentDescription = stringResource(R.string.next),
             onClick = onSkipNextClick,
             tint = EncoreColors.TextPrimary,
             size = 48.dp,
@@ -1860,7 +1861,7 @@ private fun NowPlayingFooterRow(
         ) {
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_devices_24,
-                contentDescription = "Connected devices",
+                contentDescription = stringResource(R.string.connected_devices),
                 onClick = onDeviceClick,
                 tint = EncoreColors.Green,
                 size = 32.dp,
@@ -1876,7 +1877,7 @@ private fun NowPlayingFooterRow(
         Row(verticalAlignment = Alignment.CenterVertically) {
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_share_android_24,
-                contentDescription = "Share",
+                contentDescription = stringResource(R.string.share),
                 onClick = onShareClick,
                 tint = Color.White.copy(alpha = 0.70f),
                 size = 40.dp,
@@ -1884,7 +1885,7 @@ private fun NowPlayingFooterRow(
             )
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_queue_24,
-                contentDescription = "Queue",
+                contentDescription = stringResource(R.string.queue),
                 onClick = onQueueClick,
                 tint = Color.White.copy(alpha = 0.70f),
                 size = 40.dp,
@@ -1943,13 +1944,13 @@ private fun NowPlayingLyricsCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Lyrics",
+                        text = stringResource(R.string.lyrics),
                         style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = ink)
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         EncoreIconButton(
                             iconRes = R.drawable.encore_icon_share_android_24,
-                            contentDescription = "Share lyrics",
+                            contentDescription = stringResource(R.string.share_lyrics),
                             onClick = onShareLyrics,
                             tint = ink,
                             size = 32.dp,
@@ -1957,7 +1958,7 @@ private fun NowPlayingLyricsCard(
                         )
                         EncoreIconButton(
                             iconRes = R.drawable.encore_icon_fullscreen_24,
-                            contentDescription = "Expand lyrics",
+                            contentDescription = stringResource(R.string.expand_lyrics),
                             onClick = onOpenLyrics,
                             tint = ink,
                             size = 32.dp,
@@ -2036,7 +2037,7 @@ private fun NowPlayingAboutArtistCard(
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(
-                    text = "About the artist",
+                    text = stringResource(R.string.about_the_artist),
                     style = EncoreTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -2100,7 +2101,7 @@ private fun NowPlayingAboutArtistCard(
                             Spacer(modifier = Modifier.width(EncoreSpacers.Tighter4))
                             Icon(
                                 painter = painterResource(id = R.drawable.encore_icon_verified_check_active_24),
-                                contentDescription = "Verified Artist",
+                                contentDescription = stringResource(R.string.verified_artist),
                                 tint = EncoreColors.Green,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -2125,7 +2126,7 @@ private fun NowPlayingAboutArtistCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = if (isFollowingArtist) "Following" else "Follow",
+                        text = if (isFollowingArtist) stringResource(R.string.following) else "Follow",
                         style = EncoreTheme.typography.bodySmallBold.copy(
                             color = if (isFollowingArtist) EncoreColors.Green else EncoreColors.TextPrimary
                         )
@@ -2190,7 +2191,7 @@ private fun FullscreenLyricsView(
         ) {
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_chevron_down_24,
-                contentDescription = "Close lyrics",
+                contentDescription = stringResource(R.string.close_lyrics),
                 onClick = onClose,
                 tint = ink
             )
@@ -2212,7 +2213,7 @@ private fun FullscreenLyricsView(
 
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_share_android_24,
-                contentDescription = "Share",
+                contentDescription = stringResource(R.string.share),
                 onClick = onShareClick,
                 tint = ink
             )
