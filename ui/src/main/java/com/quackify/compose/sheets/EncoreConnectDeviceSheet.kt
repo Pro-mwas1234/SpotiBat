@@ -134,27 +134,22 @@ fun EncoreConnectDeviceSheet(
                         text = currentDeviceName.ifBlank { stringResource(R.string.this_phone) },
                         style = EncoreTheme.typography.bodyMediumBold.copy(color = EncoreColors.TextPrimary)
                     )
-                    if (currentDeviceName.isBlank()) {
+                    if (currentDeviceName.isBlank() || currentTrackTitle.isNotBlank()) {
                         Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = Build.MODEL,
-                            style = EncoreTheme.typography.marginal.copy(color = EncoreColors.TextSecondary)
-                        )
-                    }
-                    if (currentTrackTitle.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(EncoreSpacers.Tighter))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             EncorePlayIndicator(
                                 isPlaying = true,
                                 color = EncoreColors.Green,
-                                size = 16.dp
+                                size = 12.dp
                             )
                             Spacer(modifier = Modifier.width(EncoreSpacers.Tighter4))
                             Text(
-                                text = if (currentDeviceName.isBlank()) {
-                                    currentTrackTitle
-                                } else {
-                                    stringResource(R.string.track_on_device, currentTrackTitle, currentDeviceName)
+                                text = when {
+                                    currentDeviceName.isBlank() && currentTrackTitle.isNotBlank() ->
+                                        stringResource(R.string.track_on_device, Build.MODEL, currentTrackTitle)
+                                    currentDeviceName.isBlank() -> Build.MODEL
+                                    else ->
+                                        stringResource(R.string.track_on_device, currentTrackTitle, currentDeviceName)
                                 },
                                 style = EncoreTheme.typography.marginal.copy(color = EncoreColors.TextSecondary),
                                 maxLines = 1,
