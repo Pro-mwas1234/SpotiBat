@@ -1867,11 +1867,13 @@ private fun NowPlayingFooterRow(
                 size = 32.dp,
                 iconSize = 20.dp
             )
-            Text(
-                text = connectedDeviceName,
-                style = EncoreTheme.typography.bodySmallBold.copy(color = EncoreColors.Green),
-                modifier = Modifier.padding(start = 2.dp)
-            )
+            if (connectedDeviceName.isNotBlank()) {
+                Text(
+                    text = connectedDeviceName,
+                    style = EncoreTheme.typography.bodySmallBold.copy(color = EncoreColors.Green),
+                    modifier = Modifier.padding(start = 2.dp)
+                )
+            }
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
