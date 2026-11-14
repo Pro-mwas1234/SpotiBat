@@ -247,7 +247,7 @@ fun PlaylistEditModeContent(
                     ) { (inSelect, selCount, dirty) ->
                         if (inSelect) {
                             Text(
-                                text = "$selCount selected",
+                                text = stringResource(R.string.selected_count, selCount),
                                 style = EncoreTheme.typography.titleMedium.copy(
                                     fontSize = 17.sp,
                                     fontWeight = FontWeight.Bold,
