@@ -352,6 +352,16 @@ fun EncoreAppShell(
 
     val banContext = LocalContext.current
     LaunchedEffect(banContext) { com.quackify.compose.bans.ArtistBans.ensureLoaded(banContext) }
+    val banLifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(banLifecycleOwner) {
+        val banObserver = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_START) {
+                com.quackify.compose.bans.ArtistBans.refresh(banContext)
+            }
+        }
+        banLifecycleOwner.lifecycle.addObserver(banObserver)
+        onDispose { banLifecycleOwner.lifecycle.removeObserver(banObserver) }
+    }
 
     LaunchedEffect(currentScreen) {
         if (currentScreen == ShellScreen.HOME) onHomeEntered()
