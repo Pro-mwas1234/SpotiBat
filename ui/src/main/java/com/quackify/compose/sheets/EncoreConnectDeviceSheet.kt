@@ -67,7 +67,7 @@ data class EncoreDevice(
     val name: String,
     val type: DeviceType,
     val isCurrent: Boolean = false,
-    val protocol: String = stringResource(R.string.connect),
+    val protocol: String = "",
     val volumeFraction: Float = -1f,
     val local: Boolean = false
 )
@@ -281,21 +281,14 @@ private fun DeviceRow(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = device.protocol,
+                text = device.protocol.ifBlank { stringResource(R.string.connect) },
                 style = EncoreTheme.typography.marginal.copy(color = EncoreColors.TextSecondary)
             )
         }
     }
 }
 
-private fun defaultDeviceList(): List<EncoreDevice> = listOf(
-    EncoreDevice("1", stringResource(R.string.this_phone), DeviceType.PHONE, isCurrent = true),
-    EncoreDevice("2", "Living Room Speaker", DeviceType.SPEAKER, protocol = "Google Cast"),
-    EncoreDevice("3", "MacBook Pro", DeviceType.COMPUTER, protocol = stringResource(R.string.connect)),
-    EncoreDevice("4", "Kitchen Echo", DeviceType.SPEAKER, protocol = stringResource(R.string.connect)),
-    EncoreDevice("5", "Tesla Model 3", DeviceType.CAR, protocol = "Bluetooth")
-)
-
+@Composable
 fun ConnectDevice.toEncoreDevice(): EncoreDevice = EncoreDevice(
     id = id,
     name = name.ifBlank { stringResource(R.string.unknown_device) },
@@ -309,7 +302,7 @@ fun ConnectDevice.toEncoreDevice(): EncoreDevice = EncoreDevice(
         DeviceKind.UNKNOWN -> DeviceType.COMPUTER
     },
     isCurrent = active,
-    protocol = if (brand.isBlank()) stringResource(R.string.connect) else brand,
+    protocol = brand,
     volumeFraction = if (volumeSteps > 0) (volume.toFloat() / volumeSteps.toFloat()).coerceIn(0f, 1f) else -1f,
     local = local
 )
