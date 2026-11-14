@@ -480,6 +480,7 @@ fun EncoreArtistScreen(
 
             itemsIndexed(visiblePopular) { index, popTrack ->
                 val track = popTrack.track
+                val isBanned = com.quackify.compose.bans.ArtistBans.isBanned(track.artistUri)
                 val isCurrentTrack =
                     matchesCurrent(track.uri, currentTrackUri, track.title, currentTrackTitle)
                 SwipeToQueueBox(
@@ -520,7 +521,8 @@ fun EncoreArtistScreen(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(RoundedCornerShape(4.dp))
-                                .background(Color(0xFF242424)),
+                                .background(Color(0xFF242424))
+                                .graphicsLayer { alpha = if (isBanned) 0.4f else 1f },
                             contentAlignment = Alignment.Center
                         ) {
                             if (track.imageUrl != null) {
@@ -544,7 +546,11 @@ fun EncoreArtistScreen(
                                     fontSize = 14.sp,
                                     lineHeight = 18.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if (isCurrentTrack) EncoreColors.Green else Color.White
+                                    color = when {
+                                        isCurrentTrack -> EncoreColors.Green
+                                        isBanned -> EncoreColors.TextSecondary.copy(alpha = 0.55f)
+                                        else -> Color.White
+                                    }
                                 ),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
