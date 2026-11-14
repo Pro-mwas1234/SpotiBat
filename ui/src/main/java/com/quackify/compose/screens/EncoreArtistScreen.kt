@@ -683,14 +683,14 @@ fun EncoreArtistScreen(
                 item { ArtistShelfCardRow(discoveredOn, onShelfClick) }
             }
 
-            val aboutStatLine = listOfNotNull(
-                followers.takeIf { it > 0L }?.let { stringResource(R.string.follower_count, formatCount(it)) },
-                worldRank.takeIf { it > 0 }?.let { "#$it in the world" },
-            ).joinToString(" • ")
             if (monthlyListeners.isNotBlank() || biography.isNotBlank() ||
-                aboutStatLine.isNotBlank() || topCities.isNotEmpty()
+                followers > 0L || worldRank > 0 || topCities.isNotEmpty()
             ) {
                 item {
+                    val aboutStatLine = listOfNotNull(
+                        followers.takeIf { it > 0L }?.let { stringResource(R.string.follower_count, formatCount(it)) },
+                        worldRank.takeIf { it > 0 }?.let { "#$it in the world" },
+                    ).joinToString(" • ")
                     Spacer(modifier = Modifier.height(24.dp))
                     Text(
                         text = stringResource(R.string.about),
