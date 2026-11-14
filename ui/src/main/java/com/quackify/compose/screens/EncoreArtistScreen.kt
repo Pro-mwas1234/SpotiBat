@@ -75,11 +75,12 @@ import com.quackify.compose.theme.EncoreSpacers
 import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.theme.rememberBottomPadding
+import androidx.compose.ui.res.stringResource
 
 data class ArtistRelease(
     val title: String,
     val year: String,
-    val type: String, // "Album" or "Single"
+    val type: String, // stringResource(R.string.album) or stringResource(R.string.single)
     val color: Color = Color(0xFF333333),
     val imageUrl: String? = null,
     val uri: String = ""
@@ -100,7 +101,7 @@ private const val POPULAR_PREVIEW_COUNT = 5
  * - Pinned overlay top bar (transparent at rest, solid heroColor when scrolled)
  * - Top 5 Popular tracks with track numbers, equalizer, stream count, and 3-dots
  * - Popular Releases carousel plus dedicated Albums and Singles & EPs carousels
- * - "Gallery" photo strip and "About the artist" biography card
+ * - stringResource(R.string.gallery) photo strip and stringResource(R.string.about_the_artist) biography card
  */
 @Composable
 fun EncoreArtistScreen(
@@ -113,7 +114,7 @@ fun EncoreArtistScreen(
     albums: List<ArtistRelease> = emptyList(),
     /** The overview's singles group (EPs included); falls back to splitting [releases]. */
     singles: List<ArtistRelease> = emptyList(),
-    /** Related artists shelf ("Fans also like") from the overview. */
+    /** Related artists shelf (stringResource(R.string.fans_also_like)) from the overview. */
     relatedArtists: List<ShelfItem> = emptyList(),
     /** Albums the artist appears on, from the overview. */
     appearsOn: List<ShelfItem> = emptyList(),
@@ -324,13 +325,13 @@ fun EncoreArtistScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.encore_icon_verified_check_active_24),
-                                    contentDescription = "Verified Artist",
+                                    contentDescription = stringResource(R.string.verified_artist),
                                     tint = Color(0xFF3D91F4),
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Verified Artist",
+                                    text = stringResource(R.string.verified_artist),
                                     style = EncoreTheme.typography.bodySmall.copy(
                                         color = Color.White,
                                         fontSize = 12.sp,
@@ -391,7 +392,7 @@ fun EncoreArtistScreen(
                                 .padding(horizontal = 16.dp, vertical = 6.dp)
                         ) {
                             Text(
-                                text = if (isFollowing) "Following" else "Follow",
+                                text = if (isFollowing) stringResource(R.string.following) else "Follow",
                                 style = EncoreTheme.typography.bodySmallBold.copy(color = followTextColor)
                             )
                         }
@@ -405,7 +406,7 @@ fun EncoreArtistScreen(
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.encore_icon_more_android_24),
-                                contentDescription = "Artist options",
+                                contentDescription = stringResource(R.string.artist_options),
                                 tint = EncoreColors.TextSecondary,
                                 modifier = Modifier.size(22.dp)
                             )
@@ -421,7 +422,7 @@ fun EncoreArtistScreen(
                             ) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.encore_icon_ban_24),
-                                    contentDescription = "Blocked artist, tap to allow",
+                                    contentDescription = stringResource(R.string.blocked_artist_tap_to_allow),
                                     tint = EncoreColors.TextSecondary,
                                     modifier = Modifier.size(22.dp)
                                 )
@@ -442,7 +443,7 @@ fun EncoreArtistScreen(
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.encore_icon_shuffle_24),
-                                contentDescription = "Shuffle artist",
+                                contentDescription = stringResource(R.string.shuffle_artist),
                                 tint = if (isShuffle) EncoreColors.Green else EncoreColors.TextSecondary,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -468,7 +469,7 @@ fun EncoreArtistScreen(
 
             item {
                 Text(
-                    text = "Popular",
+                    text = stringResource(R.string.popular),
                     style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = Color.White),
                     modifier = Modifier.padding(horizontal = EncoreSpacers.Base, vertical = EncoreSpacers.Tighter)
                 )
@@ -567,7 +568,7 @@ fun EncoreArtistScreen(
                         if (!isBanned) {
                             EncoreIconButton(
                                 iconRes = if (track.saved == true) R.drawable.encore_icon_heart_active_24 else R.drawable.encore_icon_heart_24,
-                                contentDescription = if (track.saved == true) "Remove from Liked Songs" else "Add to Liked Songs",
+                                contentDescription = if (track.saved == true) stringResource(R.string.remove_from_liked_songs) else stringResource(R.string.add_to_liked_songs),
                                 onClick = { onTrackLikeToggle(track) },
                                 tint = if (track.saved == true) EncoreColors.Green else EncoreColors.TextSecondary,
                                 size = 32.dp,
@@ -577,7 +578,7 @@ fun EncoreArtistScreen(
 
                         EncoreIconButton(
                             iconRes = R.drawable.encore_icon_more_android_24,
-                            contentDescription = "Track options",
+                            contentDescription = stringResource(R.string.track_options),
                             onClick = { onTrackOptionsClick(track) },
                             tint = EncoreColors.TextSecondary,
                             size = 32.dp,
@@ -590,7 +591,7 @@ fun EncoreArtistScreen(
             if (popularTracks.size > POPULAR_PREVIEW_COUNT) {
                 item {
                     Text(
-                        text = if (popularExpanded) "Show less" else "See more",
+                        text = if (popularExpanded) stringResource(R.string.show_less) else stringResource(R.string.see_more),
                         style = EncoreTheme.typography.bodyMedium.copy(
                             color = EncoreColors.TextSecondary,
                             fontWeight = FontWeight.SemiBold
@@ -606,7 +607,7 @@ fun EncoreArtistScreen(
             if (loadFailed && !isLoading) {
                 item {
                     ArtistLoadError(
-                        title = "Couldn't load this artist",
+                        title = stringResource(R.string.couldn_t_load_this_artist),
                         onRetry = onRetry
                     )
                 }
@@ -622,11 +623,11 @@ fun EncoreArtistScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Popular releases",
+                        text = stringResource(R.string.popular_releases),
                         style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = Color.White)
                     )
                     Text(
-                        text = "Discography",
+                        text = stringResource(R.string.discography),
                         style = EncoreTheme.typography.bodyMedium.copy(
                             color = EncoreColors.TextSecondary,
                             fontWeight = FontWeight.SemiBold
@@ -642,7 +643,7 @@ fun EncoreArtistScreen(
                 item {
                     Spacer(modifier = Modifier.height(24.dp))
                     Text(
-                        text = "Albums",
+                        text = stringResource(R.string.albums),
                         style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = Color.White),
                         modifier = Modifier.padding(horizontal = EncoreSpacers.Base, vertical = EncoreSpacers.Tighter)
                     )
@@ -654,7 +655,7 @@ fun EncoreArtistScreen(
                 item {
                     Spacer(modifier = Modifier.height(24.dp))
                     Text(
-                        text = "Singles & EPs",
+                        text = stringResource(R.string.singles_and_eps),
                         style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = Color.White),
                         modifier = Modifier.padding(horizontal = EncoreSpacers.Base, vertical = EncoreSpacers.Tighter)
                     )
@@ -663,27 +664,27 @@ fun EncoreArtistScreen(
             }
 
             if (relatedArtists.isNotEmpty()) {
-                item { ArtistShelfTitle("Fans also like") }
+                item { ArtistShelfTitle(stringResource(R.string.fans_also_like)) }
                 item { ArtistCircleRow(relatedArtists, onArtistClick) }
             }
 
             if (appearsOn.isNotEmpty()) {
-                item { ArtistShelfTitle("Appears On") }
+                item { ArtistShelfTitle(stringResource(R.string.appears_on)) }
                 item { ArtistShelfCardRow(appearsOn, onShelfClick) }
             }
 
             if (featuring.isNotEmpty()) {
-                item { ArtistShelfTitle("Featuring") }
+                item { ArtistShelfTitle(stringResource(R.string.featuring)) }
                 item { ArtistShelfCardRow(featuring, onShelfClick) }
             }
 
             if (discoveredOn.isNotEmpty()) {
-                item { ArtistShelfTitle("Discovered On") }
+                item { ArtistShelfTitle(stringResource(R.string.discovered_on)) }
                 item { ArtistShelfCardRow(discoveredOn, onShelfClick) }
             }
 
             val aboutStatLine = listOfNotNull(
-                followers.takeIf { it > 0L }?.let { formatCount(it) + " followers" },
+                followers.takeIf { it > 0L }?.let { formatCount(it) + stringResource(R.string.followers_suffix) },
                 worldRank.takeIf { it > 0 }?.let { "#$it in the world" },
             ).joinToString(" • ")
             if (monthlyListeners.isNotBlank() || biography.isNotBlank() ||
@@ -692,7 +693,7 @@ fun EncoreArtistScreen(
                 item {
                     Spacer(modifier = Modifier.height(24.dp))
                     Text(
-                        text = "About",
+                        text = stringResource(R.string.about),
                         style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = Color.White),
                         modifier = Modifier.padding(horizontal = EncoreSpacers.Base, vertical = EncoreSpacers.Tighter)
                     )
@@ -738,7 +739,7 @@ fun EncoreArtistScreen(
                                 if (topCities.isNotEmpty()) {
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        text = "Popular in " + topCities.take(3).joinToString(", ") { it.city },
+                                        text = stringResource(R.string.popular_in_suffix) + topCities.take(3).joinToString(", ") { it.city },
                                         style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -763,7 +764,7 @@ fun EncoreArtistScreen(
             if (gallery.isNotEmpty()) {
                 item {
                     Text(
-                        text = "Gallery",
+                        text = stringResource(R.string.gallery),
                         style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = Color.White),
                         modifier = Modifier.padding(horizontal = EncoreSpacers.Base, vertical = EncoreSpacers.Tighter)
                     )
@@ -816,7 +817,7 @@ fun EncoreArtistScreen(
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.encore_icon_arrow_left_24),
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.back),
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
                 )
@@ -857,7 +858,7 @@ fun EncoreArtistScreen(
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.encore_icon_more_android_24),
-                        contentDescription = "Artist options",
+                        contentDescription = stringResource(R.string.artist_options),
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
@@ -888,7 +889,7 @@ fun EncoreArtistScreen(
     }
 }
 
-/** One release tile: 140dp cover, bold title, "Type • Year" line. */
+/** One release tile: 140dp cover, bold title, stringResource(R.string.type_year) line. */
 @Composable
 private fun ArtistReleaseCard(
     release: ArtistRelease,
@@ -1115,7 +1116,7 @@ private fun ArtistLoadError(title: String, onRetry: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Try again",
+            text = stringResource(R.string.try_again),
             style = EncoreTheme.typography.bodyMedium.copy(
                 fontWeight = FontWeight.Bold,
                 color = EncoreColors.Green
@@ -1144,10 +1145,10 @@ fun PreviewEncoreArtistScreen() {
                 PopularTrack(TrackItem("The Hills", "The Weeknd"), "2,190,341,080")
             ),
             releases = listOf(
-                ArtistRelease("After Hours", "2020", "Album", Color(0xFF5A1A22)),
-                ArtistRelease("Dawn FM", "2022", "Album", Color(0xFF243B55)),
-                ArtistRelease("Starboy", "2016", "Album", Color(0xFF8E0E00)),
-                ArtistRelease("Timeless", "2024", "Single", Color(0xFF333333))
+                ArtistRelease("After Hours", "2020", stringResource(R.string.album), Color(0xFF5A1A22)),
+                ArtistRelease("Dawn FM", "2022", stringResource(R.string.album), Color(0xFF243B55)),
+                ArtistRelease("Starboy", "2016", stringResource(R.string.album), Color(0xFF8E0E00)),
+                ArtistRelease("Timeless", "2024", stringResource(R.string.single), Color(0xFF333333))
             ),
             currentTrackTitle = "Starboy",
             currentTrackUri = "",
