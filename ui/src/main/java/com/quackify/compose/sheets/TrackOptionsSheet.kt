@@ -149,7 +149,7 @@ fun TrackOptionsSheet(
             streamCount?.takeIf { it > 0L }?.let { plays ->
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = formatExactCount(plays) + stringResource(R.string.plays_suffix),
+                    text = stringResource(R.string.plays_count, formatExactCount(plays)),
                     style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
