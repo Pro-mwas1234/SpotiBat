@@ -122,7 +122,7 @@ data class ComposePlaybackState(
     val canSmartShuffle: Boolean = false,
     val canRepeat: Boolean = true,
     val isEnhanced: Boolean = false,
-    val connectedDevice: String = "This Phone",
+    val connectedDevice: String = "",
     val trackUri: String = "",
     val artistUri: String = "",
     val albumUri: String = "",
@@ -171,7 +171,6 @@ interface ComposePlayerListener {
     fun onQueueAdd(uri: String) {}
     fun onSelectDevice(deviceId: String) {}
     fun onDeviceSheetVisible(visible: Boolean) {}
-    fun onVolumeChange(deviceId: String, level: Int) {}
     fun onQueueSet(uris: List<String>) {}
     fun onSearch(query: String) {}
     fun onLoadPlaylist(uri: String) {}
