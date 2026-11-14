@@ -1,6 +1,7 @@
 package com.quackify.compose.sheets
 
 import androidx.compose.foundation.background
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
@@ -57,11 +58,13 @@ fun AlbumOptionsSheet(
 ) {
     if (!isOpen) return
 
+    BackHandler { onDismiss() }
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DarkSystemBarsSheet,
+        properties = BackNotDismissSheet,
         sheetState = sheetState,
         containerColor = Color(0xFF242424),
         dragHandle = {
@@ -216,10 +219,13 @@ fun ArtistOptionsSheet(
 ) {
     if (!isOpen) return
 
+    BackHandler { onDismiss() }
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        properties = BackNotDismissSheet,
         sheetState = sheetState,
         containerColor = Color(0xFF242424),
         dragHandle = {
