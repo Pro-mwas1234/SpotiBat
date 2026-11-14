@@ -34,6 +34,7 @@ import com.quackify.compose.components.EncoreProfileAvatar
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
 
 /**
  * Account switcher sheet opened from the profile drawer: lists every account
@@ -82,7 +83,7 @@ fun AccountsSheet(
                 .navigationBarsPadding()
         ) {
             Text(
-                text = "Accounts",
+                text = stringResource(R.string.accounts),
                 style = EncoreTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
@@ -119,7 +120,7 @@ fun AccountsSheet(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = account.name.ifBlank { "Listener" },
+                            text = account.name.ifBlank { stringResource(R.string.listener) },
                             style = EncoreTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
                             )
@@ -135,7 +136,7 @@ fun AccountsSheet(
                         } else if (isActive) {
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Current account",
+                                text = stringResource(R.string.current_account),
                                 style = EncoreTheme.typography.bodySmall.copy(
                                     color = EncoreColors.TextSecondary
                                 )
@@ -146,7 +147,7 @@ fun AccountsSheet(
                     if (isActive) {
                         Icon(
                             painter = painterResource(id = R.drawable.encore_icon_check_24),
-                            contentDescription = "Current account",
+                            contentDescription = stringResource(R.string.current_account),
                             tint = EncoreColors.Green,
                             modifier = Modifier.size(22.dp)
                         )
@@ -196,7 +197,7 @@ fun AccountsSheet(
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(
-                    text = "Add account",
+                    text = stringResource(R.string.add_account),
                     style = EncoreTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Medium,
                         fontSize = 16.sp
@@ -218,7 +219,7 @@ fun PreviewAccountsSheet() {
             onDismiss = {},
             accounts = listOf(
                 EncoreAuth.Account(id = "a1", name = "Duck User", email = "duck@quackify.app"),
-                EncoreAuth.Account(id = "a2", name = "Second Account"),
+                EncoreAuth.Account(id = "a2", name = stringResource(R.string.second_account)),
             ),
             activeAccountId = "a1",
             onSwitchAccount = {},
