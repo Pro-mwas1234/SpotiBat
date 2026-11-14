@@ -124,9 +124,10 @@ fun EncoreHomeScreen(
 
     val quickItems = quickAccessItems.orEmpty()
 
+    val allChipLabel = stringResource(R.string.all)
     val filterChips = remember(chips) {
         buildList {
-            add(HomeChip(id = "", label = stringResource(R.string.all)))
+            add(HomeChip(id = "", label = allChipLabel))
             addAll(chips)
         }
     }
@@ -724,6 +725,7 @@ private fun BaselineGridSection(
     }
 }
 
+@Composable
 private fun getGreeting(name: String, feedGreeting: String = ""): String {
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     val base = feedGreeting.ifBlank {
