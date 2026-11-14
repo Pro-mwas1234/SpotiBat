@@ -62,7 +62,7 @@ fun ProfileFollowSheet(
 ) {
     if (!isOpen) return
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     var selectedTab by remember { mutableIntStateOf(0) }
     val people = if (selectedTab == 0) followers else following
 
