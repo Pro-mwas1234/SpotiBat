@@ -216,10 +216,11 @@ fun EncoreSearchScreen(
     val isOffline = rememberIsOffline()
 
     val appContext = LocalContext.current
-    val speechIntent = remember {
+    val voicePrompt = stringResource(R.string.what_do_you_want_to_listen_to)
+    val speechIntent = remember(voicePrompt) {
         Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_PROMPT, stringResource(R.string.what_do_you_want_to_listen_to))
+            putExtra(RecognizerIntent.EXTRA_PROMPT, voicePrompt)
         }
     }
     val canVoiceSearch = remember {
@@ -1695,6 +1696,7 @@ private fun PlaylistRow(
     }
 }
 
+@Composable
 private fun SearchKind.sectionLabel(): String = when (this) {
     SearchKind.TRACK -> stringResource(R.string.song)
     SearchKind.ARTIST -> stringResource(R.string.artist)
