@@ -406,7 +406,7 @@ fun EncoreTrackRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(60.dp)
-                .clickable(onClick = onClick)
+                .clickable(enabled = !isBanned, onClick = onClick)
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
