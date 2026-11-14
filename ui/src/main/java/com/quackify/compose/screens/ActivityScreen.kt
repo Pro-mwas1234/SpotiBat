@@ -272,6 +272,7 @@ private fun ActivitySkeleton() {
     }
 }
 
+@Composable
 internal fun relativeTime(atMillis: Long): String {
     if (atMillis <= 0L) return ""
     val minutes = (System.currentTimeMillis() - atMillis) / 60000
