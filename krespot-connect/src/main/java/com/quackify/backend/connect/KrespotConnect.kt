@@ -56,6 +56,7 @@ import com.quackify.backend.connect.state.Melody
 import com.quackify.backend.connect.state.Snapshot
 import com.quackify.backend.connect.state.StateReporter
 import com.quackify.backend.core.auth.EncoreAuth
+import com.quackify.backend.core.auth.WebToken
 import com.quackify.backend.core.log.Logs
 import com.quackify.backend.core.webview.SilentTokenRefresh
 import org.json.JSONArray
@@ -74,6 +75,9 @@ private const val CONNECT_TRANSFER_URI = "hm://connect-state/v1/connect/transfer
 
 /** How often the connect-state player member is re-published while polling. */
 private const val MEMBER_PUT_MS = 60_000L
+
+/** Re-mint the access token before dialling when less than this is left. */
+private const val TOKEN_RENEW_MS = 60_000L
 
 /** Window sizes the native clients cap their published queue at. */
 private const val PREV_TRACKS_MAX = 10
@@ -144,7 +148,7 @@ class KrespotConnect(private val context: Context) {
                 continue
             }
             spclient = host.second
-            val token = EncoreAuth.token(context)
+            val token = usableToken()
             log.i("device=$deviceId dealer=${host.first} token=${token.length}B")
             if (_cluster.value == null) {
                 runCatching { seedCluster() }
@@ -158,9 +162,9 @@ class KrespotConnect(private val context: Context) {
             } catch (failure: Throwable) {
                 val message = failure.message.orEmpty()
                 log.w("dealer failed ${failure.javaClass.simpleName}: $message")
-                if (message.contains("401")) {
+                if (message.contains("401") || message.contains("403")) {
                     val refreshed = SilentTokenRefresh.refresh(context, "dealer")
-                    log.i("dealer 401, token refreshed=$refreshed")
+                    log.i("dealer auth failure, token refreshed=$refreshed")
                 }
             }
             if (connected) {
@@ -175,6 +179,19 @@ class KrespotConnect(private val context: Context) {
     private fun backoff(attempt: Int): Long {
         val shift = (attempt - 1).coerceIn(0, 4)
         return (1000L shl shift).coerceAtMost(15_000L)
+    }
+
+    /**
+     * The cached access token is used as-is unless it is expired or about to
+     * expire, in which case a fresh one is minted before dialling. Without
+     * this a token that expired while the app sat in the background would
+     * ride every reconnect until a 401 happened to be recognised.
+     */
+    private suspend fun usableToken(): String {
+        val left = EncoreAuth.tokenRemainingMs(context)
+        if (left == -1L || left >= TOKEN_RENEW_MS) return EncoreAuth.token(context)
+        log.i("access token has ${left / 1000}s left, minting a fresh one before dialling")
+        return WebToken.mint(context) ?: EncoreAuth.token(context)
     }
 
     /** A transfer request can also ride in as the bare options body, with no endpoint field. */
