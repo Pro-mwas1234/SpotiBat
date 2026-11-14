@@ -1,9 +1,5 @@
 package com.quackify.compose.sheets
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.activity.compose.BackHandler
@@ -29,15 +25,9 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
@@ -58,8 +48,8 @@ import com.quackify.compose.theme.EncoreTheme
 /**
  * - 112dp artwork thumbnail with 8dp rounded corners
  * - Centered title & artist metadata
- * - Quick action row: Like (with spring heart-pop animation), Add to playlist, Add to queue
- * - Vertical action list: Ban/Hide song, taste-profile exclude, Add to playlist, Go to artist, Go to album, Show credits, Sleep timer, Share
+ * - Quick action row: Add to queue
+ * - Vertical action list: taste-profile exclude, Go to artist, Go to album, Show credits, Share
  * - Grapple dimensions: 36dp x 4dp with 10dp vertical margin
  * - Background: #242424 (bg_page_bottom_sheet_color)
  */
@@ -69,18 +59,12 @@ fun TrackOptionsSheet(
     track: TrackItem?,
     isOpen: Boolean,
     onDismiss: () -> Unit,
-    onLikeToggle: (Boolean) -> Unit = {},
-    /** Fresh library state for [track]; null while it is still loading. */
-    savedOverride: Boolean? = null,
     streamCount: Long? = null,
-    onAddToPlaylist: () -> Unit = {},
     onAddToQueue: () -> Unit = {},
     canAddToQueue: Boolean = true,
     onViewArtist: (String, String) -> Unit = { _, _ -> },
     onViewAlbum: (String, String) -> Unit = { _, _ -> },
     onShare: () -> Unit = {},
-    onSleepTimerClick: () -> Unit = {},
-    onHideSong: () -> Unit = {},
     onShowCredits: () -> Unit = {},
     canvasAvailable: Boolean = false,
     isCanvasEnabled: Boolean = false,
@@ -98,25 +82,6 @@ fun TrackOptionsSheet(
 
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-    var isLiked by remember(track) { mutableStateOf(track.saved ?: false) }
-    var isHeartPopping by remember { mutableStateOf(false) }
-
-    LaunchedEffect(savedOverride) {
-        savedOverride?.let { isLiked = it }
-    }
-
-    val heartScale by animateFloatAsState(
-        targetValue = if (isHeartPopping) 1.25f else 1f,
-        animationSpec = if (isHeartPopping) {
-            tween(durationMillis = 120)
-        } else {
-            spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
-        },
-        label = "TrackOptionsHeartPop",
-        finishedListener = {
-            if (isHeartPopping) isHeartPopping = false
-        }
-    )
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -200,61 +165,6 @@ fun TrackOptionsSheet(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .clickable {
-                            isLiked = !isLiked
-                            if (isLiked) isHeartPopping = true
-                            onLikeToggle(isLiked)
-                        }
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(
-                            id = if (isLiked) R.drawable.encore_icon_heart_active_24 else R.drawable.encore_icon_heart_24
-                        ),
-                        contentDescription = if (isLiked) "Remove from Liked Songs" else "Add to Liked Songs",
-                        tint = if (isLiked) EncoreColors.Green else EncoreColors.TextPrimary,
-                        modifier = Modifier
-                            .size(28.dp)
-                            .scale(heartScale)
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = if (isLiked) "Liked" else "Like",
-                        style = EncoreTheme.typography.bodySmall.copy(
-                            fontSize = 12.sp,
-                            color = if (isLiked) EncoreColors.Green else EncoreColors.TextSecondary
-                        )
-                    )
-                }
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .clickable {
-                            onDismiss()
-                            onAddToPlaylist()
-                        }
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.encore_icon_add_to_playlist_24),
-                        contentDescription = "Add to playlist",
-                        tint = EncoreColors.TextPrimary,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Add to playlist",
-                        style = EncoreTheme.typography.bodySmall.copy(
-                            fontSize = 12.sp,
-                            color = EncoreColors.TextSecondary
-                        )
-                    )
-                }
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
                         .clickable(enabled = canAddToQueue) {
                             onDismiss()
                             onAddToQueue()
@@ -295,15 +205,6 @@ fun TrackOptionsSheet(
                 )
             }
 
-            ContextMenuRowItem(
-                title = "Hide this song",
-                iconRes = R.drawable.encore_icon_ban_24,
-                onClick = {
-                    onDismiss()
-                    onHideSong()
-                }
-            )
-
             if (isTasteExcluded != null) {
                 ContextMenuRowItem(
                     title = if (isTasteExcluded) {
@@ -318,15 +219,6 @@ fun TrackOptionsSheet(
                     }
                 )
             }
-
-            ContextMenuRowItem(
-                title = "Add to playlist",
-                iconRes = R.drawable.encore_icon_add_to_playlist_24,
-                onClick = {
-                    onDismiss()
-                    onAddToPlaylist()
-                }
-            )
 
             if (onSongRadio != null) {
                 ContextMenuRowItem(
@@ -363,15 +255,6 @@ fun TrackOptionsSheet(
                 onClick = {
                     onDismiss()
                     onShowCredits()
-                }
-            )
-
-            ContextMenuRowItem(
-                title = "Sleep timer",
-                iconRes = R.drawable.encore_icon_time_24,
-                onClick = {
-                    onDismiss()
-                    onSleepTimerClick()
                 }
             )
 
