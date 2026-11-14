@@ -123,7 +123,6 @@ internal fun ShellSheets(
     onCreateFolder: () -> Unit = {},
     onSelectDevice: (String) -> Unit,
     onDeviceVisible: (Boolean) -> Unit,
-    onVolumeChange: (String, Int) -> Unit,
     onQueueTrackSelect: (TrackItem) -> Unit,
     onRemoveFromQueue: (TrackItem) -> Unit,
     onClearQueue: () -> Unit,
@@ -235,7 +234,6 @@ internal fun ShellSheets(
         onSortSelected = onSortSelected,
         onSelectDevice = onSelectDevice,
         onDeviceVisible = onDeviceVisible,
-        onVolumeChange = onVolumeChange,
         onQueueTrackSelect = onQueueTrackSelect,
         onRemoveFromQueue = onRemoveFromQueue,
         onClearQueue = onClearQueue,
@@ -435,7 +433,6 @@ private fun ShellLibrarySheets(
     onSortSelected: (LibrarySortOption, SortDirection) -> Unit,
     onSelectDevice: (String) -> Unit,
     onDeviceVisible: (Boolean) -> Unit,
-    onVolumeChange: (String, Int) -> Unit,
     onQueueTrackSelect: (TrackItem) -> Unit,
     onRemoveFromQueue: (TrackItem) -> Unit,
     onClearQueue: () -> Unit,
@@ -461,16 +458,15 @@ private fun ShellLibrarySheets(
     if (flags.device) {
         LaunchedEffect(Unit) { onDeviceVisible(true) }
         val mapped = devices.map { it.toEncoreDevice() }
-        val current = mapped.firstOrNull { it.isCurrent }
         EncoreConnectDeviceSheet(
             onDismissRequest = {
                 onDismissDevice()
                 onDeviceVisible(false)
             },
             currentDeviceName = connectedDevice,
+            currentTrackTitle = currentTrackTitle,
+            currentDeviceKind = devices.firstOrNull { it.active }?.kind,
             devices = mapped,
-            initialVolume = current?.volumeFraction?.takeIf { it >= 0f } ?: 0.7f,
-            onVolumeChange = onVolumeChange,
             onSelectDevice = { device -> onSelectDevice(device.id) }
         )
     }
