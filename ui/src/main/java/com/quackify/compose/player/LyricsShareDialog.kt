@@ -463,7 +463,7 @@ private fun ShareFormatControls(
         Spacer(modifier = Modifier.height(6.dp))
 
         Text(
-            text = "Select up to 5 lines ($selectedCount/5)",
+            text = stringResource(R.string.select_lines_limit, selectedCount),
             style = EncoreTheme.typography.marginal.copy(
                 fontWeight = FontWeight.Medium,
                 color = EncoreColors.TextSecondary
