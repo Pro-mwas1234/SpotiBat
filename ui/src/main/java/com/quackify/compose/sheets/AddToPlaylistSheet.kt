@@ -96,7 +96,7 @@ fun AddToPlaylistSheet(
 ) {
     if (!isOpen) return
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val scope = rememberCoroutineScope()
 
     var currentFolder by remember { mutableStateOf<PlaylistChoice?>(null) }
