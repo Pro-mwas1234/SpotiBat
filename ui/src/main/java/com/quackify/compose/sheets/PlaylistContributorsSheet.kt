@@ -57,6 +57,7 @@ import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
 import kotlinx.coroutines.delay
+import androidx.compose.ui.res.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -138,7 +139,7 @@ fun PlaylistContributorsSheet(
                 .navigationBarsPadding()
         ) {
             Text(
-                text = "Contributors",
+                text = stringResource(R.string.contributors),
                 style = EncoreTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
@@ -174,8 +175,8 @@ fun PlaylistContributorsSheet(
                                     InlineLoadingDots(color = EncoreColors.TextSecondary)
                                 }
                                 searchResults.isEmpty() -> Text(
-                                    text = if (query.trim().length < 2) "Type at least 2 characters"
-                                    else "No profiles found",
+                                    text = if (query.trim().length < 2) stringResource(R.string.type_at_least_2_characters)
+                                    else stringResource(R.string.no_profiles_found),
                                     style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextSecondary),
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -212,7 +213,7 @@ fun PlaylistContributorsSheet(
                                                     overflow = TextOverflow.Ellipsis
                                                 )
                                                 Text(
-                                                    text = hit.subtitle.ifBlank { "Profile" },
+                                                    text = hit.subtitle.ifBlank { stringResource(R.string.profile) },
                                                     style = EncoreTheme.typography.marginal.copy(
                                                         color = EncoreColors.TextSecondary
                                                     )
@@ -227,7 +228,7 @@ fun PlaylistContributorsSheet(
                                             ) {
                                                 Icon(
                                                     painter = painterResource(id = R.drawable.encore_icon_plus_24),
-                                                    contentDescription = "Add contributor",
+                                                    contentDescription = stringResource(R.string.add_contributor),
                                                     tint = EncoreColors.TextPrimary,
                                                     modifier = Modifier.size(14.dp)
                                                 )
@@ -268,12 +269,12 @@ fun PlaylistContributorsSheet(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Couldn't load contributors",
+                            text = stringResource(R.string.couldn_t_load_contributors),
                             style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextPrimary)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Try again",
+                            text = stringResource(R.string.try_again),
                             style = EncoreTheme.typography.bodyMediumBold.copy(color = EncoreColors.Green),
                             modifier = Modifier
                                 .clip(RoundedCornerShape(16.dp))
@@ -282,7 +283,7 @@ fun PlaylistContributorsSheet(
                         )
                     }
                     members.isEmpty() -> Text(
-                        text = "No contributors yet",
+                        text = stringResource(R.string.no_contributors_yet),
                         style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextSecondary),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -314,7 +315,7 @@ fun PlaylistContributorsSheet(
                                     }
                                     Spacer(modifier = Modifier.width(16.dp))
                                     Text(
-                                        text = "Add contributor",
+                                        text = stringResource(R.string.add_contributor),
                                         style = EncoreTheme.typography.bodyMedium.copy(
                                             fontWeight = FontWeight.Bold,
                                             color = EncoreColors.TextPrimary
@@ -349,11 +350,11 @@ private fun rankOf(member: PlaylistMember): Int = when (member.permissionLevel) 
 }
 
 private fun statusOf(member: PlaylistMember): String = when {
-    member.isOwner -> "Owner"
-    member.permissionLevel == PlaylistMember.PERMISSION_CONTRIBUTOR -> "Contributor"
-    member.permissionLevel == PlaylistMember.PERMISSION_VIEWER -> "Viewer"
-    member.permissionLevel == PlaylistMember.PERMISSION_BLOCKED -> "Blocked"
-    else -> "Member"
+    member.isOwner -> stringResource(R.string.owner)
+    member.permissionLevel == PlaylistMember.PERMISSION_CONTRIBUTOR -> stringResource(R.string.contributor)
+    member.permissionLevel == PlaylistMember.PERMISSION_VIEWER -> stringResource(R.string.viewer)
+    member.permissionLevel == PlaylistMember.PERMISSION_BLOCKED -> stringResource(R.string.blocked)
+    else -> stringResource(R.string.member)
 }
 
 @Composable
@@ -399,12 +400,12 @@ private fun ContributorRow(
                     ) {
                         if (member.permissionLevel == PlaylistMember.PERMISSION_CONTRIBUTOR) {
                             ContributorActionLabel(
-                                text = "Remove as contributor",
+                                text = stringResource(R.string.remove_as_contributor),
                                 onClick = { onRemoveAsContributor(member.userId) }
                             )
                         }
                         ContributorActionLabel(
-                            text = "Remove from playlist",
+                            text = stringResource(R.string.remove_from_playlist),
                             onClick = { onRemoveFromPlaylist(member.userId) }
                         )
                     }
@@ -420,7 +421,7 @@ private fun ContributorRow(
                 .padding(horizontal = 12.dp, vertical = 7.dp)
         ) {
             Text(
-                text = "View profile",
+                text = stringResource(R.string.view_profile),
                 style = EncoreTheme.typography.bodySmall.copy(
                     color = EncoreColors.TextPrimary,
                     fontWeight = FontWeight.Medium
@@ -489,7 +490,7 @@ private fun ContributorSearchBox(
                 ) {
                     if (query.isEmpty()) {
                         Text(
-                            text = "Search usernames",
+                            text = stringResource(R.string.search_usernames),
                             style = EncoreTheme.typography.bodyMedium.copy(
                                 color = EncoreColors.TextSecondary,
                                 fontSize = 15.sp
@@ -504,7 +505,7 @@ private fun ContributorSearchBox(
         if (query.isNotEmpty()) {
             Icon(
                 painter = painterResource(id = R.drawable.encore_icon_x_24),
-                contentDescription = "Clear search",
+                contentDescription = stringResource(R.string.clear_search),
                 tint = EncoreColors.TextSecondary,
                 modifier = Modifier
                     .size(18.dp)
@@ -513,7 +514,7 @@ private fun ContributorSearchBox(
         } else {
             Icon(
                 painter = painterResource(id = R.drawable.encore_icon_x_24),
-                contentDescription = "Close search",
+                contentDescription = stringResource(R.string.close_search),
                 tint = EncoreColors.TextSecondary,
                 modifier = Modifier
                     .size(18.dp)
