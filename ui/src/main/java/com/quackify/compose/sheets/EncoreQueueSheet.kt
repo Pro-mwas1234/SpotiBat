@@ -59,10 +59,11 @@ import com.quackify.compose.theme.EncoreCornerRadii
 import com.quackify.compose.theme.EncoreSpacers
 import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
 
 /**
- * - "Now playing" item with animated Encore equalizer indicator
- * - "Next in queue" with dismiss action and reordering handles
+ * - stringResource(R.string.now_playing) item with animated Encore equalizer indicator
+ * - stringResource(R.string.next_in_queue) with dismiss action and reordering handles
  * - "Next from: [Context]" with upcoming queue items
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -132,7 +133,7 @@ fun EncoreQueueSheet(
             ) {
                 EncoreIconButton(
                     iconRes = R.drawable.encore_icon_chevron_down_24,
-                    contentDescription = "Collapse queue",
+                    contentDescription = stringResource(R.string.collapse_queue),
                     onClick = onDismissRequest,
                     size = 40.dp,
                     iconSize = 24.dp,
@@ -140,14 +141,14 @@ fun EncoreQueueSheet(
                 )
 
                 Text(
-                    text = "Queue",
+                    text = stringResource(R.string.queue),
                     style = EncoreTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
                 )
 
                 if (userQueue.isNotEmpty()) {
                     TextButton(onClick = onClearQueue) {
                         Text(
-                            text = "Clear queue",
+                            text = stringResource(R.string.clear_queue),
                             style = EncoreTheme.typography.bodySmallBold.copy(color = EncoreColors.Green)
                         )
                     }
@@ -164,7 +165,7 @@ fun EncoreQueueSheet(
             ) {
                 item {
                     Text(
-                        text = "Now playing",
+                        text = stringResource(R.string.now_playing),
                         style = EncoreTheme.typography.bodySmallBold.copy(color = EncoreColors.TextSecondary),
                         modifier = Modifier.padding(horizontal = EncoreSpacers.Base, vertical = EncoreSpacers.Tighter)
                     )
@@ -213,7 +214,7 @@ fun EncoreQueueSheet(
                 if (queueRows.isNotEmpty()) {
                     item {
                         Text(
-                            text = "Next in queue",
+                            text = stringResource(R.string.next_in_queue),
                             style = EncoreTheme.typography.bodySmallBold.copy(color = EncoreColors.TextSecondary),
                             modifier = Modifier.padding(horizontal = EncoreSpacers.Base, vertical = EncoreSpacers.Tighter)
                         )
@@ -250,7 +251,7 @@ fun EncoreQueueSheet(
                     item {
                         Text(
                             text = if (queueSourceContext.isBlank()) {
-                                "Next up"
+                                stringResource(R.string.next_up)
                             } else {
                                 "Next from: $queueSourceContext"
                             },
@@ -316,7 +317,7 @@ private fun QueueTrackRow(
                 if (track.isEnhanced) {
                     Icon(
                         painter = painterResource(id = R.drawable.encore_icon_enhance_badge_16),
-                        contentDescription = "Smart Shuffle recommendation",
+                        contentDescription = stringResource(R.string.smart_shuffle_recommendation),
                         tint = EncoreColors.Green,
                         modifier = Modifier
                             .padding(end = 4.dp)
@@ -338,7 +339,7 @@ private fun QueueTrackRow(
         if (onRemove != null) {
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_x_24,
-                contentDescription = "Remove from queue",
+                contentDescription = stringResource(R.string.remove_from_queue),
                 onClick = onRemove,
                 size = 36.dp,
                 iconSize = 18.dp,
@@ -353,7 +354,7 @@ private fun QueueTrackRow(
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.encore_icon_sort_24),
-                    contentDescription = "Reorder",
+                    contentDescription = stringResource(R.string.reorder),
                     tint = EncoreColors.TextSecondary,
                     modifier = Modifier.size(20.dp)
                 )
