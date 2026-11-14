@@ -144,6 +144,9 @@ fun HistoryScreen(
                 )
             }
         } else {
+            val todayLabel = stringResource(R.string.today)
+            val yesterdayLabel = stringResource(R.string.yesterday)
+            val earlierLabel = stringResource(R.string.earlier)
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
@@ -156,7 +159,7 @@ fun HistoryScreen(
                     }
                 }
                 historySection(
-                    label = stringResource(R.string.today),
+                    label = todayLabel,
                     tracks = todayTracks,
                     currentTrackTitle = currentTrackTitle,
                     isPlaying = isPlaying,
@@ -166,7 +169,7 @@ fun HistoryScreen(
                     expandedGroups = expandedGroups
                 )
                 historySection(
-                    label = stringResource(R.string.yesterday),
+                    label = yesterdayLabel,
                     tracks = yesterdayTracks,
                     currentTrackTitle = currentTrackTitle,
                     isPlaying = isPlaying,
@@ -176,7 +179,7 @@ fun HistoryScreen(
                     expandedGroups = expandedGroups
                 )
                 historySection(
-                    label = stringResource(R.string.earlier),
+                    label = earlierLabel,
                     tracks = earlierTracks,
                     currentTrackTitle = currentTrackTitle,
                     isPlaying = isPlaying,
