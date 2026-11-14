@@ -45,6 +45,8 @@ internal fun ShellEntitySheets(
     local.libraryItemOptions?.let { entity ->
         val editable = entity.uri in editablePlaylistUris
         val removable = isCollectionUri(entity.uri).not()
+        val deletePlaylistAskTitle = stringResource(R.string.delete_playlist_title)
+        val deletePlaylistAskSuffix = stringResource(R.string.will_be_deleted_from_library)
         EntityOptionsSheet(
             entity = entity,
             isOpen = true,
@@ -71,8 +73,8 @@ internal fun ShellEntitySheets(
                 val title = entity.title
                 local.libraryItemOptions = null
                 local.deleteAsk = DeleteAsk(
-                    title = stringResource(R.string.delete_playlist_title),
-                    message = "\"$title\stringResource(R.string.will_be_deleted_from_library),
+                    title = deletePlaylistAskTitle,
+                    message = "\"$title\"" + deletePlaylistAskSuffix,
                     onConfirm = {
                         shellScope.launch {
                             onDeletePlaylist?.invoke(uri)
@@ -140,6 +142,8 @@ internal fun ShellEntitySheets(
     }
 
     local.activeFolderOptionsItem?.let { folderItem ->
+        val deleteFolderAskTitle = stringResource(R.string.delete_folder_title)
+        val deleteFolderAskSuffix = stringResource(R.string.will_be_deleted_playlists_stay)
         FolderOptionsSheet(
             isOpen = true,
             folderTitle = folderItem.title,
@@ -178,8 +182,8 @@ internal fun ShellEntitySheets(
                 val targetUri = folderItem.uri
                 local.activeFolderOptionsItem = null
                 local.deleteAsk = DeleteAsk(
-                    title = stringResource(R.string.delete_folder_title),
-                    message = "\"${folderItem.title}\stringResource(R.string.will_be_deleted_playlists_stay),
+                    title = deleteFolderAskTitle,
+                    message = "\"${folderItem.title}\"" + deleteFolderAskSuffix,
                     onConfirm = {
                         onDeleteFolder?.invoke(targetUri)
                         if (navController.currentScreen == ShellScreen.FOLDER && active.folderUri == targetUri) {
