@@ -102,6 +102,14 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
     val flags = env.flags
     val local = env.local
     val currentTrackUri = playbackState?.trackUri.orEmpty()
+    val artistBlockedMsg = stringResource(R.string.artist_blocked)
+    val artistUnblockedMsg = stringResource(R.string.artist_unblocked)
+    val artistUpdateFailedMsg = stringResource(R.string.couldnt_update_this_artist)
+    val tasteExcludedMsg = stringResource(R.string.excluded_from_taste_profile)
+    val tasteIncludedMsg = stringResource(R.string.included_in_taste_profile)
+    val tasteUpdateFailedMsg = stringResource(R.string.couldnt_update_taste_profile)
+    val trackRadioTitle = stringResource(R.string.radio_title, local.trackForOptions?.title.orEmpty())
+    val albumRadioTitle = stringResource(R.string.radio_title, active.albumTitle)
 
     val sheetArtistFromPlayer = flags.isArtistOptionsFromPlayer
     val sheetArtistName = if (sheetArtistFromPlayer) local.artistOptionsName else active.artistName
@@ -113,6 +121,7 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
             ?: env.artistDetail?.imageUrl?.takeIf { it.isNotBlank() }
             ?: env.artistDetail?.headerImageUrl?.takeIf { it.isNotBlank() }
     }
+    val artistRadioTitle = stringResource(R.string.radio_title, sheetArtistName)
     var artistBannedState by remember { mutableStateOf<Boolean?>(null) }
     LaunchedEffect(flags.isArtistOptionsOpen, sheetArtistUri) {
         if (!flags.isArtistOptionsOpen) return@LaunchedEffect
@@ -194,9 +203,9 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
                 Toast.makeText(
                     env.context,
                     when {
-                        ok && next -> stringResource(R.string.artist_blocked)
-                        ok -> stringResource(R.string.artist_unblocked)
-                        else -> stringResource(R.string.couldnt_update_this_artist)
+                        ok && next -> artistBlockedMsg
+                        ok -> artistUnblockedMsg
+                        else -> artistUpdateFailedMsg
                     },
                     Toast.LENGTH_SHORT
                 ).show()
@@ -209,7 +218,7 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
                 env.shellScope.launch {
                     val radio = env.onArtistRadio?.invoke(artistUriNow)
                     if (radio != null && radio.startsWith("spotify:playlist:")) {
-                        env.openPlaylist(stringResource(R.string.radio_title, sheetArtistName), radio)
+                        env.openPlaylist(artistRadioTitle, radio)
                     }
                 }
             }
@@ -336,9 +345,9 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
                     Toast.makeText(
                         env.context,
                         when {
-                            ok && exclude -> stringResource(R.string.excluded_from_taste_profile)
-                            ok -> stringResource(R.string.included_in_taste_profile)
-                            else -> stringResource(R.string.couldnt_update_taste_profile)
+                            ok && exclude -> tasteExcludedMsg
+                            ok -> tasteIncludedMsg
+                            else -> tasteUpdateFailedMsg
                         },
                         Toast.LENGTH_SHORT
                     ).show()
@@ -396,7 +405,7 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
                 env.shellScope.launch {
                     val radio = env.onArtistRadio?.invoke(trackNow.uri)
                     if (radio != null && radio.startsWith("spotify:playlist:")) {
-                        env.openPlaylist(stringResource(R.string.radio_title, trackNow.title), radio)
+                        env.openPlaylist(trackRadioTitle, radio)
                     }
                 }
             }
@@ -409,7 +418,7 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
                 env.shellScope.launch {
                     val radio = env.onArtistRadio?.invoke(albumUriNow)
                     if (radio != null && radio.startsWith("spotify:playlist:")) {
-                        env.openPlaylist(stringResource(R.string.radio_title, active.albumTitle), radio)
+                        env.openPlaylist(albumRadioTitle, radio)
                     }
                 }
             }
