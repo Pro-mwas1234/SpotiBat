@@ -63,6 +63,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 
 private val playlistSearchEngine = GenericSearchEngine<PlaylistChoice>(maxResult = Int.MAX_VALUE)
 private val PLAYLIST_CHOICE_FIELDS = SearchableFieldExtractor<PlaylistChoice> { arrayOf(it.name) }
@@ -323,7 +324,7 @@ fun AddToPlaylistSheet(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = parentName?.let { "Back to $it" } ?: "Back to your playlists",
+                                    text = parentName?.let { stringResource(R.string.back_to, it) } ?: stringResource(R.string.back_to_your_playlists),
                                     style = EncoreTheme.typography.bodyMedium.copy(
                                         color = EncoreColors.TextSecondary,
                                         fontWeight = FontWeight.Medium
@@ -563,7 +564,7 @@ private fun AddToPlaylistRow(
 
             if (songCount != null && songCount >= 0) {
                 Text(
-                    text = "$songCount song" + if (songCount == 1) "" else "s",
+                    text = pluralStringResource(R.plurals.song_count, songCount, songCount),
                     style = EncoreTheme.typography.bodySmall.copy(
                         color = EncoreColors.TextSecondary,
                         fontSize = 13.sp
