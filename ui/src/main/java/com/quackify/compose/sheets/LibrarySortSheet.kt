@@ -31,17 +31,18 @@ import com.quackify.compose.R
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
 
 enum class LibrarySortOption(
-    val displayName: String,
+    val displayNameRes: Int,
     val apiId: String,
     val reversible: Boolean = true,
     val defaultDirection: SortDirection = SortDirection.ASCENDING
 ) {
-    RECENTS("Recents", "Recents", reversible = true, defaultDirection = SortDirection.DESCENDING),
-    RECENTLY_ADDED("Recently added", "Recently Added", reversible = true, defaultDirection = SortDirection.DESCENDING),
-    ALPHABETICAL("Alphabetical", "Alphabetical", reversible = true, defaultDirection = SortDirection.ASCENDING),
-    CREATOR("Creator", "Creator", reversible = true, defaultDirection = SortDirection.ASCENDING);
+    RECENTS(R.string.recents, stringResource(R.string.recents), reversible = true, defaultDirection = SortDirection.DESCENDING),
+    RECENTLY_ADDED(R.string.recently_added, "Recently Added", reversible = true, defaultDirection = SortDirection.DESCENDING),
+    ALPHABETICAL(R.string.alphabetical, stringResource(R.string.alphabetical), reversible = true, defaultDirection = SortDirection.ASCENDING),
+    CREATOR(R.string.creator, stringResource(R.string.creator), reversible = true, defaultDirection = SortDirection.ASCENDING);
 
     companion object {
         fun fromApiId(id: String?): LibrarySortOption? =
@@ -92,7 +93,7 @@ fun LibrarySortSheet(
                 .navigationBarsPadding()
         ) {
             Text(
-                text = "Sort by",
+                text = stringResource(R.string.sort_by),
                 style = EncoreTheme.typography.bodyMedium.copy(
                     fontWeight = FontWeight.Bold,
                     color = EncoreColors.TextPrimary
@@ -130,7 +131,7 @@ fun LibrarySortSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = option.displayName,
+                        text = stringResource(option.displayNameRes),
                         style = EncoreTheme.typography.bodyMedium.copy(
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                             color = if (isSelected) EncoreColors.Green else EncoreColors.TextPrimary,
@@ -156,7 +157,7 @@ fun LibrarySortSheet(
                         } else {
                             Icon(
                                 painter = painterResource(id = R.drawable.encore_icon_check_24),
-                                contentDescription = "Selected",
+                                contentDescription = stringResource(R.string.selected),
                                 tint = EncoreColors.Green,
                                 modifier = Modifier.size(20.dp)
                             )
