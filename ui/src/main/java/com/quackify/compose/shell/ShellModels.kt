@@ -275,7 +275,6 @@ internal class ShellLocalState {
     var device by mutableStateOf("")
     var trackForOptions by mutableStateOf<TrackItem?>(null)
     var trackTasteExcluded by mutableStateOf<Boolean?>(null)
-    var trackOptionsSaved by mutableStateOf<Boolean?>(null)
     var trackOptionsPlays by mutableStateOf<Long?>(null)
     var artistOptionsName by mutableStateOf("")
     var artistOptionsUri by mutableStateOf("")
