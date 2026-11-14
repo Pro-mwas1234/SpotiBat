@@ -134,7 +134,7 @@ fun EncoreConnectDeviceSheet(
                         text = currentDeviceName.ifBlank { stringResource(R.string.this_phone) },
                         style = EncoreTheme.typography.bodyMediumBold.copy(color = EncoreColors.TextPrimary)
                     )
-                    if (currentDeviceName.isBlank() || currentTrackTitle.isNotBlank()) {
+                    if (currentDeviceLocal || currentTrackTitle.isNotBlank()) {
                         Spacer(modifier = Modifier.height(2.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             EncorePlayIndicator(
@@ -145,9 +145,9 @@ fun EncoreConnectDeviceSheet(
                             Spacer(modifier = Modifier.width(EncoreSpacers.Tighter4))
                             Text(
                                 text = when {
-                                    currentDeviceName.isBlank() && currentTrackTitle.isNotBlank() ->
+                                    currentTrackTitle.isBlank() -> Build.MODEL
+                                    currentDeviceLocal ->
                                         stringResource(R.string.track_on_device, Build.MODEL, currentTrackTitle)
-                                    currentDeviceName.isBlank() -> Build.MODEL
                                     else ->
                                         stringResource(R.string.track_on_device, currentTrackTitle, currentDeviceName)
                                 },
