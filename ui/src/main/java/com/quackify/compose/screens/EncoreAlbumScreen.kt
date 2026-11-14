@@ -79,6 +79,7 @@ import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.theme.rememberBottomPadding
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 
 data class AlbumDisc(
     val discNumber: Int,
@@ -349,7 +350,7 @@ fun EncoreAlbumScreen(
                         Spacer(modifier = Modifier.height(4.dp))
 
                         Text(
-                            text = "Album • $releaseYear",
+                            text = stringResource(R.string.album_with_year, releaseYear),
                             style = EncoreTheme.typography.marginal.copy(color = EncoreColors.TextSecondary),
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
@@ -548,7 +549,7 @@ fun EncoreAlbumScreen(
                             calculateTotalDuration(tracks.map { it.durationMs })
                         }
                         Text(
-                            text = listOf("${tracks.size} songs", totalDuration)
+                            text = listOf(pluralStringResource(R.plurals.song_count, tracks.size, tracks.size), totalDuration)
                                 .filter { it.isNotBlank() }
                                 .joinToString(" • "),
                             style = EncoreTheme.typography.marginal.copy(color = EncoreColors.TextSecondary)
@@ -584,7 +585,7 @@ fun EncoreAlbumScreen(
             if (!moreByArtist.isNullOrEmpty()) {
                 item {
                     Text(
-                        text = "More by $artistName",
+                        text = stringResource(R.string.more_by_artist, artistName),
                         style = EncoreTheme.typography.titleLarge.copy(fontSize = 18.sp),
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                     )
