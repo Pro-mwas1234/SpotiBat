@@ -77,7 +77,7 @@
     <string name="current_device">Current Device</string>
     <string name="custom_order">Custom order</string>
     <string name="dark">Dark</string>
-    <string name="default">Default</string>
+    <string name="default_option">Default</string>
     <string name="delete_folder">Delete folder</string>
     <string name="delete_folder_title">Delete folder?</string>
     <string name="delete_playlist">Delete playlist</string>
@@ -352,6 +352,7 @@
     <string name="couldnt_load_search_results">Couldn\'t load search results</string>
     <string name="song">Song</string>
     <string name="podcast">Podcast</string>
+    <string name="podcasts">Podcasts</string>
     <string name="result">Result</string>
     <string name="profile">Profile</string>
     <string name="pause_episode">Pause episode</string>
@@ -430,8 +431,6 @@
     <string name="recents">Recents</string>
     <string name="alphabetical">Alphabetical</string>
     <string name="creator">Creator</string>
-    <string name="audio">Audio</string>
-    <string name="go_to_playlist_radio">Go to playlist radio</string>
     <string name="audio">Audio</string>
     <string name="go_to_playlist_radio">Go to playlist radio</string>
     <string name="explore_category">Explore %1$s</string>

@@ -359,7 +359,7 @@ fun SettingsScreen(
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             SettingsIconOption(
-                                label = stringResource(R.string.default),
+                                label = stringResource(R.string.default_option),
                                 iconRes = R.mipmap.ic_launcher_default,
                                 selected = appIcon == "default",
                                 onClick = {
