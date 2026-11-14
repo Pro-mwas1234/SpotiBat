@@ -23,6 +23,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalContext
 import com.quackify.backend.api.Collection2
 import com.quackify.backend.api.Library
+import com.quackify.backend.core.auth.EncoreAuth
+import com.quackify.backend.core.net.Pathfinder
 import com.quackify.backend.model.AlbumDetail
 import com.quackify.backend.model.ArtistDetail
 import com.quackify.backend.model.BrowseCard
@@ -355,6 +357,7 @@ fun EncoreAppShell(
 
     var trackTasteExcluded by local::trackTasteExcluded
     var trackOptionsSaved by local::trackOptionsSaved
+    var trackOptionsPlays by local::trackOptionsPlays
     val tasteExclusionCache = remember { mutableMapOf<String, Boolean>() }
     var currentSortOption by local::sortOption
     var currentSortDirection by local::sortDirection
@@ -409,10 +412,23 @@ fun EncoreAppShell(
         if (!flags.isTrackOptionsOpen || !uri.startsWith("spotify:track:")) {
             trackTasteExcluded = null
             trackOptionsSaved = null
+            trackOptionsPlays = null
             return@LaunchedEffect
         }
         trackTasteExcluded = tasteExclusionCache[uri]
         trackOptionsSaved = null
+        trackOptionsPlays = selectedTrackForOptions?.plays?.takeIf { it > 0L }
+        if (trackOptionsPlays == null) {
+            val variables = org.json.JSONObject()
+                .put("uri", uri)
+                .put("includeVideoAssociationItems", true)
+                .put("includeMusicVideoPreviews", false)
+                .toString()
+            val plays = Pathfinder.queryPost(context, EncoreAuth.token(context), "getTrack", variables)
+                ?.optJSONObject("data")?.optJSONObject("trackUnion")
+                ?.optString("playcount")?.toLongOrNull()
+            if (uri == selectedTrackForOptions?.uri) trackOptionsPlays = plays
+        }
         if (trackTasteExcluded == null) {
             val excluded = Collection2.excludedFromTasteProfile(context, uri)
             if (uri == selectedTrackForOptions?.uri) {
