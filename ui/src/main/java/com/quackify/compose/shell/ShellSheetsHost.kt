@@ -19,6 +19,8 @@ import com.quackify.compose.sheets.EntityOptions
 import com.quackify.compose.sheets.SleepTimerOption
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.quackify.compose.R
 
 internal class ShellSheetsEnv(
     val flags: ShellUiFlags,
@@ -122,7 +124,7 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
     else EntityOptions(
         title = env.playlistDetail?.title?.takeIf { it.isNotBlank() } ?: active.playlistTitle,
         subtitle = if (active.playlistUri.startsWith("spotify:playlist:"))
-            "Playlist • " + (env.playlistDetail?.creator?.takeIf { it.isNotBlank() } ?: env.userDisplayName)
+            stringResource(R.string.playlist_with_dot) + (env.playlistDetail?.creator?.takeIf { it.isNotBlank() } ?: env.userDisplayName)
         else "",
         imageUrl = active.playlistCoverUrl ?: env.playlistDetail?.imageUrl?.takeIf { it.isNotBlank() },
         uri = active.playlistUri,
@@ -192,9 +194,9 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
                 Toast.makeText(
                     env.context,
                     when {
-                        ok && next -> "Artist blocked"
-                        ok -> "Artist unblocked"
-                        else -> "Couldn't update this artist"
+                        ok && next -> stringResource(R.string.artist_blocked)
+                        ok -> stringResource(R.string.artist_unblocked)
+                        else -> stringResource(R.string.couldnt_update_this_artist)
                     },
                     Toast.LENGTH_SHORT
                 ).show()
@@ -207,7 +209,7 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
                 env.shellScope.launch {
                     val radio = env.onArtistRadio?.invoke(artistUriNow)
                     if (radio != null && radio.startsWith("spotify:playlist:")) {
-                        env.openPlaylist(sheetArtistName + " Radio", radio)
+                        env.openPlaylist(sheetArtistName + stringResource(R.string.radio_suffix), radio)
                     }
                 }
             }
@@ -334,9 +336,9 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
                     Toast.makeText(
                         env.context,
                         when {
-                            ok && exclude -> "Excluded from your taste profile"
-                            ok -> "Included in your taste profile"
-                            else -> "Couldn't update your taste profile"
+                            ok && exclude -> stringResource(R.string.excluded_from_taste_profile)
+                            ok -> stringResource(R.string.included_in_taste_profile)
+                            else -> stringResource(R.string.couldnt_update_taste_profile)
                         },
                         Toast.LENGTH_SHORT
                     ).show()
@@ -394,7 +396,7 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
                 env.shellScope.launch {
                     val radio = env.onArtistRadio?.invoke(trackNow.uri)
                     if (radio != null && radio.startsWith("spotify:playlist:")) {
-                        env.openPlaylist(trackNow.title + " Radio", radio)
+                        env.openPlaylist(trackNow.title + stringResource(R.string.radio_suffix), radio)
                     }
                 }
             }
@@ -407,7 +409,7 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
                 env.shellScope.launch {
                     val radio = env.onArtistRadio?.invoke(albumUriNow)
                     if (radio != null && radio.startsWith("spotify:playlist:")) {
-                        env.openPlaylist(active.albumTitle + " Radio", radio)
+                        env.openPlaylist(active.albumTitle + stringResource(R.string.radio_suffix), radio)
                     }
                 }
             }
