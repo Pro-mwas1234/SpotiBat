@@ -622,7 +622,7 @@ fun EncorePlaylistScreen(
                                     onChangeTitle = onChangeTitle,
                                     onShareClick = onShareClick,
                                     onAddTracksClick = {
-                                        if (isEditable) {
+                                        if (isEditable || canAddTracks) {
                                             onAddTracksClick?.invoke() ?: run { isSearching = true }
                                         }
                                     }
