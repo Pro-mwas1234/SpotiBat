@@ -120,6 +120,7 @@ data class TrackItem(
     val trackNumber: Int = 0,
     val hasVideo: Boolean = false,
     val isEnhanced: Boolean = false,
+    val plays: Long = 0L,
 )
 
 private val trackSearchEngine = GenericSearchEngine<TrackItem>(maxResult = Int.MAX_VALUE)
