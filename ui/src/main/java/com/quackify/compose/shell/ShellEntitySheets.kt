@@ -11,6 +11,8 @@ import com.quackify.compose.sheets.EntityOptionsSheet
 import com.quackify.compose.sheets.EncoreCreateNameDialog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.quackify.compose.R
 
 @Composable
 internal fun ShellEntitySheets(
@@ -69,8 +71,8 @@ internal fun ShellEntitySheets(
                 val title = entity.title
                 local.libraryItemOptions = null
                 local.deleteAsk = DeleteAsk(
-                    title = "Delete playlist?",
-                    message = "\"$title\" will be deleted from Your Library.",
+                    title = stringResource(R.string.delete_playlist_title),
+                    message = "\"$title\stringResource(R.string.will_be_deleted_from_library),
                     onConfirm = {
                         shellScope.launch {
                             onDeletePlaylist?.invoke(uri)
@@ -114,10 +116,10 @@ internal fun ShellEntitySheets(
         } else {
             EncoreCreateNameDialog(
                 isOpen = true,
-                title = if (draft.mode == FolderMode.CREATE) "Give your folder a name" else "Rename folder",
-                initialName = if (draft.mode == FolderMode.CREATE) "New folder" else draft.title,
-                confirmLabel = if (draft.mode == FolderMode.CREATE) "Create" else "Save",
-                cancelLabel = "Cancel",
+                title = if (draft.mode == FolderMode.CREATE) "Give your folder a name" else stringResource(R.string.rename_folder),
+                initialName = if (draft.mode == FolderMode.CREATE) stringResource(R.string.new_folder) else draft.title,
+                confirmLabel = if (draft.mode == FolderMode.CREATE) stringResource(R.string.create) else stringResource(R.string.save),
+                cancelLabel = stringResource(R.string.cancel),
                 onConfirm = { name ->
                     val currentDraft = local.folderDraft
                     local.folderDraft = null
@@ -141,7 +143,7 @@ internal fun ShellEntitySheets(
         FolderOptionsSheet(
             isOpen = true,
             folderTitle = folderItem.title,
-            playlistSubtitle = folderItem.subtitle.ifBlank { "0 playlists" },
+            playlistSubtitle = folderItem.subtitle.ifBlank { stringResource(R.string.zero_playlists) },
             isNested = local.activeFolderOptionsNested,
             isPinned = folderItem.isPinned,
             canPin = folderItem.isPinnable,
@@ -176,8 +178,8 @@ internal fun ShellEntitySheets(
                 val targetUri = folderItem.uri
                 local.activeFolderOptionsItem = null
                 local.deleteAsk = DeleteAsk(
-                    title = "Delete folder?",
-                    message = "\"${folderItem.title}\" will be deleted. The playlists inside stay in Your Library.",
+                    title = stringResource(R.string.delete_folder_title),
+                    message = "\"${folderItem.title}\stringResource(R.string.will_be_deleted_playlists_stay),
                     onConfirm = {
                         onDeleteFolder?.invoke(targetUri)
                         if (navController.currentScreen == ShellScreen.FOLDER && active.folderUri == targetUri) {
@@ -192,10 +194,10 @@ internal fun ShellEntitySheets(
 
     EncoreCreateNameDialog(
         isOpen = flags.isRenamePlaylistDialogOpen,
-        title = "Give your playlist a name",
+        title = stringResource(R.string.give_your_playlist_a_name),
         initialName = active.playlistTitle,
-        confirmLabel = "Save",
-        cancelLabel = "Cancel",
+        confirmLabel = stringResource(R.string.save),
+        cancelLabel = stringResource(R.string.cancel),
         onConfirm = { newTitle ->
             flags.isRenamePlaylistDialogOpen = false
             val uri = active.playlistUri
