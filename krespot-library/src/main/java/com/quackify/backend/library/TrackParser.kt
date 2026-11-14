@@ -31,7 +31,12 @@ import com.quackify.backend.core.net.plainText
 
 private val log = Logs.of(Logs.Module.TRACKS)
 
-internal fun track(data: JSONObject?, fallbackUri: String, savedHint: Boolean? = null): TrackRow? {
+internal fun track(
+    data: JSONObject?,
+    fallbackUri: String,
+    savedHint: Boolean? = null,
+    fallbackImageUrl: String = ""
+): TrackRow? {
     if (data == null) return null
     val title = data.optString("name").plainText()
     if (title.isBlank()) return null
@@ -49,7 +54,7 @@ internal fun track(data: JSONObject?, fallbackUri: String, savedHint: Boolean? =
                 ?.optString("name").orEmpty().plainText()
         },
         album = albumNode?.optString("name").orEmpty().plainText(),
-        imageUrl = GraphQl.entityImage(art),
+        imageUrl = GraphQl.entityImage(art).ifBlank { fallbackImageUrl },
         colorHex = GraphQl.entityColor(art),
         durationMs = duration,
         explicit = data.optJSONObject("contentRating")?.optString("label") == "EXPLICIT",
