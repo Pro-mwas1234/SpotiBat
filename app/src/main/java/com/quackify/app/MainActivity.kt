@@ -1472,7 +1472,13 @@ class MainActivity : ComponentActivity() {
         onAddTracksOpen = { addTracksFetch++ },
         onAddTrack = { trackUri ->
             val ok = if (playlistUri == "spotify:collection:tracks") {
-                Library.setSaved(context, listOf(trackUri), true)
+                val host = PlaybackHost.bridge
+                if (trackUri == host?.state?.trackUri && !host.state.isLiked) {
+                    host.listener.onLikeToggle()
+                    true
+                } else {
+                    Library.setSaved(context, listOf(trackUri), true)
+                }
             } else {
                 Krespot.playlists.addTrack(context, playlistUri, trackUri)
             }
