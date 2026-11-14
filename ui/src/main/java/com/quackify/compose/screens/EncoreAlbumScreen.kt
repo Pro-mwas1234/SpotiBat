@@ -78,6 +78,7 @@ import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.theme.rememberBottomPadding
+import androidx.compose.ui.res.stringResource
 
 data class AlbumDisc(
     val discNumber: Int,
@@ -377,7 +378,7 @@ fun EncoreAlbumScreen(
                                         painter = painterResource(
                                             id = if (isDownloaded) R.drawable.encore_icon_downloaded_24 else R.drawable.encore_icon_download_24
                                         ),
-                                        contentDescription = if (isDownloaded) "Downloaded" else "Download",
+                                        contentDescription = if (isDownloaded) stringResource(R.string.downloaded) else stringResource(R.string.download),
                                         tint = if (isDownloaded) EncoreColors.Green else EncoreColors.TextSecondary,
                                         modifier = Modifier.size(24.dp)
                                     )
@@ -394,7 +395,7 @@ fun EncoreAlbumScreen(
                                         painter = painterResource(
                                             id = if (isLiked) R.drawable.encore_icon_heart_active_24 else R.drawable.encore_icon_heart_24
                                         ),
-                                        contentDescription = "Save album",
+                                        contentDescription = stringResource(R.string.save_album),
                                         tint = if (isLiked) EncoreColors.Green else EncoreColors.TextSecondary,
                                         modifier = Modifier.size(22.dp)
                                     )
@@ -409,7 +410,7 @@ fun EncoreAlbumScreen(
                                 ) {
                                     Icon(
                                         painter = painterResource(id = R.drawable.encore_icon_more_android_24),
-                                        contentDescription = "Album options",
+                                        contentDescription = stringResource(R.string.album_options),
                                         tint = EncoreColors.TextSecondary,
                                         modifier = Modifier.size(22.dp)
                                     )
@@ -429,7 +430,7 @@ fun EncoreAlbumScreen(
                                 ) {
                                     Icon(
                                         painter = painterResource(id = R.drawable.encore_icon_shuffle_24),
-                                        contentDescription = "Shuffle",
+                                        contentDescription = stringResource(R.string.shuffle),
                                         tint = if (isShuffle) EncoreColors.Green else EncoreColors.TextSecondary,
                                         modifier = Modifier.size(24.dp)
                                     )
@@ -502,14 +503,14 @@ fun EncoreAlbumScreen(
             } else if (loadFailed) {
                 item {
                     AlbumLoadError(
-                        title = "Couldn't load this album",
+                        title = stringResource(R.string.couldn_t_load_this_album),
                         onRetry = onRetry
                     )
                 }
             } else if (tracks.isEmpty()) {
                 item {
                     AlbumLoadError(
-                        title = "No tracks in this album",
+                        title = stringResource(R.string.no_tracks_in_this_album),
                         onRetry = null
                     )
                 }
@@ -670,7 +671,7 @@ fun EncoreAlbumScreen(
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.encore_icon_arrow_left_24),
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.back),
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
                 )
@@ -711,7 +712,7 @@ fun EncoreAlbumScreen(
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.encore_icon_more_android_24),
-                        contentDescription = "Album options",
+                        contentDescription = stringResource(R.string.album_options),
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
@@ -852,7 +853,7 @@ private fun AlbumTrackRow(
 
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_more_android_24,
-                contentDescription = "Track options",
+                contentDescription = stringResource(R.string.track_options),
                 onClick = onMoreClick,
                 tint = EncoreColors.TextSecondary,
                 size = 36.dp,
@@ -929,7 +930,7 @@ private fun AlbumLoadError(title: String, onRetry: (() -> Unit)?) {
         if (onRetry != null) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Try again",
+                text = stringResource(R.string.try_again),
                 style = EncoreTheme.typography.bodyMedium.copy(
                     fontWeight = FontWeight.Bold,
                     color = EncoreColors.Green
