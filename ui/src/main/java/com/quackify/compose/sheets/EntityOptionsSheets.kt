@@ -113,7 +113,7 @@ fun AlbumOptionsSheet(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Album • $artist",
+                text = stringResource(R.string.album_with_year, artist),
                 style = EncoreTheme.typography.bodyMedium.copy(
                     fontSize = 14.sp,
                     color = EncoreColors.TextSecondary
