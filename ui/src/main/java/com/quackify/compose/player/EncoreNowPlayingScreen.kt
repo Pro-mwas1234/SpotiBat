@@ -4,7 +4,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
@@ -339,6 +341,19 @@ fun EncoreNowPlayingScreen(
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
+    val canvasImmersive = canvasActive && !videoActive && !isLandscape
+    var canvasControlsRevealed by remember { mutableStateOf(false) }
+    val canvasControlsShown = !canvasImmersive || canvasControlsRevealed
+
+    LaunchedEffect(canvasImmersive) {
+        if (!canvasImmersive) canvasControlsRevealed = false
+    }
+    LaunchedEffect(canvasImmersive, canvasControlsRevealed) {
+        if (canvasImmersive && canvasControlsRevealed) {
+            delay(4000)
+            canvasControlsRevealed = false
+        }
+    }
     val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
     val dismissThresholdPx = with(density) { DISMISS_THRESHOLD_DP.dp.toPx() }
     val videoTopHeight = (configuration.screenWidthDp * 9f / 16f).dp
@@ -417,6 +432,12 @@ fun EncoreNowPlayingScreen(
             .fillMaxSize()
             .graphicsLayer {
                 translationY = playerOffsetY.value.coerceAtLeast(0f)
+            }
+            .pointerInput(canvasImmersive) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    if (canvasImmersive) canvasControlsRevealed = true
+                }
             }
     ) {
         val viewportHeight = maxHeight
@@ -603,7 +624,7 @@ fun EncoreNowPlayingScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        NowPlayingLyricsPeekCard(
+                        NowPlayingLyricsCard(
                             visible = effectiveLyricsVisible,
                             lyrics = lyrics,
                             activeIndex = activeLyricIndex,
@@ -714,12 +735,18 @@ fun EncoreNowPlayingScreen(
                                 )
                             }
 
-                            MusicVideoSwitchRow(
-                                available = musicVideoAvailable,
-                                active = videoActive,
-                                switching = videoSwitching,
-                                onSwitch = onSwitchVideo
-                            )
+                            AnimatedVisibility(
+                                visible = canvasControlsShown,
+                                enter = fadeIn(tween(200)) + expandVertically(tween(300, easing = EncoreAnimation.DecelerateInterpolator)),
+                                exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
+                            ) {
+                                MusicVideoSwitchRow(
+                                    available = musicVideoAvailable,
+                                    active = videoActive,
+                                    switching = videoSwitching,
+                                    onSwitch = onSwitchVideo
+                                )
+                            }
 
                             if (!videoActive) {
                                 Spacer(modifier = Modifier.height(lyricBottomSpacerHeight))
@@ -749,45 +776,53 @@ fun EncoreNowPlayingScreen(
                                 markers = chapterFractions(chapters, durationMs)
                             )
 
-                            Spacer(modifier = Modifier.height(20.dp))
+                            AnimatedVisibility(
+                                visible = canvasControlsShown,
+                                enter = fadeIn(tween(200)) + expandVertically(tween(300, easing = EncoreAnimation.DecelerateInterpolator)),
+                                exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
+                            ) {
+                                Column {
+                                    Spacer(modifier = Modifier.height(20.dp))
 
-                            if (isEpisode) {
-                                EpisodeControlsRow(
-                                    playbackSpeed = playbackSpeed,
-                                    isPlaying = isPlaying,
-                                    isLoading = effectiveIsLoading,
-                                    onPlaybackSpeed = onPlaybackSpeed,
-                                    onSkipSeek = onSkipSeek,
-                                    onSkipPreviousClick = onSkipPreviousClick,
-                                    onPlayPauseClick = onPlayPauseClick,
-                                    onSkipNextClick = onSkipNextClick
-                                )
-                            } else {
-                            NowPlayingControlsRow(
-                                shuffleMode = shuffleMode,
-                                repeatMode = repeatMode,
-                                isPlaying = isPlaying,
-                                isLoading = effectiveIsLoading,
-                                canShuffle = canShuffle,
-                                canSmartShuffle = canSmartShuffle,
-                                canRepeat = canRepeat,
-                                canSkipPrevious = canSkipPrevious,
-                                onShuffleClick = onShuffleClick,
-                                onSkipPreviousClick = onSkipPreviousClick,
-                                onPlayPauseClick = onPlayPauseClick,
-                                onSkipNextClick = onSkipNextClick,
-                                onRepeatClick = onRepeatClick
-                            )
+                                    if (isEpisode) {
+                                        EpisodeControlsRow(
+                                            playbackSpeed = playbackSpeed,
+                                            isPlaying = isPlaying,
+                                            isLoading = effectiveIsLoading,
+                                            onPlaybackSpeed = onPlaybackSpeed,
+                                            onSkipSeek = onSkipSeek,
+                                            onSkipPreviousClick = onSkipPreviousClick,
+                                            onPlayPauseClick = onPlayPauseClick,
+                                            onSkipNextClick = onSkipNextClick
+                                        )
+                                    } else {
+                                        NowPlayingControlsRow(
+                                            shuffleMode = shuffleMode,
+                                            repeatMode = repeatMode,
+                                            isPlaying = isPlaying,
+                                            isLoading = effectiveIsLoading,
+                                            canShuffle = canShuffle,
+                                            canSmartShuffle = canSmartShuffle,
+                                            canRepeat = canRepeat,
+                                            canSkipPrevious = canSkipPrevious,
+                                            onShuffleClick = onShuffleClick,
+                                            onSkipPreviousClick = onSkipPreviousClick,
+                                            onPlayPauseClick = onPlayPauseClick,
+                                            onSkipNextClick = onSkipNextClick,
+                                            onRepeatClick = onRepeatClick
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    NowPlayingFooterRow(
+                                        connectedDeviceName = connectedDeviceName,
+                                        onDeviceClick = onDeviceClick,
+                                        onQueueClick = onQueueClick,
+                                        onShareClick = onShareClick
+                                    )
+                                }
                             }
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            NowPlayingFooterRow(
-                                connectedDeviceName = connectedDeviceName,
-                                onDeviceClick = onDeviceClick,
-                                onQueueClick = onQueueClick,
-                                onShareClick = onShareClick
-                            )
                         }
                     }
 
@@ -797,8 +832,8 @@ fun EncoreNowPlayingScreen(
                             .revealAt(reveal, REVEAL_REST_DELAY_MS / REVEAL_MS.toFloat())
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            NowPlayingLyricsPeekCard(
-                                visible = effectiveLyricsVisible,
+                            NowPlayingLyricsCard(
+                                visible = effectiveLyricsVisible && canvasControlsShown,
                                 lyrics = lyrics,
                                 activeIndex = activeLyricIndex,
                                 dominantColor = dynamicArtworkColor,
@@ -1822,7 +1857,7 @@ private fun NowPlayingFooterRow(
  * Reference: live dump [42, 2269][1038, 2400]
  */
 @Composable
-private fun NowPlayingLyricsPeekCard(
+private fun NowPlayingLyricsCard(
     visible: Boolean,
     lyrics: List<TimeSyncedLyric>,
     activeIndex: Int,
@@ -1864,7 +1899,7 @@ private fun NowPlayingLyricsPeekCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Lyrics preview",
+                        text = "Lyrics",
                         style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = ink)
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
