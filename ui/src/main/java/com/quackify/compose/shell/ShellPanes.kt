@@ -545,6 +545,8 @@ internal fun ShellArtistPane(
     artistFailed: Boolean,
     onRetryArtist: (() -> Unit)?,
     artistFollowed: Boolean?,
+    artistBanned: Boolean? = null,
+    onArtistUnban: ((String) -> Unit)? = null,
     currentTrackTitle: String,
     currentTrackUri: String,
     isPlaying: Boolean,
@@ -598,6 +600,10 @@ internal fun ShellArtistPane(
             onTrackAddToQueue = onTrackAddToQueue,
             onArtistOptionsClick = onOptionsClick,
             isFollowing = artistFollowed == true,
+            isBanned = artistBanned == true,
+            onUnbanClick = {
+                if (artistUri.startsWith("spotify:artist:")) onArtistUnban?.invoke(artistUri)
+            },
             onFollowToggle = { follow ->
                 if (artistUri.startsWith("spotify:artist:")) {
                     onFollowToggle(artistUri, follow)
