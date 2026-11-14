@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.quackify.compose.R
 import com.quackify.compose.theme.EncoreColors
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
 
 /** How far the row must be pulled to the right before releasing fires the action. */
 private val SwipeTriggerDistance = 72.dp
@@ -110,7 +111,7 @@ fun SwipeToQueueBox(
         )
         Icon(
             painter = painterResource(R.drawable.encore_icon_add_to_queue_24),
-            contentDescription = "Add to queue",
+            contentDescription = stringResource(R.string.add_to_queue),
             tint = Color.Black,
             modifier = Modifier
                 .align(Alignment.CenterStart)
