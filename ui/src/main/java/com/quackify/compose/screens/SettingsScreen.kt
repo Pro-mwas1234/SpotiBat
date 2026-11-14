@@ -71,6 +71,7 @@ import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.theme.rememberBottomPadding
 import com.quackify.compose.widget.WidgetBackgroundStyle
 import com.quackify.compose.widget.WidgetOptionsStore
+import androidx.compose.ui.res.stringResource
 
 data class AppUpdate(
     val version: String,
@@ -160,7 +161,7 @@ fun SettingsScreen(
         ) {
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_arrow_left_24,
-                contentDescription = "Back",
+                contentDescription = stringResource(R.string.back),
                 onClick = {
                     if (category == null) onBackClick() else category = null
                 },
@@ -169,10 +170,10 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = when (category) {
-                    0 -> "General"
-                    1 -> "Personalization"
-                    2 -> "More"
-                    else -> "Settings"
+                    0 -> stringResource(R.string.general)
+                    1 -> stringResource(R.string.personalization)
+                    2 -> stringResource(R.string.more)
+                    else -> stringResource(R.string.settings)
                 },
                 style = EncoreTheme.typography.titleLarge.copy(fontSize = 20.sp)
             )
@@ -211,18 +212,18 @@ fun SettingsScreen(
                     }
                     item {
                         SettingsCategoryRow(
-                            title = "General",
-                            description = "Videos, profile visibility and account",
+                            title = stringResource(R.string.general),
+                            description = stringResource(R.string.videos_profile_visibility_and_account),
                             onClick = { category = 0 }
                         )
                         SettingsCategoryRow(
-                            title = "Personalization",
-                            description = "App icon and home screen widgets",
+                            title = stringResource(R.string.personalization),
+                            description = stringResource(R.string.app_icon_and_home_screen_widgets),
                             onClick = { category = 1 }
                         )
                         SettingsCategoryRow(
-                            title = "More",
-                            description = "Playback and app information",
+                            title = stringResource(R.string.more),
+                            description = stringResource(R.string.playback_and_app_information),
                             onClick = { category = 2 }
                         )
                     }
@@ -230,29 +231,29 @@ fun SettingsScreen(
 
                 if (target == 0) {
                     item {
-                        SettingsSectionHeader(title = "Videos and Canvas")
+                        SettingsSectionHeader(title = stringResource(R.string.videos_and_canvas))
                         Text(
-                            text = "It may take some time for your experience to update.",
+                            text = stringResource(R.string.it_may_take_some_time_for_your_experience_to_upd),
                             style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
                             modifier = Modifier.padding(bottom = 4.dp)
                         )
                         SettingsToggleRow(
-                            title = "Music videos",
-                            subtitle = "When off, music videos and live performances play as audio-only.",
+                            title = stringResource(R.string.music_videos),
+                            subtitle = stringResource(R.string.when_off_music_videos_and_live_performances_play),
                             isChecked = switches.musicVideos,
                             enabled = !locks.musicVideos && !loading,
                             onCheckedChange = onToggleMusicVideos
                         )
                         SettingsToggleRow(
-                            title = "Canvas",
-                            subtitle = "Short, looping visuals when a song is playing.",
+                            title = stringResource(R.string.canvas),
+                            subtitle = stringResource(R.string.short_looping_visuals_when_a_song_is_playing),
                             isChecked = switches.canvas,
                             enabled = !locks.canvas && !loading,
                             onCheckedChange = onToggleCanvas
                         )
                         SettingsToggleRow(
-                            title = "Other videos",
-                            subtitle = "Video podcasts and videos from creators. Video ads can't be turned off.",
+                            title = stringResource(R.string.other_videos),
+                            subtitle = stringResource(R.string.video_podcasts_and_videos_from_creators_video_ad),
                             isChecked = switches.otherVideos,
                             enabled = !locks.otherVideos && !loading,
                             onCheckedChange = onToggleOtherVideos
@@ -260,17 +261,17 @@ fun SettingsScreen(
                     }
 
                     item {
-                        SettingsSectionHeader(title = "What others can see on your profile")
+                        SettingsSectionHeader(title = stringResource(R.string.what_others_can_see_on_your_profile))
                         SettingsToggleRow(
-                            title = "Followers and following",
-                            subtitle = "On your profile, people can see who's following you and who you're following.",
+                            title = stringResource(R.string.followers_and_following),
+                            subtitle = stringResource(R.string.on_your_profile_people_can_see_who_s_following_y),
                             isChecked = switches.showFollows,
                             enabled = !loading,
                             onCheckedChange = onToggleShowFollows
                         )
                         SettingsToggleRow(
-                            title = "Public playlists",
-                            subtitle = "People can see the playlists you've added to your profile.",
+                            title = stringResource(R.string.public_playlists),
+                            subtitle = stringResource(R.string.people_can_see_the_playlists_you_ve_added_to_you),
                             isChecked = switches.showPlaylists,
                             enabled = !loading,
                             onCheckedChange = onToggleShowPlaylists
@@ -280,15 +281,15 @@ fun SettingsScreen(
                 }
                 if (target == 1) {
                     item {
-                        SettingsSectionHeader(title = "Widget")
+                        SettingsSectionHeader(title = stringResource(R.string.widget))
                         Text(
-                            text = "Home screen widgets come in 4x1, 3x2 and 3x3 sizes. Changes show up the next time the widgets refresh.",
+                            text = stringResource(R.string.home_screen_widgets_come_in_4x1_3x2_and_3x3_size),
                             style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
                             modifier = Modifier.padding(bottom = 4.dp)
                         )
                         SettingsToggleRow(
-                            title = "Show artwork",
-                            subtitle = "Display the album cover on the widgets.",
+                            title = stringResource(R.string.show_artwork),
+                            subtitle = stringResource(R.string.display_the_album_cover_on_the_widgets),
                             isChecked = widgetOptions.showArtwork,
                             enabled = true,
                             onCheckedChange = { on ->
@@ -297,8 +298,8 @@ fun SettingsScreen(
                             }
                         )
                         SettingsToggleRow(
-                            title = "Show like button",
-                            subtitle = "Keep the heart beside the playback controls.",
+                            title = stringResource(R.string.show_like_button),
+                            subtitle = stringResource(R.string.keep_the_heart_beside_the_playback_controls),
                             isChecked = widgetOptions.showLike,
                             enabled = true,
                             onCheckedChange = { on ->
@@ -307,8 +308,8 @@ fun SettingsScreen(
                             }
                         )
                         SettingsToggleRow(
-                            title = "Show progress bar",
-                            subtitle = "A thin playback line on the 3x2 and 3x3 widgets.",
+                            title = stringResource(R.string.show_progress_bar),
+                            subtitle = stringResource(R.string.a_thin_playback_line_on_the_3x2_and_3x3_widgets),
                             isChecked = widgetOptions.showProgress,
                             enabled = true,
                             onCheckedChange = { on ->
@@ -317,13 +318,13 @@ fun SettingsScreen(
                             }
                         )
                         Text(
-                            text = "Background",
+                            text = stringResource(R.string.background),
                             style = EncoreTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                             modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             SettingsChipOption(
-                                label = "Dark",
+                                label = stringResource(R.string.dark),
                                 selected = widgetOptions.background == WidgetBackgroundStyle.DARK,
                                 onClick = {
                                     widgetOptions = widgetOptions.copy(background = WidgetBackgroundStyle.DARK)
@@ -331,7 +332,7 @@ fun SettingsScreen(
                                 }
                             )
                             SettingsChipOption(
-                                label = "Artwork tint",
+                                label = stringResource(R.string.artwork_tint),
                                 selected = widgetOptions.background == WidgetBackgroundStyle.TINTED,
                                 onClick = {
                                     widgetOptions = widgetOptions.copy(background = WidgetBackgroundStyle.TINTED)
@@ -339,7 +340,7 @@ fun SettingsScreen(
                                 }
                             )
                             SettingsChipOption(
-                                label = "Transparent",
+                                label = stringResource(R.string.transparent),
                                 selected = widgetOptions.background == WidgetBackgroundStyle.TRANSPARENT,
                                 onClick = {
                                     widgetOptions = widgetOptions.copy(background = WidgetBackgroundStyle.TRANSPARENT)
@@ -350,15 +351,15 @@ fun SettingsScreen(
                     }
 
                     item {
-                        SettingsSectionHeader(title = "App icon")
+                        SettingsSectionHeader(title = stringResource(R.string.app_icon))
                         Text(
-                            text = "Pick the launcher icon. It can take a moment for your home screen to update, and the app may restart once.",
+                            text = stringResource(R.string.pick_the_launcher_icon_it_can_take_a_moment_for),
                             style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
                             modifier = Modifier.padding(bottom = 10.dp)
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             SettingsIconOption(
-                                label = "Default",
+                                label = stringResource(R.string.default),
                                 iconRes = R.mipmap.ic_launcher_default,
                                 selected = appIcon == "default",
                                 onClick = {
@@ -368,7 +369,7 @@ fun SettingsScreen(
                                 }
                             )
                             SettingsIconOption(
-                                label = "Normal",
+                                label = stringResource(R.string.normal),
                                 iconRes = R.mipmap.ic_launcher_normal,
                                 selected = appIcon == "normal",
                                 onClick = {
@@ -383,16 +384,16 @@ fun SettingsScreen(
                 }
                 if (target == 0) {
                     item {
-                        SettingsSectionHeader(title = "Account")
+                        SettingsSectionHeader(title = stringResource(R.string.account))
                         val detail = listOfNotNull(
                             product.takeIf { it.isNotBlank() },
                             country.takeIf { it.isNotBlank() },
                         ).joinToString(" · ")
                         if (detail.isNotBlank()) {
-                            SettingsInfoRow(title = "Plan", value = detail)
+                            SettingsInfoRow(title = stringResource(R.string.plan), value = detail)
                         }
                         Text(
-                            text = "Log out",
+                            text = stringResource(R.string.log_out),
                             style = EncoreTheme.typography.bodyMediumBold.copy(color = EncoreColors.Error),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -405,10 +406,10 @@ fun SettingsScreen(
                 }
                 if (target == 2) {
                     item {
-                        SettingsSectionHeader(title = "Playback")
+                        SettingsSectionHeader(title = stringResource(R.string.playback))
                         SettingsToggleRow(
-                            title = "Autoplay on startup",
-                            subtitle = "When you open the app, the loaded track starts playing right away.",
+                            title = stringResource(R.string.autoplay_on_startup),
+                            subtitle = stringResource(R.string.when_you_open_the_app_the_loaded_track_starts_pl),
                             isChecked = autoplayOnStartup,
                             enabled = true,
                             onCheckedChange = { on ->
@@ -417,8 +418,8 @@ fun SettingsScreen(
                             }
                         )
                         SettingsToggleRow(
-                            title = "Autoplay",
-                            subtitle = "Keep playing a station when the album or playlist runs out.",
+                            title = stringResource(R.string.autoplay),
+                            subtitle = stringResource(R.string.keep_playing_a_station_when_the_album_or_playlis),
                             isChecked = autoplayOnEnd,
                             enabled = true,
                             onCheckedChange = { on ->
@@ -427,12 +428,12 @@ fun SettingsScreen(
                             }
                         )
                         SettingsToggleRow(
-                            title = "Gapless playback",
-                            subtitle = "Prepares the next track while the current one plays, so albums and playlists flow without silence between songs.",
+                            title = stringResource(R.string.gapless_playback),
+                            subtitle = stringResource(R.string.prepares_the_next_track_while_the_current_one_pl),
                             isChecked = gapless,
                             enabled = true,
-                            badge = "BETA",
-                            badgeInfo = "Gapless is not optimised yet and may use a lot of license key quota.",
+                            badge = stringResource(R.string.beta),
+                            badgeInfo = stringResource(R.string.gapless_warning),
                             onCheckedChange = { on ->
                                 gapless = on
                                 clientPrefs.edit().putBoolean("gaplessPlayback", on).apply()
@@ -441,14 +442,14 @@ fun SettingsScreen(
                     }
 
                     item {
-                        SettingsSectionHeader(title = "About")
+                        SettingsSectionHeader(title = stringResource(R.string.about))
                         Text(
-                            text = "Quackify is a native Android music client built with Jetpack Compose, continuing the SpotiDuck project.",
+                            text = stringResource(R.string.quackify_is_a_native_android_music_client_built),
                             style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                         SettingsInfoRow(
-                            title = "Version",
+                            title = stringResource(R.string.version),
                             value = version,
                         )
                         val context = LocalContext.current
@@ -471,7 +472,7 @@ fun SettingsScreen(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Update available",
+                                        text = stringResource(R.string.update_available),
                                         style = EncoreTheme.typography.bodyMediumBold
                                     )
                                     Text(
@@ -480,7 +481,7 @@ fun SettingsScreen(
                                     )
                                 }
                                 Text(
-                                    text = "Download",
+                                    text = stringResource(R.string.download),
                                     style = EncoreTheme.typography.bodyMediumBold.copy(color = EncoreColors.Green)
                                 )
                             }
@@ -492,20 +493,20 @@ fun SettingsScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = "Latest version",
+                                    text = stringResource(R.string.latest_version),
                                     style = EncoreTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
                                 )
                                 Text(
                                     text = when {
                                         updateChecking -> "Checking\u2026"
-                                        updateChecked -> "Up to date"
+                                        updateChecked -> stringResource(R.string.up_to_date)
                                         else -> "\u2014"
                                     },
                                     style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary)
                                 )
                             }
                             Text(
-                                text = "Check",
+                                text = stringResource(R.string.check),
                                 style = EncoreTheme.typography.bodyMediumBold.copy(color = EncoreColors.Green),
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(10.dp))
@@ -515,11 +516,11 @@ fun SettingsScreen(
                             )
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            AboutLinkButton(label = "GitHub", iconRes = R.drawable.ic_github_24, url = GITHUB_URL)
-                            AboutLinkButton(label = "Discord", iconRes = R.drawable.ic_discord_24, url = DISCORD_URL)
+                            AboutLinkButton(label = stringResource(R.string.github), iconRes = R.drawable.ic_github_24, url = GITHUB_URL)
+                            AboutLinkButton(label = stringResource(R.string.discord), iconRes = R.drawable.ic_discord_24, url = DISCORD_URL)
                         }
                         Text(
-                            text = "\u00A9 2026 Quackify Team",
+                            text = stringResource(R.string.copyright),
                             style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -605,7 +606,7 @@ private fun ProfileSummary(account: EncoreAuth.Account?) {
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = account?.name?.takeIf { it.isNotBlank() } ?: "Not signed in",
+                text = account?.name?.takeIf { it.isNotBlank() } ?: stringResource(R.string.not_signed_in),
                 style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
             )
             val detail = account?.email?.takeIf { it.isNotBlank() }
