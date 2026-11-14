@@ -281,6 +281,7 @@ private fun QueueTrackRow(
     handleModifier: Modifier = Modifier,
     modifier: Modifier = Modifier
 ) {
+    val isBanned = com.quackify.compose.bans.ArtistBans.isBanned(track.artistUri)
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -300,7 +301,10 @@ private fun QueueTrackRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = track.title,
-                style = EncoreTheme.typography.bodyMediumBold.copy(color = EncoreColors.TextPrimary),
+                style = EncoreTheme.typography.bodyMediumBold.copy(
+                    color = if (isBanned) EncoreColors.TextSecondary.copy(alpha = 0.55f)
+                    else EncoreColors.TextPrimary
+                ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -321,7 +325,10 @@ private fun QueueTrackRow(
                 }
                 Text(
                     text = track.artist,
-                    style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
+                    style = EncoreTheme.typography.bodySmall.copy(
+                        color = EncoreColors.TextSecondary.takeIf { !isBanned }
+                            ?: EncoreColors.TextSecondary.copy(alpha = 0.55f)
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
