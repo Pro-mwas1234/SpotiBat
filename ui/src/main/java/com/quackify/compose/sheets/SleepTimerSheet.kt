@@ -31,16 +31,17 @@ import androidx.compose.ui.unit.sp
 import com.quackify.compose.R
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
 
-enum class SleepTimerOption(val label: String, val minutes: Int) {
-    MINUTES_5("5 minutes", 5),
-    MINUTES_10("10 minutes", 10),
-    MINUTES_15("15 minutes", 15),
-    MINUTES_30("30 minutes", 30),
-    MINUTES_45("45 minutes", 45),
-    MINUTES_60("1 hour", 60),
-    END_OF_TRACK("End of track", -1),
-    OFF("Turn off timer", 0)
+enum class SleepTimerOption(val labelRes: Int, val minutes: Int) {
+    MINUTES_5(R.string.five_minutes, 5),
+    MINUTES_10(R.string.ten_minutes, 10),
+    MINUTES_15(R.string.fifteen_minutes, 15),
+    MINUTES_30(R.string.thirty_minutes, 30),
+    MINUTES_45(R.string.forty_five_minutes, 45),
+    MINUTES_60(R.string.one_hour, 60),
+    END_OF_TRACK(R.string.end_of_track, -1),
+    OFF(R.string.turn_off_timer, 0)
 }
 
 /**
@@ -77,7 +78,7 @@ fun SleepTimerSheet(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             Text(
-                text = "Stop audio in",
+                text = stringResource(R.string.stop_audio_in),
                 style = EncoreTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
@@ -113,7 +114,7 @@ fun SleepTimerSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = option.label,
+                        text = stringResource(option.labelRes),
                         style = EncoreTheme.typography.bodyMedium.copy(
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             color = if (isSelected) EncoreColors.Green else EncoreColors.TextPrimary
@@ -123,7 +124,7 @@ fun SleepTimerSheet(
                     if (isSelected) {
                         Icon(
                             painter = painterResource(id = R.drawable.encore_icon_check_24),
-                            contentDescription = "Selected",
+                            contentDescription = stringResource(R.string.selected),
                             tint = EncoreColors.Green,
                             modifier = Modifier.size(20.dp)
                         )
