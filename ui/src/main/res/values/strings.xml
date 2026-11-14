@@ -195,7 +195,6 @@
     <string name="podcasts_and_shows">Podcasts &amp; Shows</string>
     <string name="popular">Popular</string>
     <string name="popular_in">Popular in</string>
-    <string name="popular_in_suffix">"Popular in "</string>
     <string name="popular_releases">Popular releases</string>
     <string name="prepares_the_next_track_while_the_current_one_pl">Prepares the next track while the current one plays, so albums and playlists flow without silence between songs.</string>
     <string name="preview">Preview</string>
@@ -259,7 +258,6 @@
     <string name="switch_account">Switch account</string>
     <string name="system_webview_unavailable">System WebView unavailable</string>
     <string name="tap_up_to_5_lines_to_share">Tap up to 5 lines to share</string>
-    <string name="webview_missing_prefix">"The Android System WebView package is missing, disabled "</string>
     <string name="their_top_artists_and_tracks_are_private_or_they">Their top artists and tracks are private, or they haven\'t listened to anything recently.</string>
     <string name="this_folder_looks_empty">This folder looks empty</string>
     <string name="to_bottom">To bottom</string>
@@ -310,8 +308,6 @@
     <string name="this_folder_empty">This folder is empty</string>
     <string name="no_playlists_you_can_add_to">No playlists you can add to</string>
     <string name="monthly_listeners">monthly listeners</string>
-    <string name="listeners_suffix">" listeners"</string>
-    <string name="monthly_listeners_prefix">" monthly listeners"</string>
     <string name="delete">Delete</string>
     <string name="compilations">Compilations</string>
     <string name="recent">Recent</string>
@@ -329,7 +325,6 @@
     <string name="appears_on">Appears On</string>
     <string name="featuring">Featuring</string>
     <string name="discovered_on">Discovered On</string>
-    <string name="followers_suffix">" followers"</string>
     <string name="type_year">Type • Year</string>
     <string name="shuffle_off">Shuffle off</string>
     <string name="shuffle_on">Shuffle on</string>
@@ -370,12 +365,7 @@
     <string name="allow_this_artist_to_play">Allow this artist to play</string>
     <string name="dont_play_this_artist">Don\'t play this artist</string>
     <string name="tap_again_to_delete_folder">Tap again to delete the folder</string>
-    <string name="one_day">1 day</string>
-    <string name="one_play">1 play</string>
     <string name="just_now">Just now</string>
-    <string name="webview_fix_1">"Enable or update Android System WebView in system settings, "</string>
-    <string name="webview_fix_2">"or updating on this device, so the login page can\'t open. "</string>
-    <string name="webview_fix_3">then retry.</string>
     <string name="align_left">Align: Left</string>
     <string name="align_center">Align: Center</string>
     <string name="align_right">Align: Right</string>
@@ -414,15 +404,12 @@
     <string name="playing_from_album">Playing from album</string>
     <string name="playing_from_artist">Playing from artist</string>
     <string name="playing_from_home">Playing from home</string>
-    <string name="playlist_with_dot">"Playlist • "</string>
     <string name="artist_blocked">Artist blocked</string>
     <string name="artist_unblocked">Artist unblocked</string>
     <string name="couldnt_update_this_artist">Couldn\'t update this artist</string>
-    <string name="radio_suffix">" Radio"</string>
     <string name="excluded_from_taste_profile">Excluded from your taste profile</string>
     <string name="included_in_taste_profile">Included in your taste profile</string>
     <string name="couldnt_update_taste_profile">Couldn\'t update your taste profile</string>
-    <string name="plays_suffix">" plays"</string>
     <string name="include_in_taste_profile">Include in your taste profile</string>
     <string name="exclude_from_taste_profile">Exclude from your taste profile</string>
     <string name="turn_off_canvas">Turn off Canvas</string>
@@ -447,4 +434,45 @@
     <string name="go_to_playlist_radio">Go to playlist radio</string>
     <string name="audio">Audio</string>
     <string name="go_to_playlist_radio">Go to playlist radio</string>
+    <string name="explore_category">Explore %1$s</string>
+    <string name="rating_stars">★ %1$s</string>
+    <string name="podcast_with_host">Podcast • %1$s</string>
+    <string name="album_with_year">Album • %1$s</string>
+    <string name="more_by_artist">More by %1$s</string>
+    <string name="monthly_listeners_count">%1$s monthly listeners</string>
+    <string name="artist_photo_cd">%1$s photo</string>
+    <string name="selected_count">%1$d selected</string>
+    <string name="couldnt_find_query">Couldn\'t find "%1$s"</string>
+    <string name="couldnt_open">Couldn\'t open %1$s</string>
+    <string name="back_to">Back to %1$s</string>
+    <string name="back_to_your_playlists">Back to your playlists</string>
+    <string name="item_count">%1$d items</string>
+    <string name="connected_device_artist">%1$s • %2$s</string>
+    <string name="connected_to_device">Connected to %1$s</string>
+    <string name="connect_to_device">Connect to device</string>
+    <string name="select_lines_limit">Select up to 5 lines (%1$d/5)</string>
+    <string name="see_all">See all %1$s</string>
+    <string name="more_options_for">More options for %1$s</string>
+    <string name="no_kind_found_for_query">No %1$s found for "%2$s"</string>
+    <string name="playlist_by_creator">Playlist • By %1$s</string>
+    <string name="show_rating">%1$s ★ • %2$s ratings</string>
+    <string name="follower_count">%1$s followers</string>
+    <string name="listener_count">%1$s listeners</string>
+    <string name="plays_count">%1$s plays</string>
+    <string name="radio_title">%1$s Radio</string>
+    <string name="playlist_by">Playlist • %1$s</string>
+    <string name="popular_in_cities">Popular in %1$s</string>
+    <string name="webview_missing_message">The Android System WebView package is missing, disabled or updating on this device, so the login page can\'t open. Enable or update Android System WebView in system settings, then retry.</string>
+    <plurals name="song_count">
+        <item quantity="one">1 song</item>
+        <item quantity="other">%1$d songs</item>
+    </plurals>
+    <plurals name="day_count">
+        <item quantity="one">1 day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <plurals name="play_count">
+        <item quantity="one">1 play</item>
+        <item quantity="other">%1$s plays</item>
+    </plurals>
 </resources>
