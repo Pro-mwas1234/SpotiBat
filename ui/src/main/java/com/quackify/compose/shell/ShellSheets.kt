@@ -466,6 +466,7 @@ private fun ShellLibrarySheets(
             currentDeviceName = connectedDevice,
             currentTrackTitle = currentTrackTitle,
             currentDeviceKind = devices.firstOrNull { it.active }?.kind,
+            currentDeviceLocal = devices.firstOrNull { it.active }?.local ?: true,
             devices = mapped,
             onSelectDevice = { device -> onSelectDevice(device.id) }
         )
