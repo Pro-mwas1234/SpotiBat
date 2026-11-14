@@ -3,6 +3,7 @@ package com.quackify.compose.sheets
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -75,6 +76,8 @@ fun DiscographySheet(
 ) {
     if (!isOpen) return
 
+    BackHandler { onDismiss() }
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val context = LocalContext.current
     val listState = rememberLazyListState()
@@ -127,7 +130,7 @@ fun DiscographySheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DarkSystemBarsSheet,
+        properties = BackNotDismissSheet,
         sheetState = sheetState,
         containerColor = EncoreColors.Card,
         dragHandle = {
