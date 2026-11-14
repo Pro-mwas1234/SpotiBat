@@ -437,13 +437,18 @@ fun EncoreNowPlayingScreen(
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     var consumed = false
+                    var dragDistance = 0f
                     while (true) {
                         val event = awaitPointerEvent(PointerEventPass.Final)
                         val change = event.changes.firstOrNull { it.id == down.id } ?: break
                         if (change.isConsumed) consumed = true
+                        dragDistance += change.positionChange().getDistance()
+                        if (canvasImmersive && !canvasControlsRevealed && dragDistance > viewConfiguration.touchSlop) {
+                            canvasControlsRevealed = true
+                        }
                         if (!change.pressed) break
                     }
-                    if (canvasImmersive && !consumed) {
+                    if (canvasImmersive && !consumed && dragDistance <= viewConfiguration.touchSlop) {
                         canvasControlsRevealed = !canvasControlsRevealed
                     }
                 }
