@@ -201,6 +201,7 @@ fun EncoreProfileScreen(
                             onMoreClick = { onTrackOptionsClick(track) },
                             isExplicit = track.explicit,
                             imageUrl = track.imageUrl.takeIf { it.isNotBlank() },
+                            artistUri = track.artistUri,
                             onAddToQueue = onTrackAddToQueue?.let { handler -> { handler(track) } }
                         )
                     }
