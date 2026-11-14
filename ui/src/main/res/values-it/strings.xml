@@ -331,6 +331,7 @@
     <string name="remove_from_your_library">Rimuovi dalla tua libreria</string>
     <string name="connect">Connetti</string>
     <string name="unknown_device">Dispositivo sconosciuto</string>
+    <string name="track_on_device">%1$s - %2$s</string>
     <string name="this_phone">Questo telefono</string>
     <string name="show_more">Mostra altro</string>
     <string name="show_less">Mostra meno</string>
