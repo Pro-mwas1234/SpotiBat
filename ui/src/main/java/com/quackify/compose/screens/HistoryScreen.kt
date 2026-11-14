@@ -50,6 +50,7 @@ import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.theme.EncoreCornerRadii
 import com.quackify.compose.theme.rememberBottomPadding
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 
 /**
  * artist that follow each other collapse into one expandable artist group,
@@ -490,11 +491,13 @@ private fun formatMinutes(totalMs: Long): String {
     }
 }
 
+@Composable
 private fun daysLabel(days: Int): String =
-    if (days == 1) stringResource(R.string.one_day) else "$days days"
+    pluralStringResource(R.plurals.day_count, days, days)
 
+@Composable
 private fun playsLabel(plays: Int): String =
-    if (plays <= 1) stringResource(R.string.one_play) else "${formatCount(plays.toLong())} plays"
+    pluralStringResource(R.plurals.play_count, plays, formatCount(plays.toLong()))
 
 @Preview
 @Composable
