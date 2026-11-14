@@ -1,6 +1,7 @@
 package com.quackify.compose.sheets
 
 import androidx.compose.animation.animateColorAsState
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.activity.compose.BackHandler
@@ -18,20 +19,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -39,9 +33,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.quackify.compose.R
 import com.quackify.backend.model.ConnectDevice
 import com.quackify.backend.model.DeviceKind
@@ -68,28 +62,21 @@ data class EncoreDevice(
     val type: DeviceType,
     val isCurrent: Boolean = false,
     val protocol: String = "",
-    val volumeFraction: Float = -1f,
     val local: Boolean = false
 )
 
-/**
- * - Current listening device card with animated green equalizer soundwaves and volume slider
- * - Volume control with volume icon indicators
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EncoreConnectDeviceSheet(
     onDismissRequest: () -> Unit,
     currentDeviceName: String,
+    currentTrackTitle: String,
+    currentDeviceKind: DeviceKind?,
     onSelectDevice: (EncoreDevice) -> Unit,
     devices: List<EncoreDevice> = emptyList(),
-    initialVolume: Float = 0.7f,
-    onVolumeChange: (String, Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-    var volume by remember { mutableFloatStateOf(initialVolume.coerceIn(0f, 1f)) }
-    val volumeEnabled = devices.firstOrNull { it.isCurrent }?.local ?: true
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -132,90 +119,53 @@ fun EncoreConnectDeviceSheet(
 
             Spacer(modifier = Modifier.height(EncoreSpacers.Base))
 
-            Box(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = EncoreSpacers.Base)
                     .clip(RoundedCornerShape(EncoreCornerRadii.Larger2))
-                    .background(Color(0xFF1E3A25))
-                    .padding(EncoreSpacers.Base)
+                    .background(Color(0xFF242424))
+                    .padding(EncoreSpacers.Base),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(CircleShape)
-                                .background(EncoreColors.Green),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.encore_icon_device_mobile_24),
-                                contentDescription = stringResource(R.string.active_device),
-                                tint = EncoreColors.PureBlack,
-                                modifier = Modifier.size(24.dp)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = currentDeviceName.ifBlank { stringResource(R.string.this_phone) },
+                        style = EncoreTheme.typography.bodyMediumBold.copy(color = EncoreColors.TextPrimary)
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = Build.MODEL,
+                        style = EncoreTheme.typography.marginal.copy(color = EncoreColors.TextSecondary)
+                    )
+                    if (currentTrackTitle.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(EncoreSpacers.Tighter))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = currentTrackTitle,
+                                style = EncoreTheme.typography.marginal.copy(color = EncoreColors.TextSecondary),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Spacer(modifier = Modifier.width(EncoreSpacers.Tighter4))
+                            EncorePlayIndicator(
+                                isPlaying = true,
+                                color = EncoreColors.Green,
+                                size = 16.dp
                             )
                         }
-
-                        Spacer(modifier = Modifier.width(EncoreSpacers.Tighter))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.current_device),
-                                style = EncoreTheme.typography.marginalBold.copy(color = EncoreColors.Green)
-                            )
-                            Text(
-                                text = currentDeviceName,
-                                style = EncoreTheme.typography.bodyMediumBold.copy(color = EncoreColors.TextPrimary)
-                            )
-                        }
-
-                        EncorePlayIndicator(
-                            isPlaying = true,
-                            color = EncoreColors.Green,
-                            size = 16.dp
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(EncoreSpacers.Base))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            painter = painterResource(
-                                id = if (volume == 0f) R.drawable.encore_icon_volume_off_24 else R.drawable.encore_icon_volume_24
-                            ),
-                            contentDescription = stringResource(R.string.volume),
-                            tint = if (volumeEnabled) EncoreColors.Green else EncoreColors.TextDisabled,
-                            modifier = Modifier.size(20.dp)
-                        )
-
-                        Spacer(modifier = Modifier.width(EncoreSpacers.Tighter))
-
-                        Slider(
-                            value = volume,
-                            onValueChange = { volume = it },
-                            onValueChangeFinished = {
-                                val target = devices.firstOrNull { it.isCurrent }
-                                if (target != null) {
-                                    onVolumeChange(target.id, (volume * 65535f).toInt())
-                                }
-                            },
-                            enabled = volumeEnabled,
-                            modifier = Modifier.weight(1f),
-                            colors = SliderDefaults.colors(
-                                thumbColor = EncoreColors.TextPrimary,
-                                activeTrackColor = EncoreColors.Green,
-                                inactiveTrackColor = EncoreColors.Divider
-                            )
-                        )
                     }
                 }
+
+                Spacer(modifier = Modifier.width(EncoreSpacers.Base))
+
+                Icon(
+                    painter = painterResource(id = currentDeviceIconRes(currentDeviceKind)),
+                    contentDescription = stringResource(R.string.active_device),
+                    tint = EncoreColors.TextPrimary,
+                    modifier = Modifier.size(36.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(EncoreSpacers.Looser2))
@@ -293,7 +243,7 @@ fun ConnectDevice.toEncoreDevice(): EncoreDevice = EncoreDevice(
     id = id,
     name = name.ifBlank { stringResource(R.string.unknown_device) },
     type = when (kind) {
-        DeviceKind.PHONE, DeviceKind.TABLET -> DeviceType.PHONE
+        DeviceKind.PHONE, DeviceKind.TABLET, DeviceKind.HEADPHONES -> DeviceType.PHONE
         DeviceKind.COMPUTER -> DeviceType.COMPUTER
         DeviceKind.SPEAKER, DeviceKind.RECEIVER, DeviceKind.STICK,
         DeviceKind.DONGLE, DeviceKind.CONSOLE, DeviceKind.TV -> DeviceType.SPEAKER
@@ -303,9 +253,19 @@ fun ConnectDevice.toEncoreDevice(): EncoreDevice = EncoreDevice(
     },
     isCurrent = active,
     protocol = brand,
-    volumeFraction = if (volumeSteps > 0) (volume.toFloat() / volumeSteps.toFloat()).coerceIn(0f, 1f) else -1f,
     local = local
 )
+
+private fun currentDeviceIconRes(kind: DeviceKind?): Int = when (kind) {
+    DeviceKind.HEADPHONES -> R.drawable.encore_icon_device_headphones_24
+    DeviceKind.PHONE, DeviceKind.TABLET -> R.drawable.encore_icon_device_mobile_24
+    DeviceKind.SPEAKER, DeviceKind.RECEIVER -> R.drawable.encore_icon_device_speaker_24
+    DeviceKind.TV, DeviceKind.STICK -> R.drawable.encore_icon_device_tv_24
+    DeviceKind.CAR -> R.drawable.encore_icon_device_car_24
+    DeviceKind.CAST -> R.drawable.encore_icon_chromecast_connected_24
+    DeviceKind.COMPUTER, DeviceKind.CONSOLE, DeviceKind.DONGLE, DeviceKind.UNKNOWN, null ->
+        R.drawable.encore_icon_devices_24
+}
 
 @Preview
 @Composable
@@ -313,7 +273,9 @@ fun PreviewEncoreConnectDeviceSheet() {
     EncoreAppTheme {
         EncoreConnectDeviceSheet(
             onDismissRequest = {},
-            currentDeviceName = "Galaxy S24 Ultra",
+            currentDeviceName = "",
+            currentTrackTitle = "Blinding Lights",
+            currentDeviceKind = null,
             onSelectDevice = {}
         )
     }
