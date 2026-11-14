@@ -317,7 +317,7 @@ fun EncoreCategoryScreen(
                             .padding(top = 28.dp, bottom = 12.dp)
                     ) {
                         Text(
-                            text = "Explore $categoryTitle",
+                            text = stringResource(R.string.explore_category, categoryTitle),
                             style = EncoreTheme.typography.titleLarge.copy(
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
