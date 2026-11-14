@@ -489,7 +489,7 @@ fun EncoreArtistScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onTrackSelect(track) }
+                            .clickable(enabled = !isBanned) { onTrackSelect(track) }
                             .padding(
                                 horizontal = EncoreSpacers.Base,
                                 vertical = EncoreSpacers.Tighter3
