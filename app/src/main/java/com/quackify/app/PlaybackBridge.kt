@@ -28,6 +28,8 @@ import com.quackify.backend.connect.cluster.ClusterTrack
 import com.quackify.backend.model.ConnectDevice
 import com.quackify.backend.model.DeviceKind
 import android.media.AudioDeviceCallback
+import android.os.Handler
+import android.os.Looper
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import com.quackify.backend.connect.command.CommandClient
@@ -709,7 +711,7 @@ class PlaybackBridge(private val context: Context) {
         if (dealer != null) return
         log.i("start device=" + deviceId)
         (context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager)
-            ?.registerAudioDeviceCallback(localOutputWatcher, null)
+            ?.registerAudioDeviceCallback(localOutputWatcher, Handler(Looper.getMainLooper()))
         autoplayOnStartup = com.quackify.backend.core.store.AppPrefs.prefs(context, CLIENT_PREFS)
             .getBoolean(AUTOPLAY_ON_STARTUP_PREF, false)
         autoplayPending = true
