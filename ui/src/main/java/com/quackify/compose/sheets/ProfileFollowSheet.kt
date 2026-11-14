@@ -49,6 +49,7 @@ import com.quackify.compose.format.parseHexColor
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,7 +93,7 @@ fun ProfileFollowSheet(
                 .navigationBarsPadding()
         ) {
             Text(
-                text = "Followers and following",
+                text = stringResource(R.string.followers_and_following),
                 style = EncoreTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
@@ -104,14 +105,14 @@ fun ProfileFollowSheet(
             ) {
                 item {
                     EncoreChip(
-                        text = "Followers",
+                        text = stringResource(R.string.followers),
                         isSelected = selectedTab == 0,
                         onClick = { selectedTab = 0 }
                     )
                 }
                 item {
                     EncoreChip(
-                        text = "Following",
+                        text = stringResource(R.string.following),
                         isSelected = selectedTab == 1,
                         onClick = { selectedTab = 1 }
                     )
@@ -148,7 +149,7 @@ fun ProfileFollowSheet(
                         }
                     }
                     people.isEmpty() -> Text(
-                        text = if (selectedTab == 0) "No followers yet" else "Not following anyone",
+                        text = if (selectedTab == 0) stringResource(R.string.no_followers_yet) else stringResource(R.string.not_following_anyone),
                         style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextSecondary),
                         modifier = Modifier
                             .fillMaxWidth()
