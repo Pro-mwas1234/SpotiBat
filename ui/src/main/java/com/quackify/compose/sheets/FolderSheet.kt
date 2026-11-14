@@ -2,6 +2,7 @@ package com.quackify.compose.sheets
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -54,6 +55,8 @@ internal fun FolderSheet(
 ) {
     if (draft == null) return
 
+    BackHandler { onDismiss() }
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     var name by remember(draft) {
         mutableStateOf(if (draft.mode == FolderMode.RENAME) draft.title else "")
@@ -62,7 +65,7 @@ internal fun FolderSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DarkSystemBarsSheet,
+        properties = BackNotDismissSheet,
         sheetState = sheetState,
         containerColor = EncoreColors.Card,
         dragHandle = {
