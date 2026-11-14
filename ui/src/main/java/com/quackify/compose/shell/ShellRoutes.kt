@@ -384,6 +384,8 @@ internal fun ShellArtistRoute(
     artistFailed: Boolean,
     onRetryArtist: (() -> Unit)?,
     artistFollowed: Boolean?,
+    artistBanned: Boolean? = null,
+    onArtistUnban: ((String) -> Unit)? = null,
     onArtistFollowToggle: ((String, Boolean) -> Unit)?,
     onArtistTrackLikeToggle: ((TrackItem) -> Unit)?,
 ) {
@@ -399,6 +401,8 @@ internal fun ShellArtistRoute(
         artistFailed = artistFailed,
         onRetryArtist = onRetryArtist,
         artistFollowed = artistFollowed,
+        artistBanned = artistBanned,
+        onArtistUnban = onArtistUnban,
         currentTrackTitle = env.currentTrackTitle,
         currentTrackUri = env.playbackState?.trackUri.orEmpty(),
         isPlaying = env.isPlaying,
