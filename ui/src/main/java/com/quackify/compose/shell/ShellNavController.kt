@@ -5,6 +5,7 @@ import android.widget.Toast
 import com.quackify.backend.model.SearchResults
 import com.quackify.compose.library.LibraryItem
 import com.quackify.compose.screens.getCategoryColor
+import com.quackify.compose.R
 
 internal class ShellNavController(
     val nav: ShellNavState,
@@ -139,7 +140,7 @@ internal class ShellNavController(
             ?: searchData?.albums?.find { it.title.equals(title, ignoreCase = true) }
                 ?.uri?.takeIf { it.startsWith("spotify:album:") }
         if (albumUriToLoad == null) {
-            Toast.makeText(context, "Couldn't open $title", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.couldnt_open, title), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -164,7 +165,7 @@ internal class ShellNavController(
 
     fun openPlaylist(context: Context, title: String, uri: String) {
         if (uri.isBlank()) {
-            Toast.makeText(context, "Couldn't open $title", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.couldnt_open, title), Toast.LENGTH_SHORT).show()
             return
         }
         pushCurrentState()
@@ -189,7 +190,7 @@ internal class ShellNavController(
             ?: searchData?.artists?.find { it.title.equals(artist, ignoreCase = true) }
                 ?.uri?.takeIf { it.startsWith("spotify:artist:") }
         if (artistUriToLoad == null) {
-            Toast.makeText(context, "Couldn't open $artist", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.couldnt_open, artist), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -243,7 +244,7 @@ internal class ShellNavController(
 
     fun openUserProfile(context: Context, uri: String, name: String) {
         if (!uri.startsWith("spotify:user:")) {
-            Toast.makeText(context, "Couldn't open $name", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.couldnt_open, name), Toast.LENGTH_SHORT).show()
             return
         }
         pushCurrentState()
