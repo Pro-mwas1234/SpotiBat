@@ -57,13 +57,13 @@ import com.quackify.backend.library.Krespot
 import androidx.compose.ui.res.stringResource
 import com.quackify.compose.R
 
-private data class DiscographyTab(val key: String, val label: String)
+private data class DiscographyTab(val key: String, val labelRes: Int)
 
 private val TABS = listOf(
-    DiscographyTab("all", stringResource(R.string.popular_releases)),
-    DiscographyTab("albums", stringResource(R.string.albums)),
-    DiscographyTab("singles", "Singles and EPs"),
-    DiscographyTab("compilations", stringResource(R.string.compilations)),
+    DiscographyTab("all", R.string.popular_releases),
+    DiscographyTab("albums", R.string.albums),
+    DiscographyTab("singles", R.string.singles_and_eps),
+    DiscographyTab("compilations", R.string.compilations),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -194,7 +194,7 @@ fun DiscographySheet(
                     val count = counts[tab.key] ?: 0
                     if (tab.key != "all" && count == 0) return@forEach
                     DiscographyChip(
-                        label = tab.label,
+                        label = stringResource(tab.labelRes),
                         count = count,
                         selected = section == tab.key,
                         onClick = { if (section != tab.key) section = tab.key }
