@@ -100,6 +100,7 @@ import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.theme.rememberBottomPadding
 import com.quackify.compose.util.rememberIsOffline
 import kotlinx.coroutines.delay
+import androidx.compose.ui.res.stringResource
 
 data class CategoryCard(
     val title: String,
@@ -160,7 +161,7 @@ data class SearchHistoryItem(
  * - Interactive Search pill with Voice Mic and Clear button
  * - In-search category filter pills (Top, Songs, Artists, Playlists, Albums, Podcasts)
  * - Top result card, Songs list with 3-dot context actions, and Artists cards
- * - Recent Searches list with "Clear recent searches" button
+ * - Recent Searches list with stringResource(R.string.clear_recent_searches) button
  * - 2-column colorful Browse All categories grid with angled album peek (96dp category_card_max_height)
  */
 @Composable
@@ -208,7 +209,7 @@ fun EncoreSearchScreen(
     var selectedSearchTab by remember { mutableIntStateOf(0) }
     var isSearchBarFocused by remember { mutableStateOf(false) }
     var suggestionsPinned by remember { mutableStateOf(false) }
-    val searchTabs = listOf("Top", "Songs", "Artists", "Playlists", "Albums", "Podcasts", "Profiles")
+    val searchTabs = listOf("Top", stringResource(R.string.songs), stringResource(R.string.artists), stringResource(R.string.playlists), stringResource(R.string.albums), "Podcasts", stringResource(R.string.profiles))
     val focusManager = LocalFocusManager.current
     val bottomPadding = rememberBottomPadding()
 
@@ -218,7 +219,7 @@ fun EncoreSearchScreen(
     val speechIntent = remember {
         Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "What do you want to listen to?")
+            putExtra(RecognizerIntent.EXTRA_PROMPT, stringResource(R.string.what_do_you_want_to_listen_to))
         }
     }
     val canVoiceSearch = remember {
@@ -451,7 +452,7 @@ fun EncoreSearchScreen(
                     Spacer(modifier = Modifier.width(12.dp))
 
                     Text(
-                        text = "Search",
+                        text = stringResource(R.string.search),
                         style = EncoreTheme.typography.titleMedium.copy(
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
@@ -471,7 +472,7 @@ fun EncoreSearchScreen(
                 if (isSearching) {
                     EncoreIconButton(
                         iconRes = R.drawable.encore_icon_chevron_left_24,
-                        contentDescription = "Back",
+                        contentDescription = stringResource(R.string.back),
                         onClick = {
                             searchQuery = ""
                             selectedSearchTab = 0
@@ -511,7 +512,7 @@ fun EncoreSearchScreen(
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.encore_icon_search_24),
-                                contentDescription = "Search",
+                                contentDescription = stringResource(R.string.search),
                                 tint = if (isSearching) EncoreColors.TextSecondary else Color(0xFF121212),
                                 modifier = Modifier.size(22.dp)
                             )
@@ -521,7 +522,7 @@ fun EncoreSearchScreen(
                             Box(modifier = Modifier.weight(1f)) {
                                 if (searchQuery.isEmpty()) {
                                     Text(
-                                        text = "What do you want to listen to?",
+                                        text = stringResource(R.string.what_do_you_want_to_listen_to),
                                         style = EncoreTheme.typography.bodyMedium.copy(
                                             fontWeight = FontWeight.Medium,
                                             color = if (isSearching) EncoreColors.TextSecondary else Color(0xFF757575)
@@ -534,7 +535,7 @@ fun EncoreSearchScreen(
                             if (searchQuery.isNotEmpty()) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.encore_icon_x_24),
-                                    contentDescription = "Clear search",
+                                    contentDescription = stringResource(R.string.clear_search),
                                     tint = EncoreColors.TextSecondary,
                                     modifier = Modifier
                                         .size(24.dp)
@@ -549,7 +550,7 @@ fun EncoreSearchScreen(
                             } else if (isSearchBarFocused && canVoiceSearch) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.encore_icon_mic_24),
-                                    contentDescription = "Voice search",
+                                    contentDescription = stringResource(R.string.voice_search),
                                     tint = EncoreColors.TextSecondary,
                                     modifier = Modifier
                                         .size(22.dp)
@@ -606,7 +607,7 @@ fun EncoreSearchScreen(
             ) {
                 item {
                     Text(
-                        text = "Recent searches",
+                        text = stringResource(R.string.recent_searches),
                         style = EncoreTheme.typography.headlineLarge.copy(fontSize = 18.sp),
                         fontWeight = FontWeight.Bold,
                         color = EncoreColors.TextPrimary,
@@ -685,7 +686,7 @@ fun EncoreSearchScreen(
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.encore_icon_x_24),
-                                contentDescription = "Remove from recent searches",
+                                contentDescription = stringResource(R.string.remove_from_recent_searches),
                                 tint = EncoreColors.TextSecondary,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -717,7 +718,7 @@ fun EncoreSearchScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "Clear recent searches",
+                                    text = stringResource(R.string.clear_recent_searches),
                                     style = EncoreTheme.typography.bodySmallBold.copy(
                                         color = EncoreColors.TextPrimary,
                                         fontSize = 12.sp
@@ -836,19 +837,19 @@ fun EncoreSearchScreen(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = if (isOffline) "You're offline" else "Couldn't load search results",
+                            text = if (isOffline) stringResource(R.string.youre_offline) else stringResource(R.string.couldnt_load_search_results),
                             style = EncoreTheme.typography.titleLarge,
                             textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Check your internet connection and try again.",
+                            text = stringResource(R.string.check_your_internet_connection_and_try_again),
                             style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextSecondary),
                             textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         TextButton(onClick = onRetry) {
-                            Text(text = "Try again", color = EncoreColors.Green)
+                            Text(text = stringResource(R.string.try_again), color = EncoreColors.Green)
                         }
                     }
                 }
@@ -867,7 +868,7 @@ fun EncoreSearchScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Try searching again using a different spelling or keyword.",
+                            text = stringResource(R.string.try_searching_again_using_a_different_spelling_o),
                             style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextSecondary),
                             textAlign = TextAlign.Center
                         )
@@ -884,7 +885,7 @@ fun EncoreSearchScreen(
                         if (topHit != null || topTrack != null) {
                             item {
                                 val top = topHit?.toTrackItem() ?: topTrack!!
-                                val topLabel = topHit?.kind?.sectionLabel() ?: "Song"
+                                val topLabel = topHit?.kind?.sectionLabel() ?: stringResource(R.string.song)
                                 val topRound = topHit?.kind == SearchKind.ARTIST || topHit?.kind == SearchKind.USER
                                 val openTopResult = {
                                     val hit = topHit
@@ -906,7 +907,7 @@ fun EncoreSearchScreen(
                                 )
 
                                 Text(
-                                    text = "Top result",
+                                    text = stringResource(R.string.top_result),
                                     style = EncoreTheme.typography.titleLarge.copy(fontSize = 18.sp),
                                     modifier = Modifier.padding(bottom = 12.dp, top = 4.dp)
                                 )
@@ -988,7 +989,7 @@ fun EncoreSearchScreen(
                         if (filteredTracks.isNotEmpty()) {
                             item {
                                 Text(
-                                    text = "Songs",
+                                    text = stringResource(R.string.songs),
                                     style = EncoreTheme.typography.titleLarge.copy(fontSize = 18.sp),
                                     modifier = Modifier.padding(bottom = 8.dp)
                                 )
@@ -1026,7 +1027,7 @@ fun EncoreSearchScreen(
                         if (filteredArtists.isNotEmpty()) {
                             item {
                                 Text(
-                                    text = "Artists",
+                                    text = stringResource(R.string.artists),
                                     style = EncoreTheme.typography.titleLarge.copy(fontSize = 18.sp),
                                     modifier = Modifier.padding(bottom = 8.dp)
                                 )
@@ -1059,7 +1060,7 @@ fun EncoreSearchScreen(
                         if (filteredAlbums.isNotEmpty()) {
                             item {
                                 Text(
-                                    text = "Albums",
+                                    text = stringResource(R.string.albums),
                                     style = EncoreTheme.typography.titleLarge.copy(fontSize = 18.sp),
                                     modifier = Modifier.padding(bottom = 8.dp)
                                 )
@@ -1092,7 +1093,7 @@ fun EncoreSearchScreen(
                         if (filteredPlaylists.isNotEmpty()) {
                             item {
                                 Text(
-                                    text = "Playlists",
+                                    text = stringResource(R.string.playlists),
                                     style = EncoreTheme.typography.titleLarge.copy(fontSize = 18.sp),
                                     modifier = Modifier.padding(bottom = 8.dp)
                                 )
@@ -1125,7 +1126,7 @@ fun EncoreSearchScreen(
                         if (profileHits.isNotEmpty()) {
                             item {
                                 Text(
-                                    text = "Profiles",
+                                    text = stringResource(R.string.profiles),
                                     style = EncoreTheme.typography.titleLarge.copy(fontSize = 18.sp),
                                     modifier = Modifier.padding(bottom = 8.dp)
                                 )
@@ -1157,7 +1158,7 @@ fun EncoreSearchScreen(
                         if (filteredPodcasts.isNotEmpty()) {
                             item {
                                 Text(
-                                    text = "Podcasts & Shows",
+                                    text = stringResource(R.string.podcasts_and_shows),
                                     style = EncoreTheme.typography.titleLarge.copy(fontSize = 18.sp),
                                     modifier = Modifier.padding(bottom = 8.dp)
                                 )
@@ -1297,7 +1298,7 @@ fun EncoreSearchScreen(
             ) {
                 item(span = { GridItemSpan(2) }) {
                     Text(
-                        text = "Browse all",
+                        text = stringResource(R.string.browse_all),
                         style = EncoreTheme.typography.titleLarge.copy(fontSize = 18.sp),
                         modifier = Modifier.padding(vertical = 4.dp)
                     )
@@ -1313,7 +1314,7 @@ fun EncoreSearchScreen(
                         ) {
                             if (categoriesFailed) {
                                 Text(
-                                    text = "Couldn't load categories",
+                                    text = stringResource(R.string.couldn_t_load_categories),
                                     style = EncoreTheme.typography.bodyMedium.copy(
                                         color = EncoreColors.TextSecondary
                                     )
@@ -1560,7 +1561,7 @@ private fun ArtistRow(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "Artist",
+                text = stringResource(R.string.artist),
                 style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary)
             )
         }
@@ -1575,7 +1576,7 @@ private fun ArtistRow(
                 .padding(horizontal = 14.dp, vertical = 6.dp)
         ) {
             Text(
-                text = if (isFollowing) "Following" else "Follow",
+                text = if (isFollowing) stringResource(R.string.following) else "Follow",
                 style = EncoreTheme.typography.bodySmallBold.copy(
                     color = if (isFollowing) Color.Black else EncoreColors.TextPrimary
                 )
@@ -1695,13 +1696,13 @@ private fun PlaylistRow(
 }
 
 private fun SearchKind.sectionLabel(): String = when (this) {
-    SearchKind.TRACK -> "Song"
-    SearchKind.ARTIST -> "Artist"
-    SearchKind.ALBUM -> "Album"
-    SearchKind.PLAYLIST -> "Playlist"
-    SearchKind.SHOW, SearchKind.EPISODE -> "Podcast"
-    SearchKind.USER -> "Profile"
-    else -> "Result"
+    SearchKind.TRACK -> stringResource(R.string.song)
+    SearchKind.ARTIST -> stringResource(R.string.artist)
+    SearchKind.ALBUM -> stringResource(R.string.album)
+    SearchKind.PLAYLIST -> stringResource(R.string.playlist)
+    SearchKind.SHOW, SearchKind.EPISODE -> stringResource(R.string.podcast)
+    SearchKind.USER -> stringResource(R.string.profile)
+    else -> stringResource(R.string.result)
 }
 
 private fun kindOfTab(index: Int): SearchKind? = when (index) {
