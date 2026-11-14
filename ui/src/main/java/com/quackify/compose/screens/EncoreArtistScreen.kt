@@ -344,7 +344,7 @@ fun EncoreArtistScreen(
 
                         if (monthlyListeners.isNotBlank()) {
                             Text(
-                                text = "$monthlyListeners monthly listeners",
+                                text = stringResource(R.string.monthly_listeners_count, monthlyListeners),
                                 style = EncoreTheme.typography.bodySmall.copy(
                                     color = Color(0xFFB3B3B3),
                                     fontSize = 13.sp
@@ -684,7 +684,7 @@ fun EncoreArtistScreen(
             }
 
             val aboutStatLine = listOfNotNull(
-                followers.takeIf { it > 0L }?.let { formatCount(it) + stringResource(R.string.followers_suffix) },
+                followers.takeIf { it > 0L }?.let { stringResource(R.string.follower_count, formatCount(it)) },
                 worldRank.takeIf { it > 0 }?.let { "#$it in the world" },
             ).joinToString(" • ")
             if (monthlyListeners.isNotBlank() || biography.isNotBlank() ||
@@ -720,7 +720,7 @@ fun EncoreArtistScreen(
                             Column(modifier = Modifier.padding(16.dp)) {
                                 if (monthlyListeners.isNotBlank()) {
                                     Text(
-                                        text = "$monthlyListeners monthly listeners",
+                                        text = stringResource(R.string.monthly_listeners_count, monthlyListeners),
                                         style = EncoreTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.Bold,
                                             color = Color.White
@@ -739,7 +739,7 @@ fun EncoreArtistScreen(
                                 if (topCities.isNotEmpty()) {
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        text = stringResource(R.string.popular_in_suffix) + topCities.take(3).joinToString(", ") { it.city },
+                                        text = stringResource(R.string.popular_in_cities, topCities.take(3).joinToString(", ") { it.city }),
                                         style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -784,7 +784,7 @@ fun EncoreArtistScreen(
                             ) {
                                 EncoreArtworkImage(
                                     imageUrl = photo,
-                                    contentDescription = "$artistName photo",
+                                    contentDescription = stringResource(R.string.artist_photo_cd, artistName),
                                     modifier = Modifier.fillMaxSize(),
                                     cornerRadius = 8.dp
                                 )
