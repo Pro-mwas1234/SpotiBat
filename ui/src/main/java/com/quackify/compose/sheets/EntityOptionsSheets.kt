@@ -58,7 +58,6 @@ fun AlbumOptionsSheet(
 ) {
     if (!isOpen) return
 
-    BackHandler { onDismiss() }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
@@ -78,6 +77,7 @@ fun AlbumOptionsSheet(
         },
         modifier = modifier
     ) {
+        BackHandler { onDismiss() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -239,6 +239,7 @@ fun ArtistOptionsSheet(
         },
         modifier = modifier
     ) {
+        BackHandler { onDismiss() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()

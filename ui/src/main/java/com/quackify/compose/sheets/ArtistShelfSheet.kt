@@ -60,7 +60,6 @@ fun ArtistShelfSheet(
 ) {
     if (!isOpen) return
 
-    BackHandler { onDismiss() }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val context = LocalContext.current
@@ -115,6 +114,7 @@ fun ArtistShelfSheet(
         },
         modifier = modifier
     ) {
+        BackHandler { onDismiss() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()

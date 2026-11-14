@@ -76,7 +76,6 @@ fun DiscographySheet(
 ) {
     if (!isOpen) return
 
-    BackHandler { onDismiss() }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val context = LocalContext.current
@@ -144,6 +143,7 @@ fun DiscographySheet(
         },
         modifier = modifier
     ) {
+        BackHandler { onDismiss() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()

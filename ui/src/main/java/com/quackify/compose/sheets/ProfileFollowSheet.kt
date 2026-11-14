@@ -63,7 +63,6 @@ fun ProfileFollowSheet(
 ) {
     if (!isOpen) return
 
-    BackHandler { onDismiss() }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -85,6 +84,7 @@ fun ProfileFollowSheet(
         },
         modifier = modifier
     ) {
+        BackHandler { onDismiss() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()

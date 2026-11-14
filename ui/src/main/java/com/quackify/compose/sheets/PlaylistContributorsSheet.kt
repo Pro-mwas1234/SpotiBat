@@ -76,7 +76,6 @@ fun PlaylistContributorsSheet(
 ) {
     if (!isOpen) return
 
-    BackHandler { onDismiss() }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     var addSearchOpen by remember { mutableStateOf(false) }
@@ -131,6 +130,7 @@ fun PlaylistContributorsSheet(
         },
         modifier = modifier
     ) {
+        BackHandler { onDismiss() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()

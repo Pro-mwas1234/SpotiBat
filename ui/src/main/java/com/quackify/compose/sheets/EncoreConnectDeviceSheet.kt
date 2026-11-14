@@ -86,7 +86,6 @@ fun EncoreConnectDeviceSheet(
     onVolumeChange: (String, Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
-    BackHandler { onDismissRequest() }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     var volume by remember { mutableFloatStateOf(initialVolume.coerceIn(0f, 1f)) }
     val volumeEnabled = devices.firstOrNull { it.isCurrent }?.local ?: true
@@ -101,6 +100,7 @@ fun EncoreConnectDeviceSheet(
         dragHandle = null,
         modifier = modifier
     ) {
+        BackHandler { onDismissRequest() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()

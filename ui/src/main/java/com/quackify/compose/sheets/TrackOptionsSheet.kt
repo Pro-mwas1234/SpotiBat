@@ -96,7 +96,6 @@ fun TrackOptionsSheet(
 ) {
     if (!isOpen || track == null) return
 
-    BackHandler { onDismiss() }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     var isLiked by remember(track) { mutableStateOf(track.saved ?: false) }
@@ -135,6 +134,7 @@ fun TrackOptionsSheet(
         },
         modifier = modifier
     ) {
+        BackHandler { onDismiss() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()

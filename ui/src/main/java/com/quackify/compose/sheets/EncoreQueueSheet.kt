@@ -81,7 +81,6 @@ fun EncoreQueueSheet(
     onReorderQueue: (List<TrackItem>) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    BackHandler { onDismissRequest() }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val listState = rememberLazyListState()
     val haptics = LocalHapticFeedback.current
@@ -116,6 +115,7 @@ fun EncoreQueueSheet(
         dragHandle = null,
         modifier = modifier
     ) {
+        BackHandler { onDismissRequest() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()

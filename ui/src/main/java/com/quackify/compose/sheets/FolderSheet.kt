@@ -55,7 +55,6 @@ internal fun FolderSheet(
 ) {
     if (draft == null) return
 
-    BackHandler { onDismiss() }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     var name by remember(draft) {
@@ -79,6 +78,7 @@ internal fun FolderSheet(
         },
         modifier = modifier
     ) {
+        BackHandler { onDismiss() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
