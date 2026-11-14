@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.quackify.backend.api.ArtistBanStore
 import com.quackify.backend.api.Collection2
 import com.quackify.backend.api.Library
 import com.quackify.backend.core.auth.EncoreAuth
@@ -185,6 +186,7 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
                     artistBannedState = previous
                 } else {
                     env.onArtistBanChanged?.invoke(sheetArtistUri, next)
+                    ArtistBanStore.invalidate()
                 }
                 Toast.makeText(
                     env.context,
