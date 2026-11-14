@@ -348,12 +348,6 @@ fun EncoreNowPlayingScreen(
     LaunchedEffect(canvasImmersive) {
         if (!canvasImmersive) canvasControlsRevealed = false
     }
-    LaunchedEffect(canvasImmersive, canvasControlsRevealed) {
-        if (canvasImmersive && canvasControlsRevealed) {
-            delay(4000)
-            canvasControlsRevealed = false
-        }
-    }
     val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
     val dismissThresholdPx = with(density) { DISMISS_THRESHOLD_DP.dp.toPx() }
     val videoTopHeight = (configuration.screenWidthDp * 9f / 16f).dp
@@ -434,9 +428,8 @@ fun EncoreNowPlayingScreen(
                 translationY = playerOffsetY.value.coerceAtLeast(0f)
             }
             .pointerInput(canvasImmersive) {
-                awaitEachGesture {
-                    awaitFirstDown(requireUnconsumed = false)
-                    if (canvasImmersive) canvasControlsRevealed = true
+                detectTapGestures {
+                    if (canvasImmersive) canvasControlsRevealed = !canvasControlsRevealed
                 }
             }
     ) {
@@ -842,21 +835,29 @@ fun EncoreNowPlayingScreen(
                             )
 
                             if (!effectiveIsLoading && artist.isNotBlank()) {
-                                if (effectiveLyricsVisible) {
-                                    Spacer(modifier = Modifier.height(EncoreSpacers.Base))
+                                AnimatedVisibility(
+                                    visible = canvasControlsShown,
+                                    enter = fadeIn(tween(200)) + expandVertically(tween(300, easing = EncoreAnimation.DecelerateInterpolator)),
+                                    exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
+                                ) {
+                                    Column {
+                                        if (effectiveLyricsVisible) {
+                                            Spacer(modifier = Modifier.height(EncoreSpacers.Base))
+                                        }
+
+                                        NowPlayingAboutArtistCard(
+                                            artist = artist,
+                                            monthlyListeners = effectiveMonthlyListeners,
+                                            artistBio = effectiveArtistBio,
+                                            artistImageUrl = artistImageUrl,
+                                            isFollowingArtist = isArtistFollowing,
+                                            onFollowToggle = { onArtistFollowToggle(!isArtistFollowing) },
+                                            onArtistClick = onArtistClick
+                                        )
+
+                                        Spacer(modifier = Modifier.height(48.dp))
+                                    }
                                 }
-
-                                NowPlayingAboutArtistCard(
-                                    artist = artist,
-                                    monthlyListeners = effectiveMonthlyListeners,
-                                    artistBio = effectiveArtistBio,
-                                    artistImageUrl = artistImageUrl,
-                                    isFollowingArtist = isArtistFollowing,
-                                    onFollowToggle = { onArtistFollowToggle(!isArtistFollowing) },
-                                    onArtistClick = onArtistClick
-                                )
-
-                                Spacer(modifier = Modifier.height(48.dp))
                             }
                         }
                     }
