@@ -472,7 +472,7 @@ private fun SectionHeading(
         if (onSeeAllClick != null) {
             Icon(
                 painter = painterResource(id = R.drawable.encore_icon_chevron_right_24),
-                contentDescription = "See all $title",
+                contentDescription = stringResource(R.string.see_all, title),
                 tint = EncoreColors.TextSecondary,
                 modifier = Modifier.size(20.dp)
             )
