@@ -175,6 +175,7 @@ fun EncorePlaylistScreen(
     onEditDetails: (suspend (name: String, description: String, cover: ByteArray?, clearCover: Boolean) -> Unit)? = null,
     onDeletePlaylist: (() -> Unit)? = null,
     isEditable: Boolean = false,
+    canAddTracks: Boolean = false,
     contributors: List<PlaylistMember> = emptyList(),
     onContributorsClick: (() -> Unit)? = null,
     onShareClick: () -> Unit = {},
@@ -268,11 +269,11 @@ fun EncorePlaylistScreen(
     val listState = rememberLazyListState()
     val density = LocalDensity.current
 
-    val shouldLoadMore by remember(hasMore, loadingMore, displayedTracks.size, isEditable, onLoadMore) {
+    val shouldLoadMore by remember(hasMore, loadingMore, displayedTracks.size, isEditable, canAddTracks, onLoadMore) {
         derivedStateOf {
             val info = listState.layoutInfo
             val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: -1
-            val leading = 1 + if (isEditable && displayedTracks.isNotEmpty()) 1 else 0
+            val leading = 1 + if ((isEditable || canAddTracks) && displayedTracks.isNotEmpty()) 1 else 0
             hasMore && !loadingMore && displayedTracks.isNotEmpty() &&
                 lastVisible - leading >= displayedTracks.size - PRELOAD_REMAINING_TRACKS
         }
@@ -1021,7 +1022,7 @@ fun EncorePlaylistScreen(
                     }
                 }
 
-                if (displayedTracks.isNotEmpty() && isEditable) {
+                if (displayedTracks.isNotEmpty() && (isEditable || canAddTracks)) {
                     stickyHeader(key = "filter_chips_row") {
                     Box(
                         modifier = Modifier
@@ -1032,12 +1033,24 @@ fun EncorePlaylistScreen(
                         PlaylistChipsRow(
                             scrollState = chipsScrollState,
                             onAddClick = {
-                                scope.launch {
-                                    listState.animateScrollToItem(displayedTracks.size + 2)
+                                if (!isEditable && canAddTracks) {
+                                    onAddTracksClick?.invoke()
+                                } else {
+                                    scope.launch {
+                                        listState.animateScrollToItem(displayedTracks.size + 2)
+                                    }
                                 }
                             },
-                            onEditClick = { isEditMode = true; onEditModeChange(true) },
-                            onNameDetailsClick = { isEditDetailsOpen = true }
+                            onEditClick = if (isEditable) {
+                                { isEditMode = true; onEditModeChange(true) }
+                            } else {
+                                null
+                            },
+                            onNameDetailsClick = if (isEditable) {
+                                { isEditDetailsOpen = true }
+                            } else {
+                                null
+                            }
                         )
                     }
                 }
@@ -1388,8 +1401,8 @@ fun EncorePlaylistScreen(
 private fun PlaylistChipsRow(
     scrollState: ScrollState,
     onAddClick: () -> Unit,
-    onEditClick: () -> Unit,
-    onNameDetailsClick: () -> Unit,
+    onEditClick: (() -> Unit)?,
+    onNameDetailsClick: (() -> Unit)?,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -1407,17 +1420,21 @@ private fun PlaylistChipsRow(
             onClick = onAddClick
         )
 
-        PlaylistChip(
-            iconRes = R.drawable.encore_icon_sort_24,
-            label = "Edit",
-            onClick = onEditClick
-        )
+        if (onEditClick != null) {
+            PlaylistChip(
+                iconRes = R.drawable.encore_icon_sort_24,
+                label = "Edit",
+                onClick = onEditClick
+            )
+        }
 
-        PlaylistChip(
-            iconRes = R.drawable.encore_icon_edit_24,
-            label = "Name & details",
-            onClick = onNameDetailsClick
-        )
+        if (onNameDetailsClick != null) {
+            PlaylistChip(
+                iconRes = R.drawable.encore_icon_edit_24,
+                label = "Name & details",
+                onClick = onNameDetailsClick
+            )
+        }
 
         Spacer(modifier = Modifier.width(72.dp))
     }
