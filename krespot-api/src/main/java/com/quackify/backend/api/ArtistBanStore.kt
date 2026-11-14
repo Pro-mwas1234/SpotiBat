@@ -27,6 +27,8 @@ object ArtistBanStore {
     fun bannedCached(artistUri: String): Boolean =
         artistUri.startsWith("spotify:artist:") && artistUri in uris
 
+    fun snapshot(): Set<String> = uris
+
     fun invalidate() {
         uris = emptySet()
         fetchedAt = 0L
