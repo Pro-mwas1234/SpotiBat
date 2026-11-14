@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.quackify.compose.theme.DmMono
 import com.quackify.compose.theme.EncoreColors
+import androidx.compose.ui.res.stringResource
+import com.quackify.compose.R
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -83,7 +85,7 @@ fun SplashScreen(modifier: Modifier = Modifier) {
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
             Text(
-                text = "Quackify",
+                text = stringResource(R.string.quackify),
                 color = Color.White,
                 fontFamily = DmMono,
                 fontWeight = FontWeight.Medium,
