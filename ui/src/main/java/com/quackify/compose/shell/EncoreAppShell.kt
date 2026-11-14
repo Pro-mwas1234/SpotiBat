@@ -478,7 +478,7 @@ fun EncoreAppShell(
     val isLiked = playbackState?.isLiked ?: localIsLiked
     val currentShuffleMode = playbackState?.shuffleMode ?: localShuffleMode
     val currentRepeatMode = playbackState?.repeatMode ?: localRepeatMode
-    val connectedDevice = playbackState?.connectedDevice ?: localDevice
+    val connectedDevice = playbackState?.connectedDevice.orEmpty()
     val currentCoverUrl = playbackState?.coverUrl ?: ""
 
     val playerIdentity = playerIdentityOf(
