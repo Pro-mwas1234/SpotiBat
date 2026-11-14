@@ -219,8 +219,6 @@ fun ArtistOptionsSheet(
 ) {
     if (!isOpen) return
 
-    BackHandler { onDismiss() }
-
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
     ModalBottomSheet(
