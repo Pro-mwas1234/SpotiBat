@@ -27,6 +27,9 @@ import com.quackify.backend.connect.cluster.ClusterState
 import com.quackify.backend.connect.cluster.ClusterTrack
 import com.quackify.backend.model.ConnectDevice
 import com.quackify.backend.model.DeviceKind
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import com.quackify.backend.connect.command.CommandClient
 import com.quackify.backend.connect.command.CommandTrack
 import com.quackify.backend.connect.command.ContentType
@@ -582,7 +585,7 @@ class PlaybackBridge(private val context: Context) {
                         controllingRemote = false,
                         activeDeviceName = "Quackify",
                         activeDeviceId = deviceId,
-                        connectedDevice = "Quackify",
+                        connectedDevice = localOutputLabel(),
                         devices = state.devices.map { it.copy(active = it.id == deviceId) }
                     )
                     takeBackHere()
@@ -601,24 +604,6 @@ class PlaybackBridge(private val context: Context) {
                     connectedDevice = target.name,
                     devices = state.devices.map { it.copy(active = it.id == target.id) }
                 )
-            }
-        }
-
-        override fun onVolumeChange(deviceId: String, level: Int) {
-            scope.launch {
-                val target = connect.cluster.value?.devices?.firstOrNull { it.id == deviceId }
-                if (target == null) return@launch
-                if (target.local) {
-                    player.setVolume(level / 65535f)
-                    log.i("volume: local sink -> ${level.coerceIn(0, 65535)}/65535")
-                    connect.setVolumeOn(target.id, level)
-                    return@launch
-                }
-                if (!target.canControlVolume) {
-                    log.w("volume: '" + target.name + "' does not take a volume command")
-                    return@launch
-                }
-                connect.setVolumeOn(target.id, level)
             }
         }
 
@@ -723,6 +708,8 @@ class PlaybackBridge(private val context: Context) {
     fun start() {
         if (dealer != null) return
         log.i("start device=" + deviceId)
+        (context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager)
+            ?.registerAudioDeviceCallback(localOutputWatcher, null)
         autoplayOnStartup = com.quackify.backend.core.store.AppPrefs.prefs(context, CLIENT_PREFS)
             .getBoolean(AUTOPLAY_ON_STARTUP_PREF, false)
         autoplayPending = true
@@ -1958,7 +1945,7 @@ class PlaybackBridge(private val context: Context) {
             controllingRemote = false,
             activeDeviceName = "Quackify",
             activeDeviceId = deviceId,
-            connectedDevice = "Quackify",
+            connectedDevice = localOutputLabel(),
             devices = state.devices.map { it.copy(active = it.id == deviceId) },
         )
         progress.set(positionMs, duration)
@@ -2253,7 +2240,7 @@ class PlaybackBridge(private val context: Context) {
             controllingRemote = false,
             activeDeviceName = "Quackify",
             activeDeviceId = deviceId,
-            connectedDevice = "Quackify",
+            connectedDevice = localOutputLabel(),
             devices = state.devices.map { it.copy(active = it.id == deviceId) },
         )
         progress.set(position, progress.durationMs)
@@ -2442,7 +2429,7 @@ class PlaybackBridge(private val context: Context) {
                     controllingRemote = false,
                     activeDeviceName = "Quackify",
                     activeDeviceId = deviceId,
-                    connectedDevice = "Quackify",
+                    connectedDevice = localOutputLabel(),
                     devices = state.devices.map { it.copy(active = it.id == deviceId) }
                 )
             } else {
@@ -2469,7 +2456,7 @@ class PlaybackBridge(private val context: Context) {
                 controllingRemote = false,
                 activeDeviceName = "Quackify",
                 activeDeviceId = deviceId,
-                connectedDevice = "Quackify",
+                connectedDevice = localOutputLabel(),
                 devices = state.devices.map { it.copy(active = it.id == deviceId) }
             )
             return
@@ -3174,7 +3161,7 @@ class PlaybackBridge(private val context: Context) {
             remoteCanShuffle = !remoteActive || cluster.canShuffle,
             remoteCanRepeat = !remoteActive || (cluster.canRepeatContext || cluster.canRepeatTrack),
             connectedDevice = label.ifBlank {
-                if (mine || player.hasSource || noneActive) "Quackify" else ""
+                if (mine || player.hasSource || noneActive) localOutputLabel() else ""
             },
         )
         if (active != null && !mine && player.hasSource && held == null) {
@@ -3197,7 +3184,7 @@ class PlaybackBridge(private val context: Context) {
         if (fromServer.any { it.id == deviceId }) {
             return fromServer.map { dev ->
                 if (dev.id == deviceId) {
-                    dev.copy(kind = DeviceKind.PHONE, local = true, active = isMineActive)
+                    dev.copy(kind = localOutputKind(), local = true, active = isMineActive)
                 } else {
                     if (isMineActive) dev.copy(active = false) else dev
                 }
@@ -3206,10 +3193,39 @@ class PlaybackBridge(private val context: Context) {
         return fromServer + localDeviceRow(active = isMineActive)
     }
 
+    private fun localOutputLabel(): String = LocalOutput.label(context)
+
+    private fun localOutputKind(): DeviceKind =
+        if (localOutputLabel().isBlank()) DeviceKind.PHONE else DeviceKind.HEADPHONES
+
+    private val localOutputWatcher = object : AudioDeviceCallback() {
+        override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
+            refreshLocalOutput()
+        }
+
+        override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) {
+            refreshLocalOutput()
+        }
+    }
+
+    private fun refreshLocalOutput() {
+        if (state.controllingRemote) return
+        val label = localOutputLabel()
+        if (state.connectedDevice == label &&
+            state.devices.firstOrNull { it.local }?.kind == localOutputKind()
+        ) return
+        state = state.copy(
+            connectedDevice = label,
+            devices = state.devices.map {
+                if (it.local) it.copy(kind = localOutputKind()) else it
+            }
+        )
+    }
+
     private fun localDeviceRow(active: Boolean): ConnectDevice = ConnectDevice(
         id = deviceId,
         name = "Quackify",
-        kind = DeviceKind.PHONE,
+        kind = localOutputKind(),
         canPlay = true,
         volume = 0,
         volumeSteps = 64,
