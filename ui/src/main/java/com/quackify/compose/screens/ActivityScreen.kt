@@ -47,6 +47,7 @@ import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.theme.rememberBottomPadding
+import androidx.compose.ui.res.stringResource
 
 /** Spotify's unread marker blue used by the gander notification feed. */
 private val UnreadBlue = Color(0xFF3D91F4)
@@ -83,12 +84,12 @@ fun ActivityScreen(
         ) {
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_arrow_left_24,
-                contentDescription = "Back",
+                contentDescription = stringResource(R.string.back),
                 onClick = onBackClick,
                 tint = EncoreColors.TextPrimary
             )
             Text(
-                text = "Notification",
+                text = stringResource(R.string.notification),
                 style = EncoreTheme.typography.titleLarge.copy(fontSize = 20.sp),
                 modifier = Modifier
                     .weight(1f)
@@ -123,18 +124,18 @@ fun ActivityScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "Couldn't load notifications",
+                        text = stringResource(R.string.couldn_t_load_notifications),
                         style = EncoreTheme.typography.titleLarge
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Check your internet connection and try again.",
+                        text = stringResource(R.string.check_your_internet_connection_and_try_again),
                         style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextSecondary),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     TextButton(onClick = onRetry) {
-                        Text(text = "Try again", color = EncoreColors.Green)
+                        Text(text = stringResource(R.string.try_again), color = EncoreColors.Green)
                     }
                 }
             }
@@ -154,12 +155,12 @@ fun ActivityScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "No notifications yet",
+                        text = stringResource(R.string.no_notifications_yet),
                         style = EncoreTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "When someone follows you or interacts with your playlists, you'll see it here.",
+                        text = stringResource(R.string.when_someone_follows_you_or_interacts_with_your),
                         style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextSecondary),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
@@ -275,7 +276,7 @@ internal fun relativeTime(atMillis: Long): String {
     if (atMillis <= 0L) return ""
     val minutes = (System.currentTimeMillis() - atMillis) / 60000
     return when {
-        minutes < 1 -> "Just now"
+        minutes < 1 -> stringResource(R.string.just_now)
         minutes < 60 -> "${minutes}m ago"
         minutes < 60 * 24 -> "${minutes / 60}h ago"
         minutes < 60 * 24 * 7 -> "${minutes / (60 * 24)}d ago"
