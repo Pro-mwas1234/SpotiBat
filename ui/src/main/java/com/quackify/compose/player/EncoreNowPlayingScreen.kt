@@ -754,7 +754,8 @@ fun EncoreNowPlayingScreen(
                                 onTitleClick = onTitleClick,
                                 onArtistClick = onArtistClick,
                                 onLikeClick = onLikeClick,
-                                onBanClick = onBanClick
+                                onBanClick = onBanClick,
+                                coverUrl = if (canvasImmersive) coverUrl else null
                             )
 
                             Spacer(modifier = Modifier.height(16.dp))
@@ -1459,6 +1460,7 @@ private fun NowPlayingTrackInfoRow(
     onArtistClick: () -> Unit,
     onLikeClick: () -> Unit,
     onBanClick: (() -> Unit)? = null,
+    coverUrl: String? = null,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -1467,6 +1469,16 @@ private fun NowPlayingTrackInfoRow(
             .padding(start = 24.dp, end = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (coverUrl != null) {
+            EncoreArtworkImage(
+                imageUrl = coverUrl,
+                contentDescription = null,
+                cornerRadius = 8.dp,
+                requestSize = 128,
+                modifier = Modifier.size(48.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
