@@ -987,7 +987,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private suspend fun loadMoreAlbumTracks(currentSize: Int): Pair<List<TrackItem>, Boolean>? {
-        val page = Krespot.albums.albumMore(applicationContext, albumUri, currentSize)
+        val page = Krespot.albums.albumMore(applicationContext, albumUri, currentSize, albumDetail?.imageUrl.orEmpty())
         if (page == null) return null
         val rows = page.rows.map { it.toTrackItem() }
         log.i("album more '$albumUri' -> ${rows.size} rows hasMore=${page.hasMore}")
