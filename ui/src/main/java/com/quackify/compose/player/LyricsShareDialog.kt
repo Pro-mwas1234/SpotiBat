@@ -571,5 +571,5 @@ private fun shareLyricCard(
             send.type = "text/plain"
         }
     }
-    runCatching { context.startActivity(Intent.createChooser(send, stringResource(R.string.share_lyrics))) }
+    runCatching { context.startActivity(Intent.createChooser(send, context.getString(R.string.share_lyrics))) }
 }
