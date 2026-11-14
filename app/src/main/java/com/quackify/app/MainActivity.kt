@@ -1604,7 +1604,10 @@ class MainActivity : ComponentActivity() {
             scope.launch {
                 val ok = Collection2.setArtistBanned(context, uri, false)
                 if (ok && uri == artistUri) artistBanned = false
-                if (ok) ArtistBanStore.invalidate()
+                if (ok) {
+                    ArtistBanStore.invalidate()
+                    com.quackify.compose.bans.ArtistBans.setBanned(uri, false)
+                }
             }
         },
         onArtistBanChanged = { uri, banned ->
