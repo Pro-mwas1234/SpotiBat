@@ -75,6 +75,7 @@ const val CLIENT_PREFS = "quackify.client"
 
 /** Settings toggle: start playback as soon as the session's track loads. */
 const val AUTOPLAY_ON_STARTUP_PREF = "autoplayOnStartup"
+const val LAST_TRACK_ARTIST_PREF = "lastTrackArtist"
 
 /** Settings toggle: keep playing from a station when the context runs out. */
 const val AUTOPLAY_ON_END_PREF = "autoplayOnEnd"
@@ -726,7 +727,18 @@ class PlaybackBridge(private val context: Context) {
                 log.i("the other app is done, the volume is back")
         }
         player.warm()
-        if (autoplayOnStartup) player.resumeLast(connect.spclientHost)
+        if (autoplayOnStartup) {
+            scope.launch {
+                ArtistBanStore.warm(context)
+                val savedArtist = com.quackify.backend.core.store.AppPrefs.prefs(context, CLIENT_PREFS)
+                    .getString(LAST_TRACK_ARTIST_PREF, "").orEmpty()
+                if (savedArtist.isNotBlank() && ArtistBanStore.bannedCached(savedArtist)) {
+                    log.i("resume: the saved track's artist '$savedArtist' is banned, not warming it")
+                } else {
+                    player.resumeLast(connect.spclientHost)
+                }
+            }
+        }
         connect.holdsStream = false
         deviceWatch = scope.launch {
             while (true) {
@@ -844,6 +856,11 @@ class PlaybackBridge(private val context: Context) {
                         return@collect
                     }
                     state = next
+                    if (next.trackUri.startsWith("spotify:track:") && next.artistUri.isNotBlank()) {
+                        com.quackify.backend.core.store.AppPrefs.prefs(context, CLIENT_PREFS).edit()
+                            .putString(LAST_TRACK_ARTIST_PREF, next.artistUri)
+                            .apply()
+                    }
                     if (local && waiting != null) {
                         held = null
                         log.i("held '${waiting.name}' took the engine")
@@ -1840,6 +1857,13 @@ class PlaybackBridge(private val context: Context) {
                 player.pause()
                 publishLocalFromEngine(playing = false)
             } else {
+                val loadedUri = player.state.value.trackUri
+                val loadedArtist = artistUriOf(loadedUri)
+                if (loadedArtist.isNotBlank() && ArtistBanStore.banned(context, loadedArtist)) {
+                    log.i("toggle: resume of '$loadedUri' blocked, artist '$loadedArtist' is banned")
+                    player.stop()
+                    return
+                }
                 log.i("toggle: resuming the engine here")
                 player.resume()
                 publishLocalFromEngine(playing = true)
@@ -1854,6 +1878,11 @@ class PlaybackBridge(private val context: Context) {
         val track = cluster.track
         if (track.uri.isBlank()) {
             log.w("toggle: the cluster has no track, nothing to play")
+            return
+        }
+        val clusterArtist = track.artistUri.ifBlank { artistUriOf(track.uri) }
+        if (clusterArtist.isNotBlank() && ArtistBanStore.banned(context, clusterArtist)) {
+            log.i("toggle: '${track.uri}' blocked, artist '$clusterArtist' is banned")
             return
         }
         val at = cluster.positionNow()
