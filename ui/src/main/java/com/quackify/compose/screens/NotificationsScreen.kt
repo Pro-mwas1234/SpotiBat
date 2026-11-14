@@ -271,6 +271,7 @@ fun NotificationsScreen(
     }
 }
 
+@Composable
 private fun relativeTime(iso: String): String {
     val at = runCatching {
         java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.ROOT)
