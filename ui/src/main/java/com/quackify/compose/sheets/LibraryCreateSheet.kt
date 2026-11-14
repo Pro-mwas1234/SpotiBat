@@ -33,9 +33,10 @@ import com.quackify.compose.R
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
 
 /**
- * When opened from root library: shows "Create" header + Playlist, Folder.
+ * When opened from root library: shows stringResource(R.string.create) header + Playlist, Folder.
  * When opened from within a folder: shows Playlist only (no header).
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,7 +77,7 @@ fun LibraryCreateSheet(
         ) {
             if (showHeader) {
                 Text(
-                    text = "Create",
+                    text = stringResource(R.string.create),
                     style = EncoreTheme.typography.titleLarge.copy(fontSize = 18.sp),
                     modifier = Modifier.padding(vertical = 12.dp)
                 )
@@ -85,8 +86,8 @@ fun LibraryCreateSheet(
             }
 
             CreateOptionItem(
-                title = "Playlist",
-                subtitle = "Create a playlist with songs or episodes",
+                title = stringResource(R.string.playlist),
+                subtitle = stringResource(R.string.create_a_playlist_with_songs_or_episodes),
                 iconRes = R.drawable.encore_icon_playlist_24,
                 onClick = {
                     onDismiss()
@@ -96,8 +97,8 @@ fun LibraryCreateSheet(
 
             if (showHeader) {
                 CreateOptionItem(
-                    title = "Folder",
-                    subtitle = "Organize your playlists",
+                    title = stringResource(R.string.folder),
+                    subtitle = stringResource(R.string.organize_your_playlists),
                     iconRes = R.drawable.encore_icon_folder_24,
                     onClick = {
                         onDismiss()
