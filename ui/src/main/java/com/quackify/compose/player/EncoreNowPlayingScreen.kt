@@ -342,11 +342,16 @@ fun EncoreNowPlayingScreen(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
     val canvasImmersive = canvasActive && !videoActive && !isLandscape
-    var canvasControlsRevealed by remember { mutableStateOf(false) }
+    var canvasControlsRevealed by remember { mutableStateOf(true) }
     val canvasControlsShown = !canvasImmersive || canvasControlsRevealed
+    var prevCanvasEnabled by remember { mutableStateOf(isCanvasEnabled) }
 
     LaunchedEffect(canvasImmersive) {
-        if (!canvasImmersive) canvasControlsRevealed = false
+        if (!canvasImmersive) canvasControlsRevealed = true
+    }
+    LaunchedEffect(isCanvasEnabled) {
+        if (isCanvasEnabled && !prevCanvasEnabled) canvasControlsRevealed = false
+        prevCanvasEnabled = isCanvasEnabled
     }
     val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
     val dismissThresholdPx = with(density) { DISMISS_THRESHOLD_DP.dp.toPx() }
@@ -428,7 +433,8 @@ fun EncoreNowPlayingScreen(
                 translationY = playerOffsetY.value.coerceAtLeast(0f)
             }
             .pointerInput(canvasImmersive) {
-                detectTapGestures {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
                     if (canvasImmersive) canvasControlsRevealed = true
                 }
             }
