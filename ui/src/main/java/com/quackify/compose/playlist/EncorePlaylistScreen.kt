@@ -483,7 +483,7 @@ fun EncorePlaylistScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "Couldn't find \"$searchQuery\"",
+                                text = stringResource(R.string.couldnt_find_query, searchQuery),
                                 style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 color = Color.White
                             )
