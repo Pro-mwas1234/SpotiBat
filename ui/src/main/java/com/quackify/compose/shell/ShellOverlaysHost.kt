@@ -21,6 +21,8 @@ import com.quackify.compose.sheets.PlaylistContributorsSheet
 import com.quackify.compose.sheets.ProfileFollowSheet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.quackify.compose.R
 
 internal class ShellOverlaysEnv(
     val flags: ShellUiFlags,
@@ -125,10 +127,10 @@ internal fun ShellOverlaysHost(env: ShellOverlaysEnv) {
 
     EncoreCreateNameDialog(
         isOpen = env.flags.isCreatePlaylistOpen,
-        title = "Give your playlist a name",
+        title = stringResource(R.string.give_your_playlist_a_name),
         initialName = env.local.playlistCreateName,
-        confirmLabel = "Create",
-        cancelLabel = "Cancel",
+        confirmLabel = stringResource(R.string.create),
+        cancelLabel = stringResource(R.string.cancel),
         onConfirm = { name ->
             env.flags.isCreatePlaylistOpen = false
             env.shellScope.launch {
@@ -264,9 +266,9 @@ internal fun ShellOverlaySheets(
             imageUrl = artistDetail?.imageUrl?.takeIf { it.isNotBlank() }
                 ?: artistDetail?.headerImageUrl?.takeIf { it.isNotBlank() },
             monthlyListeners = artistDetail?.monthlyListeners?.takeIf { it > 0L }
-                ?.let { formatCount(it) + " monthly listeners" }.orEmpty(),
+                ?.let { formatCount(it) + stringResource(R.string.monthly_listeners_prefix) }.orEmpty(),
             followers = artistDetail?.followers?.takeIf { it > 0L }
-                ?.let { formatCount(it) + " followers" }.orEmpty(),
+                ?.let { formatCount(it) + stringResource(R.string.followers_suffix) }.orEmpty(),
             worldRank = artistDetail?.worldRank ?: 0,
             biography = artistDetail?.biography.orEmpty(),
             topCities = artistDetail?.topCities.orEmpty(),
