@@ -46,6 +46,8 @@ import com.quackify.backend.model.ShelfKind
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.backend.library.Krespot
+import androidx.compose.ui.res.stringResource
+import com.quackify.compose.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -200,7 +202,7 @@ fun ArtistShelfSheet(
                         ) {
                             if (failed) {
                                 Text(
-                                    text = "Could not load this list",
+                                    text = stringResource(R.string.could_not_load_this_list),
                                     style = EncoreTheme.typography.bodySmall.copy(
                                         color = EncoreColors.TextSecondary
                                     )
