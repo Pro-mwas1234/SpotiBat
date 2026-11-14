@@ -44,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -1883,6 +1884,7 @@ private fun AddTrackRow(
     added: Boolean,
     onAdd: () -> Unit
 ) {
+    val isBanned = com.quackify.compose.bans.ArtistBans.isBanned(item.artistUri)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1894,6 +1896,7 @@ private fun AddTrackRow(
             modifier = Modifier
                 .size(48.dp)
                 .clip(RoundedCornerShape(4.dp))
+                .graphicsLayer { alpha = if (isBanned) 0.4f else 1f }
         ) {
             EncoreArtworkImage(
                 imageUrl = item.imageUrl,
@@ -1921,7 +1924,8 @@ private fun AddTrackRow(
                 text = item.title,
                 style = EncoreTheme.typography.bodyMedium.copy(
                     fontWeight = FontWeight.SemiBold,
-                    color = EncoreColors.TextPrimary
+                    color = if (isBanned) EncoreColors.TextSecondary.copy(alpha = 0.55f)
+                    else EncoreColors.TextPrimary
                 ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -1929,7 +1933,10 @@ private fun AddTrackRow(
             if (item.artist.isNotBlank()) {
                 Text(
                     text = item.artist,
-                    style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
+                    style = EncoreTheme.typography.bodySmall.copy(
+                        color = EncoreColors.TextSecondary.takeIf { !isBanned }
+                            ?: EncoreColors.TextSecondary.copy(alpha = 0.55f)
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
