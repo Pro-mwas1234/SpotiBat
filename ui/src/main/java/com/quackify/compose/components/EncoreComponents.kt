@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -392,9 +393,11 @@ fun EncoreTrackRow(
     hasVideo: Boolean = false,
     imageUrl: String? = null,
     saved: Boolean? = null,
+    artistUri: String = "",
     onLikeToggle: (() -> Unit)? = null,
     onAddToQueue: (() -> Unit)? = null
 ) {
+    val isBanned = com.quackify.compose.bans.ArtistBans.isBanned(artistUri)
     SwipeToQueueBox(
         onAddToQueue = onAddToQueue,
         modifier = modifier
@@ -429,7 +432,8 @@ fun EncoreTrackRow(
                 Box(
                     modifier = Modifier
                         .size(48.dp)
-                        .clip(RoundedCornerShape(4.dp)),
+                        .clip(RoundedCornerShape(4.dp))
+                        .graphicsLayer { alpha = if (isBanned) 0.4f else 1f },
                     contentAlignment = Alignment.Center
                 ) {
                     EncoreArtworkImage(
@@ -465,7 +469,11 @@ fun EncoreTrackRow(
                     text = title,
                     style = EncoreTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.SemiBold,
-                        color = if (isPlaying) EncoreColors.Green else EncoreColors.TextPrimary
+                        color = when {
+                            isPlaying -> EncoreColors.Green
+                            isBanned -> EncoreColors.TextSecondary.copy(alpha = 0.55f)
+                            else -> EncoreColors.TextPrimary
+                        }
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -487,7 +495,10 @@ fun EncoreTrackRow(
                     }
                     Text(
                         text = artist,
-                        style = EncoreTheme.typography.bodySmall,
+                        style = EncoreTheme.typography.bodySmall.copy(
+                            color = EncoreColors.TextSecondary.takeIf { !isBanned }
+                                ?: EncoreColors.TextSecondary.copy(alpha = 0.55f)
+                        ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
