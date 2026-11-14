@@ -125,6 +125,7 @@ import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.util.rememberDominantColor
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
 
 internal data class PlayerIdentity(
     val trackLoaded: Boolean,
@@ -141,8 +142,8 @@ internal fun playerIdentityOf(
     trackLoaded = title.isNotBlank() ||
         trackUri?.isNotBlank() == true ||
         (trackUri == null && localTitle.isNotBlank()),
-    title = title.ifBlank { "No Track" },
-    artist = artist.ifBlank { "No Artist" },
+    title = title.ifBlank { stringResource(R.string.no_track) },
+    artist = artist.ifBlank { stringResource(R.string.no_artist) },
 )
 
 internal fun nowPlayingContext(
@@ -153,23 +154,23 @@ internal fun nowPlayingContext(
 ): Pair<String, String> {
     fun searchSub(query: String): String {
         val q = query.trim()
-        return if (q.isBlank()) "Search" else "$q in Search"
+        return if (q.isBlank()) stringResource(R.string.search) else "$q in Search"
     }
     fun playlistContext(label: String): Pair<String, String> =
-        if (label.isBlank()) "Playing from Queue" to "Next up"
-        else "Playing from playlist" to label
+        if (label.isBlank()) stringResource(R.string.playing_from_queue) to stringResource(R.string.next_up)
+        else stringResource(R.string.playing_from_playlist) to label
     val uri = contextUri.orEmpty()
     return when {
-        !trackLoaded -> "Nothing playing" to "Pick a song to get started"
+        !trackLoaded -> stringResource(R.string.nothing_playing) to stringResource(R.string.pick_a_song_to_get_started)
         origin != null -> when (origin.screen) {
-            ShellScreen.SEARCH -> "Playing from search" to searchSub(origin.label)
-            ShellScreen.ALBUM -> "Playing from album" to origin.label
-            ShellScreen.ARTIST -> "Playing from artist" to origin.label
-            ShellScreen.HOME -> "Playing from home" to origin.label
+            ShellScreen.SEARCH -> stringResource(R.string.playing_from_search) to searchSub(origin.label)
+            ShellScreen.ALBUM -> stringResource(R.string.playing_from_album) to origin.label
+            ShellScreen.ARTIST -> stringResource(R.string.playing_from_artist) to origin.label
+            ShellScreen.HOME -> stringResource(R.string.playing_from_home) to origin.label
             else -> playlistContext(origin.label)
         }
-        uri.startsWith("spotify:album:") -> "Playing from album" to contextLabel
-        uri.startsWith("spotify:artist:") -> "Playing from artist" to contextLabel
+        uri.startsWith("spotify:album:") -> stringResource(R.string.playing_from_album) to contextLabel
+        uri.startsWith("spotify:artist:") -> stringResource(R.string.playing_from_artist) to contextLabel
         else -> playlistContext(contextLabel)
     }
 }
@@ -194,13 +195,13 @@ internal fun ShellLoadingState(loading: Boolean, onRetry: () -> Unit) {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "Couldn't load",
+                text = stringResource(R.string.couldnt_load),
                 style = EncoreTheme.typography.titleMedium,
                 color = EncoreColors.TextPrimary
             )
             Spacer(modifier = Modifier.height(8.dp))
             TextButton(onClick = onRetry) {
-                Text(text = "Try again", color = EncoreColors.Green)
+                Text(text = stringResource(R.string.try_again), color = EncoreColors.Green)
             }
         }
     }
@@ -1078,8 +1079,8 @@ internal fun ShellPlaylistEditSheets(
             onDeletePlaylist = {
                 onDismissEdit()
                 onDeleteAsk(
-                    "Delete playlist?",
-                    "\"${editDraft.name}\" will be deleted from Your Library and your followers won't have access anymore.",
+                    stringResource(R.string.delete_playlist_title),
+                    "\"${editDraft.name}\stringResource(R.string.will_be_deleted_followers_lose_access),
                 ) { scope.launch { onDeletePlaylist?.invoke(editDraft.uri) } }
             },
             onDismiss = onDismissEdit
@@ -1087,20 +1088,20 @@ internal fun ShellPlaylistEditSheets(
     }
 }
 
-private enum class AddTracksFilter(val label: String) {
-    SONGS("Songs"),
-    EPISODES("Episodes"),
-    RECENT("Recently played"),
-    LIKED("From your Liked Songs")
+private enum class AddTracksFilter(val labelRes: Int) {
+    SONGS(R.string.songs),
+    EPISODES(R.string.episodes),
+    RECENT(R.string.recently_played),
+    LIKED(R.string.from_your_liked_songs)
 }
 
-private enum class AssistedSearchCategory(val label: String) {
-    SONGS("Songs"),
-    ALBUMS("Albums"),
-    PLAYLISTS("Playlists"),
-    ARTISTS("Artists"),
-    EPISODES("Episodes"),
-    PODCASTS("Podcasts")
+private enum class AssistedSearchCategory(val labelRes: Int) {
+    SONGS(R.string.songs),
+    ALBUMS(R.string.albums),
+    PLAYLISTS(R.string.playlists),
+    ARTISTS(R.string.artists),
+    EPISODES(R.string.episodes),
+    PODCASTS(R.string.podcasts)
 }
 
 @Composable
@@ -1168,7 +1169,7 @@ internal fun ShellAddTracksPane(
             ) {
                 EncoreIconButton(
                     iconRes = R.drawable.encore_icon_arrow_left_24,
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.back),
                     onClick = {
                         if (isSearchMode) {
                             isSearchMode = false
@@ -1182,7 +1183,7 @@ internal fun ShellAddTracksPane(
                     tint = EncoreColors.TextPrimary
                 )
                 Text(
-                    text = if (isSearchMode) "Find" else "Add to this playlist",
+                    text = if (isSearchMode) "Find" else stringResource(R.string.add_to_this_playlist),
                     style = EncoreTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
@@ -1208,7 +1209,7 @@ internal fun ShellAddTracksPane(
                 ) {
                     AddTracksFilter.entries.forEach { option ->
                         EncoreChip(
-                            text = option.label,
+                            text = stringResource(option.labelRes),
                             isSelected = option == filter,
                             onClick = { filter = option }
                         )
@@ -1227,7 +1228,7 @@ internal fun ShellAddTracksPane(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Nothing here yet",
+                            text = stringResource(R.string.nothing_here_yet),
                             color = EncoreColors.TextSecondary
                         )
                     }
@@ -1264,7 +1265,7 @@ internal fun ShellAddTracksPane(
                             modifier = Modifier.padding(horizontal = 32.dp)
                         ) {
                             Text(
-                                text = "Find titles you'll love",
+                                text = stringResource(R.string.find_titles_you_ll_love),
                                 style = EncoreTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 22.sp,
@@ -1274,7 +1275,7 @@ internal fun ShellAddTracksPane(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Search for anything.",
+                                text = stringResource(R.string.search_for_anything),
                                 style = EncoreTheme.typography.bodyMedium.copy(
                                     color = EncoreColors.TextSecondary,
                                     fontSize = 14.sp
@@ -1294,7 +1295,7 @@ internal fun ShellAddTracksPane(
                     ) {
                         AssistedSearchCategory.entries.forEach { category ->
                             EncoreChip(
-                                text = category.label,
+                                text = stringResource(category.labelRes),
                                 isSelected = category == searchCategory,
                                 onClick = {
                                     searchCategory = if (searchCategory == category) null else category
@@ -1365,7 +1366,7 @@ internal fun ShellAddTracksPane(
                                 items(remoteAlbums, key = { it.uri }) { hit ->
                                     AssistedSearchNavRow(
                                         title = hit.title,
-                                        subtitle = if (hit.subtitle.isNotBlank()) "Album • ${hit.subtitle}" else "Album",
+                                        subtitle = if (hit.subtitle.isNotBlank()) "Album • ${hit.subtitle}" else stringResource(R.string.album),
                                         imageUrl = hit.imageUrl,
                                         isCircular = false,
                                         onClick = { onOpenAlbum?.invoke(hit.uri, hit.title, hit.subtitle) }
@@ -1374,7 +1375,7 @@ internal fun ShellAddTracksPane(
                                 items(remotePlaylists, key = { it.uri }) { hit ->
                                     AssistedSearchNavRow(
                                         title = hit.title,
-                                        subtitle = if (hit.subtitle.isNotBlank()) "Playlist • ${hit.subtitle}" else "Playlist",
+                                        subtitle = if (hit.subtitle.isNotBlank()) "Playlist • ${hit.subtitle}" else stringResource(R.string.playlist),
                                         imageUrl = hit.imageUrl,
                                         isCircular = false,
                                         onClick = { onOpenPlaylist?.invoke(hit.uri, hit.title) }
@@ -1383,7 +1384,7 @@ internal fun ShellAddTracksPane(
                                 items(remoteArtists, key = { it.uri }) { hit ->
                                     AssistedSearchNavRow(
                                         title = hit.title,
-                                        subtitle = "Artist",
+                                        subtitle = stringResource(R.string.artist),
                                         imageUrl = hit.imageUrl,
                                         isCircular = true,
                                         onClick = { onOpenArtist?.invoke(hit.uri, hit.title) }
@@ -1403,7 +1404,7 @@ internal fun ShellAddTracksPane(
                                 items(remoteShows, key = { it.uri }) { hit ->
                                     AssistedSearchNavRow(
                                         title = hit.title,
-                                        subtitle = if (hit.subtitle.isNotBlank()) "Podcast • ${hit.subtitle}" else "Podcast",
+                                        subtitle = if (hit.subtitle.isNotBlank()) "Podcast • ${hit.subtitle}" else stringResource(R.string.podcast),
                                         imageUrl = hit.imageUrl,
                                         isCircular = false,
                                         onClick = { onOpenShow?.invoke(hit.uri) }
@@ -1474,7 +1475,7 @@ internal fun ShellAddTracksPane(
                                     items(albums, key = { it.uri }) { hit ->
                                         AssistedSearchNavRow(
                                             title = hit.title,
-                                            subtitle = if (hit.subtitle.isNotBlank()) "Album • ${hit.subtitle}" else "Album",
+                                            subtitle = if (hit.subtitle.isNotBlank()) "Album • ${hit.subtitle}" else stringResource(R.string.album),
                                             imageUrl = hit.imageUrl,
                                             isCircular = false,
                                             onClick = { onOpenAlbum?.invoke(hit.uri, hit.title, hit.subtitle) }
@@ -1499,7 +1500,7 @@ internal fun ShellAddTracksPane(
                                     items(playlists, key = { it.uri }) { hit ->
                                         AssistedSearchNavRow(
                                             title = hit.title,
-                                            subtitle = if (hit.subtitle.isNotBlank()) "Playlist • ${hit.subtitle}" else "Playlist",
+                                            subtitle = if (hit.subtitle.isNotBlank()) "Playlist • ${hit.subtitle}" else stringResource(R.string.playlist),
                                             imageUrl = hit.imageUrl,
                                             isCircular = false,
                                             onClick = { onOpenPlaylist?.invoke(hit.uri, hit.title) }
@@ -1524,7 +1525,7 @@ internal fun ShellAddTracksPane(
                                     items(artists, key = { it.uri }) { hit ->
                                         AssistedSearchNavRow(
                                             title = hit.title,
-                                            subtitle = "Artist",
+                                            subtitle = stringResource(R.string.artist),
                                             imageUrl = hit.imageUrl,
                                             isCircular = true,
                                             onClick = { onOpenArtist?.invoke(hit.uri, hit.title) }
@@ -1592,7 +1593,7 @@ internal fun ShellAddTracksPane(
                                     items(podcasts, key = { it.uri }) { hit ->
                                         AssistedSearchNavRow(
                                             title = hit.title,
-                                            subtitle = if (hit.subtitle.isNotBlank()) "Podcast • ${hit.subtitle}" else "Podcast",
+                                            subtitle = if (hit.subtitle.isNotBlank()) "Podcast • ${hit.subtitle}" else stringResource(R.string.podcast),
                                             imageUrl = hit.imageUrl,
                                             isCircular = false,
                                             onClick = { onOpenShow?.invoke(hit.uri) }
@@ -1629,13 +1630,13 @@ internal fun ShellAddTracksPane(
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.encore_icon_search_24),
-                        contentDescription = "Search",
+                        contentDescription = stringResource(R.string.search),
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "What would you like to add?",
+                        text = stringResource(R.string.what_would_you_like_to_add),
                         style = EncoreTheme.typography.bodyMedium.copy(
                             color = EncoreColors.TextSecondary,
                             fontSize = 14.sp
@@ -1673,7 +1674,7 @@ internal fun ShellAddTracksPane(
                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                         if (searchQueryText.isEmpty()) {
                             Text(
-                                text = "Search",
+                                text = stringResource(R.string.search),
                                 style = EncoreTheme.typography.bodyMedium.copy(
                                     color = EncoreColors.TextSecondary,
                                     fontSize = 15.sp
@@ -1704,7 +1705,7 @@ internal fun ShellAddTracksPane(
                     if (searchQueryText.isNotEmpty()) {
                         Icon(
                             painter = painterResource(id = R.drawable.encore_icon_x_24),
-                            contentDescription = "Clear search",
+                            contentDescription = stringResource(R.string.clear_search),
                             tint = Color.White,
                             modifier = Modifier
                                 .size(20.dp)
@@ -1745,7 +1746,7 @@ private fun SearchEmptyState(query: String) {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Try searching again using a different spelling or keyword.",
+                text = stringResource(R.string.try_searching_again_using_a_different_spelling_o),
                 style = EncoreTheme.typography.bodyMedium.copy(
                     color = EncoreColors.TextSecondary,
                     fontSize = 14.sp
@@ -1792,7 +1793,7 @@ private fun AssistedSearchTrackHitRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            val sub = if (hit.subtitle.isNotBlank()) "Song • ${hit.subtitle}" else "Song"
+            val sub = if (hit.subtitle.isNotBlank()) "Song • ${hit.subtitle}" else stringResource(R.string.song)
             Text(
                 text = sub,
                 style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
@@ -1814,7 +1815,7 @@ private fun AssistedSearchTrackHitRow(
         ) {
             Icon(
                 painter = painterResource(id = if (added) R.drawable.encore_icon_check_24 else R.drawable.encore_icon_plus_24),
-                contentDescription = if (added) "Added" else "Add",
+                contentDescription = if (added) "Added" else stringResource(R.string.add),
                 tint = if (added) EncoreColors.Green else Color.White,
                 modifier = Modifier.size(16.dp)
             )
@@ -1913,7 +1914,7 @@ private fun AddTrackRow(
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.encore_icon_play_16),
-                    contentDescription = "Preview",
+                    contentDescription = stringResource(R.string.preview),
                     tint = Color.White,
                     modifier = Modifier.size(16.dp)
                 )
@@ -1957,7 +1958,7 @@ private fun AddTrackRow(
         ) {
             Icon(
                 painter = painterResource(id = if (added) R.drawable.encore_icon_check_24 else R.drawable.encore_icon_plus_24),
-                contentDescription = if (added) "Added" else "Add",
+                contentDescription = if (added) "Added" else stringResource(R.string.add),
                 tint = if (added) EncoreColors.Green else Color.White,
                 modifier = Modifier.size(16.dp)
             )
