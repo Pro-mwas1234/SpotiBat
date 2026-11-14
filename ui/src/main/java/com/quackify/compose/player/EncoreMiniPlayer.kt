@@ -276,7 +276,7 @@ fun EncoreMiniPlayer(
                 val connectIconRes = if (hasConnectedDevice) {
                     resolveDeviceIcon(connectedDeviceKind)
                 } else {
-                    R.drawable.encore_icon_devices_24
+                    R.drawable.encore_icon_device_mobile_24
                 }
                 val connectIconTint = if (hasConnectedDevice) EncoreColors.Green else Color.White
 
