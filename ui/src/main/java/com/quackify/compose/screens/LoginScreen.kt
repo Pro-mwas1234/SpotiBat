@@ -251,10 +251,7 @@ private fun WebViewUnavailableScreen(onRetry: () -> Unit) {
             )
             Spacer(Modifier.height(10.dp))
             Text(
-                text = stringResource(R.string.webview_missing_prefix) +
-                        stringResource(R.string.webview_fix_2) +
-                        stringResource(R.string.webview_fix_1) +
-                        stringResource(R.string.webview_fix_3),
+                text = stringResource(R.string.webview_missing_message),
                 style = EncoreTheme.typography.bodyMedium,
                 color = EncoreColors.TextSecondary,
                 textAlign = TextAlign.Center,
