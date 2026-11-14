@@ -266,9 +266,9 @@ internal fun ShellOverlaySheets(
             imageUrl = artistDetail?.imageUrl?.takeIf { it.isNotBlank() }
                 ?: artistDetail?.headerImageUrl?.takeIf { it.isNotBlank() },
             monthlyListeners = artistDetail?.monthlyListeners?.takeIf { it > 0L }
-                ?.let { formatCount(it) + stringResource(R.string.monthly_listeners_prefix) }.orEmpty(),
+                ?.let { stringResource(R.string.monthly_listeners_count, formatCount(it)) }.orEmpty(),
             followers = artistDetail?.followers?.takeIf { it > 0L }
-                ?.let { formatCount(it) + stringResource(R.string.followers_suffix) }.orEmpty(),
+                ?.let { stringResource(R.string.follower_count, formatCount(it)) }.orEmpty(),
             worldRank = artistDetail?.worldRank ?: 0,
             biography = artistDetail?.biography.orEmpty(),
             topCities = artistDetail?.topCities.orEmpty(),
