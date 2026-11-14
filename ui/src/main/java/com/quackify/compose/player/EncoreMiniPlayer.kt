@@ -59,6 +59,7 @@ import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
+import androidx.compose.ui.res.stringResource
 
 private val MINI_PLAYER_BASE = Color(0xFF282828)
 private const val MINI_PLAYER_TINT_STRENGTH = 0.22f
@@ -296,7 +297,7 @@ fun EncoreMiniPlayer(
 
                 EncoreIconButton(
                     iconRes = if (isPlaying) R.drawable.encore_icon_pause_24 else R.drawable.encore_icon_play_24,
-                    contentDescription = if (isPlaying) "Pause" else "Play",
+                    contentDescription = if (isPlaying) "Pause" else stringResource(R.string.play),
                     onClick = if (hasTrack) onPlayPauseClick else ({}),
                     size = EncoreControlSizes.FloatingPlayerButtonSize,
                     iconSize = 24.dp,
