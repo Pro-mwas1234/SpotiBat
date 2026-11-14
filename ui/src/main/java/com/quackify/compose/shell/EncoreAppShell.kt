@@ -66,6 +66,7 @@ import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.rememberBottomPadding
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
 
 @Composable
 internal fun ShellScreenSlot(
@@ -520,7 +521,7 @@ fun EncoreAppShell(
     val toast = remember { SpotifyToastState() }
     val handleQueueAdd: (String) -> Unit = { uri ->
         playerListener?.onQueueAdd(uri)
-        toast.show("Added to queue", "Queue") {
+        toast.show("Added to queue", stringResource(R.string.queue)) {
             isPlayerExpanded = true
             shellScope.launch {
                 // Let the player's reveal animation finish before the queue
@@ -555,14 +556,14 @@ fun EncoreAppShell(
 
     val navItems = remember {
         listOf(
-            NavItem("Home", R.drawable.encore_icon_home_24, R.drawable.encore_icon_home_active_24),
+            NavItem(stringResource(R.string.home), R.drawable.encore_icon_home_24, R.drawable.encore_icon_home_active_24),
             NavItem(
-                "Search",
+                stringResource(R.string.search),
                 R.drawable.encore_icon_search_24,
                 R.drawable.encore_icon_search_active_24
             ),
             NavItem(
-                "Your Library",
+                stringResource(R.string.your_library),
                 R.drawable.encore_icon_your_library_24,
                 R.drawable.encore_icon_your_library_active_24
             )
