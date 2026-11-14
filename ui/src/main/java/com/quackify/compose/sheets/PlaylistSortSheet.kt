@@ -30,6 +30,7 @@ import com.quackify.compose.R
 import com.quackify.compose.playlist.PlaylistSort
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
 
 /**
  * - sort_filter_bottom_sheet_layout.xml
@@ -74,7 +75,7 @@ fun PlaylistSortSheet(
                 .navigationBarsPadding()
         ) {
             Text(
-                text = "Sort by",
+                text = stringResource(R.string.sort_by),
                 style = EncoreTheme.typography.titleMedium.copy(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
@@ -102,7 +103,7 @@ fun PlaylistSortSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = option.label,
+                        text = stringResource(option.labelRes),
                         style = EncoreTheme.typography.bodyMedium.copy(
                             fontSize = 15.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
@@ -128,7 +129,7 @@ fun PlaylistSortSheet(
                         } else {
                             Icon(
                                 painter = painterResource(id = R.drawable.encore_icon_check_24),
-                                contentDescription = "Selected",
+                                contentDescription = stringResource(R.string.selected),
                                 tint = EncoreColors.Green,
                                 modifier = Modifier.size(20.dp)
                             )
