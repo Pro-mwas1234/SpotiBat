@@ -47,17 +47,19 @@ import androidx.compose.ui.window.DialogProperties
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreTheme
 import kotlinx.coroutines.delay
+import androidx.compose.ui.res.stringResource
+import com.quackify.compose.R
 
 /**
- * ("Give your playlist a name" / "Give your folder a name")
+ * (stringResource(R.string.give_your_playlist_a_name) / "Give your folder a name")
  */
 @Composable
 fun EncoreCreateNameDialog(
     isOpen: Boolean,
     title: String,
     initialName: String,
-    confirmLabel: String = "Create",
-    cancelLabel: String = "Cancel",
+    confirmLabel: String = stringResource(R.string.create),
+    cancelLabel: String = stringResource(R.string.cancel),
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
