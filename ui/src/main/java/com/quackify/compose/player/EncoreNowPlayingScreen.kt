@@ -429,7 +429,7 @@ fun EncoreNowPlayingScreen(
             }
             .pointerInput(canvasImmersive) {
                 detectTapGestures {
-                    if (canvasImmersive) canvasControlsRevealed = !canvasControlsRevealed
+                    if (canvasImmersive) canvasControlsRevealed = true
                 }
             }
     ) {
