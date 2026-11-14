@@ -16,11 +16,6 @@ object PlaybackHost {
     @Volatile
     private var foreground = false
 
-    /**
-     * Bumped every time the live bridge is created, replaced or stopped, so
-     * the UI can re-link to whatever instance is current instead of holding
-     * a stale one whose scope was cancelled while the activity stayed alive.
-     */
     val generation = mutableStateOf(0)
 
     private fun bump() {
