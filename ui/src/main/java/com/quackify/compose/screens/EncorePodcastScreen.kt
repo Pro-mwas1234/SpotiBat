@@ -133,7 +133,12 @@ fun EncorePodcastScreen(
     val tabsHeight = 48.dp
     val tabsHeightPx = with(density) { tabsHeight.toPx() }
 
-    val tabs = remember { listOf(stringResource(R.string.episodes), stringResource(R.string.about), "More like this") }
+    val episodesTabLabel = stringResource(R.string.episodes)
+    val aboutTabLabel = stringResource(R.string.about)
+    val moreLikeTabLabel = stringResource(R.string.more_like_this)
+    val tabs = remember(episodesTabLabel, aboutTabLabel, moreLikeTabLabel) {
+        listOf(episodesTabLabel, aboutTabLabel, moreLikeTabLabel)
+    }
     val pagerState = rememberPagerState(initialPage = 0) { tabs.size }
 
     val episodesListState = rememberLazyListState()
