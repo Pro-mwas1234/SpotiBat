@@ -44,6 +44,7 @@ import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.format.formatExactCount
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
 
 /**
  * - 112dp artwork thumbnail with 8dp rounded corners
@@ -148,7 +149,7 @@ fun TrackOptionsSheet(
             streamCount?.takeIf { it > 0L }?.let { plays ->
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = formatExactCount(plays) + " plays",
+                    text = formatExactCount(plays) + stringResource(R.string.plays_suffix),
                     style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
@@ -173,13 +174,13 @@ fun TrackOptionsSheet(
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.encore_icon_add_to_queue_24),
-                        contentDescription = "Add to queue",
+                        contentDescription = stringResource(R.string.add_to_queue),
                         tint = if (canAddToQueue) EncoreColors.TextPrimary else EncoreColors.TextPrimary.copy(alpha = 0.4f),
                         modifier = Modifier.size(28.dp)
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Add to queue",
+                        text = stringResource(R.string.add_to_queue),
                         style = EncoreTheme.typography.bodySmall.copy(
                             fontSize = 12.sp,
                             color = if (canAddToQueue) EncoreColors.TextSecondary else EncoreColors.TextSecondary.copy(alpha = 0.4f)
@@ -196,7 +197,7 @@ fun TrackOptionsSheet(
 
             if (onRemoveFromPlaylist != null) {
                 ContextMenuRowItem(
-                    title = "Remove from this playlist",
+                    title = stringResource(R.string.remove_from_this_playlist),
                     iconRes = R.drawable.encore_icon_minus_alt_24,
                     onClick = {
                         onDismiss()
@@ -208,9 +209,9 @@ fun TrackOptionsSheet(
             if (isTasteExcluded != null) {
                 ContextMenuRowItem(
                     title = if (isTasteExcluded) {
-                        "Include in your taste profile"
+                        stringResource(R.string.include_in_taste_profile)
                     } else {
-                        "Exclude from your taste profile"
+                        stringResource(R.string.exclude_from_taste_profile)
                     },
                     iconRes = R.drawable.encore_icon_tune_24,
                     onClick = {
@@ -222,7 +223,7 @@ fun TrackOptionsSheet(
 
             if (onSongRadio != null) {
                 ContextMenuRowItem(
-                    title = "Go to song radio",
+                    title = stringResource(R.string.go_to_song_radio),
                     iconRes = R.drawable.encore_icon_radio_24,
                     onClick = {
                         onDismiss()
@@ -232,7 +233,7 @@ fun TrackOptionsSheet(
             }
 
             ContextMenuRowItem(
-                title = "Go to artist",
+                title = stringResource(R.string.go_to_artist),
                 iconRes = R.drawable.encore_icon_artist_24,
                 onClick = {
                     onDismiss()
@@ -241,7 +242,7 @@ fun TrackOptionsSheet(
             )
 
             ContextMenuRowItem(
-                title = "Go to album",
+                title = stringResource(R.string.go_to_album),
                 iconRes = R.drawable.encore_icon_album_24,
                 onClick = {
                     onDismiss()
@@ -250,7 +251,7 @@ fun TrackOptionsSheet(
             )
 
             ContextMenuRowItem(
-                title = "View song credits",
+                title = stringResource(R.string.view_song_credits),
                 iconRes = R.drawable.encore_icon_user_24,
                 onClick = {
                     onDismiss()
@@ -260,7 +261,7 @@ fun TrackOptionsSheet(
 
             if (canvasAvailable) {
                 ContextMenuRowItem(
-                    title = if (isCanvasEnabled) "Turn off Canvas" else "Turn on Canvas",
+                    title = if (isCanvasEnabled) stringResource(R.string.turn_off_canvas) else stringResource(R.string.turn_on_canvas),
                     iconRes = if (isCanvasEnabled) {
                         R.drawable.encore_icon_video_24
                     } else {
@@ -276,7 +277,7 @@ fun TrackOptionsSheet(
 
             if (canvasAvailable) {
                 ContextMenuRowItem(
-                    title = "Canvas resolution",
+                    title = stringResource(R.string.canvas_resolution),
                     iconRes = R.drawable.encore_icon_settings_24,
                     trailing = {
                         Text(
@@ -295,7 +296,7 @@ fun TrackOptionsSheet(
             }
 
             ContextMenuRowItem(
-                title = "Share",
+                title = stringResource(R.string.share),
                 iconRes = R.drawable.encore_icon_share_android_24,
                 onClick = {
                     onDismiss()
