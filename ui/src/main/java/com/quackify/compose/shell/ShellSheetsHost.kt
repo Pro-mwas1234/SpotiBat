@@ -293,6 +293,7 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
         userQueue = playbackState?.queue.orEmpty(),
         trackTasteExcluded = env.trackTasteExcluded,
         trackSavedOverride = local.trackOptionsSaved,
+        trackPlaysOverride = local.trackOptionsPlays,
         onToggleTasteExclusion = toggle@{ exclude ->
             val track = local.trackForOptions
             val uri = track?.uri.orEmpty()
