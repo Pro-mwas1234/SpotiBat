@@ -56,6 +56,8 @@ internal class ShellSheetsEnv(
     val albumDetail: AlbumDetail?,
     val artistDetail: ArtistDetail?,
     val artistFollowed: Boolean?,
+    val artistBanned: Boolean?,
+    val onArtistBanChanged: ((String, Boolean) -> Unit)?,
     val trackTasteExcluded: Boolean?,
     val setTrackTasteExcluded: (Boolean?) -> Unit,
     val tasteExclusionCache: MutableMap<String, Boolean>,
@@ -179,7 +181,11 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
             artistBannedState = next
             env.shellScope.launch {
                 val ok = Collection2.setArtistBanned(env.context, sheetArtistUri, next)
-                if (!ok) artistBannedState = previous
+                if (!ok) {
+                    artistBannedState = previous
+                } else {
+                    env.onArtistBanChanged?.invoke(sheetArtistUri, next)
+                }
                 Toast.makeText(
                     env.context,
                     when {
