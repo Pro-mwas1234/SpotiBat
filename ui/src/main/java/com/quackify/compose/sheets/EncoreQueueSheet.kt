@@ -285,7 +285,7 @@ private fun QueueTrackRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onSelect)
+            .clickable(enabled = !isBanned, onClick = onSelect)
             .padding(horizontal = EncoreSpacers.Base, vertical = EncoreSpacers.Tighter2),
         verticalAlignment = Alignment.CenterVertically
     ) {
