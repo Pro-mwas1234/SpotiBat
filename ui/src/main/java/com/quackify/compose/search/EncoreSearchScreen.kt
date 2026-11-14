@@ -1493,16 +1493,18 @@ private fun SearchTrackRow(
                 }
             }
 
-            EncoreIconButton(
-                iconRes = if (track.saved == true) R.drawable.encore_icon_heart_active_24
-                else R.drawable.encore_icon_heart_24,
-                contentDescription = if (track.saved == true) "Remove ${track.title} from Liked Songs"
-                else "Save ${track.title} to Liked Songs",
-                onClick = onLikeClick,
-                size = 36.dp,
-                iconSize = 20.dp,
-                tint = if (track.saved == true) EncoreColors.Green else EncoreColors.TextSecondary
-            )
+            if (!isBanned) {
+                EncoreIconButton(
+                    iconRes = if (track.saved == true) R.drawable.encore_icon_heart_active_24
+                    else R.drawable.encore_icon_heart_24,
+                    contentDescription = if (track.saved == true) "Remove ${track.title} from Liked Songs"
+                    else "Save ${track.title} to Liked Songs",
+                    onClick = onLikeClick,
+                    size = 36.dp,
+                    iconSize = 20.dp,
+                    tint = if (track.saved == true) EncoreColors.Green else EncoreColors.TextSecondary
+                )
+            }
 
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_more_android_24,
