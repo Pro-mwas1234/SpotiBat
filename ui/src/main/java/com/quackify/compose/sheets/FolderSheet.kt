@@ -41,6 +41,8 @@ import com.quackify.compose.shell.FolderDraft
 import com.quackify.compose.shell.FolderMode
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
+import com.quackify.compose.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,9 +88,9 @@ internal fun FolderSheet(
                 .navigationBarsPadding()
         ) {
             val heading = when (draft.mode) {
-                FolderMode.CREATE -> "New folder"
-                FolderMode.RENAME -> "Rename folder"
-                FolderMode.PICKER -> "Move to folder"
+                FolderMode.CREATE -> stringResource(R.string.new_folder)
+                FolderMode.RENAME -> stringResource(R.string.rename_folder)
+                FolderMode.PICKER -> stringResource(R.string.move_to_folder)
             }
             Text(
                 text = heading,
@@ -118,7 +120,7 @@ internal fun FolderSheet(
                     if (canRemoveFromFolder) {
                         item {
                             PickerRow(
-                                title = "Remove from folder",
+                                title = stringResource(R.string.remove_from_folder),
                                 subtitle = "",
                                 onClick = { onPick("") }
                             )
@@ -127,7 +129,7 @@ internal fun FolderSheet(
                     if (draft.folders.isEmpty()) {
                         item {
                             Text(
-                                text = "No folders yet. Create one from the + button.",
+                                text = stringResource(R.string.no_folders_yet_create_one_from_the_button),
                                 style = EncoreTheme.typography.bodyMedium.copy(
                                     color = EncoreColors.TextSecondary
                                 ),
@@ -144,7 +146,7 @@ internal fun FolderSheet(
                 value = name,
                 onValueChange = { name = it.take(60) },
                 singleLine = true,
-                label = { Text("Folder name") },
+                label = { Text(stringResource(R.string.folder_name)) },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -167,7 +169,7 @@ internal fun FolderSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (draft.mode == FolderMode.CREATE) "Create" else "Save",
+                    text = if (draft.mode == FolderMode.CREATE) stringResource(R.string.create) else stringResource(R.string.save),
                     style = EncoreTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = if (name.isBlank()) EncoreColors.TextSecondary else Color.Black
@@ -200,9 +202,9 @@ internal fun FolderSheet(
                 ) {
                     Text(
                         text = if (confirmingDelete) {
-                            "Tap again to delete the folder"
+                            stringResource(R.string.tap_again_to_delete_folder)
                         } else {
-                            "Delete folder"
+                            stringResource(R.string.delete_folder)
                         },
                         style = EncoreTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Bold,
