@@ -6,6 +6,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -95,6 +96,8 @@ fun TrackOptionsSheet(
 ) {
     if (!isOpen || track == null) return
 
+    BackHandler { onDismiss() }
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     var isLiked by remember(track) { mutableStateOf(track.saved ?: false) }
     var isHeartPopping by remember { mutableStateOf(false) }
@@ -118,7 +121,7 @@ fun TrackOptionsSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DarkSystemBarsSheet,
+        properties = BackNotDismissSheet,
         sheetState = sheetState,
         containerColor = Color(0xFF242424),
         dragHandle = {
