@@ -138,7 +138,7 @@ fun ArtistShelfSheet(
                     )
                     if (total > 0) {
                         Text(
-                            text = "$total items",
+                            text = stringResource(R.string.item_count, total),
                             style = EncoreTheme.typography.bodySmall.copy(
                                 color = EncoreColors.TextSecondary
                             )
