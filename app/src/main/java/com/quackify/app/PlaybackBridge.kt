@@ -2454,8 +2454,12 @@ class PlaybackBridge(private val context: Context) {
     }
 
     private suspend fun playTrack(uri: String, contextUri: String, hint: Int) {
-        val bannedArtist = artistUriOf(uri)
-        if (bannedArtist.isNotBlank() && ArtistBanStore.banned(context, bannedArtist)) {
+        val banCandidates = buildList {
+            if (contextUri.startsWith("spotify:artist:")) add(contextUri)
+            artistUriOf(uri).takeIf { it.isNotBlank() }?.let(::add)
+        }.distinct()
+        val bannedArtist = banCandidates.firstOrNull { ArtistBanStore.banned(context, it) }
+        if (bannedArtist != null) {
             log.i("playTrack '$uri' blocked, artist '$bannedArtist' is banned")
             return
         }
