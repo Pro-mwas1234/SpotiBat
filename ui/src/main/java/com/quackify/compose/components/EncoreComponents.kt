@@ -399,7 +399,7 @@ fun EncoreTrackRow(
 ) {
     val isBanned = com.quackify.compose.bans.ArtistBans.isBanned(artistUri)
     SwipeToQueueBox(
-        onAddToQueue = onAddToQueue,
+        onAddToQueue = onAddToQueue?.takeIf { !isBanned },
         modifier = modifier
     ) {
         Row(
@@ -505,7 +505,7 @@ fun EncoreTrackRow(
                 }
             }
 
-            if (onLikeToggle != null) {
+            if (onLikeToggle != null && !isBanned) {
                 EncoreHeartButton(
                     isLiked = saved == true,
                     onLikeToggle = onLikeToggle,
