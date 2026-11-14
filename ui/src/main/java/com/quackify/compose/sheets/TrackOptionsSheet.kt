@@ -49,6 +49,7 @@ import com.quackify.compose.components.EncoreArtworkImage
 import com.quackify.compose.playlist.TrackItem
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreAppTheme
+import com.quackify.compose.format.formatExactCount
 import com.quackify.compose.theme.EncoreTheme
 
 /**
@@ -68,6 +69,7 @@ fun TrackOptionsSheet(
     onLikeToggle: (Boolean) -> Unit = {},
     /** Fresh library state for [track]; null while it is still loading. */
     savedOverride: Boolean? = null,
+    streamCount: Long? = null,
     onAddToPlaylist: () -> Unit = {},
     onAddToQueue: () -> Unit = {},
     canAddToQueue: Boolean = true,
@@ -171,6 +173,16 @@ fun TrackOptionsSheet(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
             )
+
+            streamCount?.takeIf { it > 0L }?.let { plays ->
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = formatExactCount(plays) + " plays",
+                    style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
             Spacer(modifier = Modifier.height(20.dp))
 
