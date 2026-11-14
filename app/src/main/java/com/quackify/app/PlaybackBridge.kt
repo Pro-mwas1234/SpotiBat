@@ -3143,21 +3143,17 @@ class PlaybackBridge(private val context: Context) {
         } else {
             rawDevices
         }
+        val noneActive = active == null && !player.hasSource && !localPlaybackActive
+        val remoteActive = !mine && !noneActive && !player.hasSource && !localPlaybackActive
+        val connectedLabel = if (mine) localOutputLabel() else label
         if (state.devices != devices || state.activeDeviceName != label ||
-            state.controllingRemote != !mine
+            state.controllingRemote != remoteActive
         ) {
             log.i("devices=${devices.size} active='$label' ours=$mine " +
                     "injected=${cluster.devices.none { it.id == deviceId }} " +
                     "inferred=${cluster.activeInferred} remote=${remote.joinToString("|")}"
             )
         }
-        val noneActive = active == null && !player.hasSource && !localPlaybackActive
-        val connectedLabel = when {
-            localPlaybackActive -> localOutputLabel()
-            label.isBlank() -> if (mine || player.hasSource || noneActive) localOutputLabel() else ""
-            else -> label
-        }
-        val remoteActive = (!mine || noneActive) && !player.hasSource && !localPlaybackActive
         state = state.copy(
             devices = devices,
             activeDeviceName = label,
