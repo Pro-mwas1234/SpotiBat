@@ -133,6 +133,7 @@ internal data class PlayerIdentity(
     val artist: String,
 )
 
+@Composable
 internal fun playerIdentityOf(
     title: String,
     artist: String,
@@ -146,16 +147,19 @@ internal fun playerIdentityOf(
     artist = artist.ifBlank { stringResource(R.string.no_artist) },
 )
 
+@Composable
 internal fun nowPlayingContext(
     trackLoaded: Boolean,
     origin: PlaybackOrigin?,
     contextUri: String?,
     contextLabel: String,
 ): Pair<String, String> {
+    @Composable
     fun searchSub(query: String): String {
         val q = query.trim()
         return if (q.isBlank()) stringResource(R.string.search) else "$q in Search"
     }
+    @Composable
     fun playlistContext(label: String): Pair<String, String> =
         if (label.isBlank()) stringResource(R.string.playing_from_queue) to stringResource(R.string.next_up)
         else stringResource(R.string.playing_from_playlist) to label
@@ -1062,6 +1066,8 @@ internal fun ShellPlaylistEditSheets(
     onDeleteAsk: (String, String, () -> Unit) -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val editDeleteTitle = stringResource(R.string.delete_playlist_title)
+    val editDeleteSuffix = stringResource(R.string.will_be_deleted_followers_lose_access)
     if (editDraft != null) {
         EditPlaylistSheet(
             isOpen = true,
@@ -1079,8 +1085,8 @@ internal fun ShellPlaylistEditSheets(
             onDeletePlaylist = {
                 onDismissEdit()
                 onDeleteAsk(
-                    stringResource(R.string.delete_playlist_title),
-                    "\"${editDraft.name}\stringResource(R.string.will_be_deleted_followers_lose_access),
+                    editDeleteTitle,
+                    "\"${editDraft.name}\"" + editDeleteSuffix,
                 ) { scope.launch { onDeletePlaylist?.invoke(editDraft.uri) } }
             },
             onDismiss = onDismissEdit
