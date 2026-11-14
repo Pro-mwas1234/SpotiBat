@@ -1471,7 +1471,11 @@ class MainActivity : ComponentActivity() {
         addTracksLoading = addTracksLoading,
         onAddTracksOpen = { addTracksFetch++ },
         onAddTrack = { trackUri ->
-            val ok = Krespot.playlists.addTrack(context, playlistUri, trackUri)
+            val ok = if (playlistUri == "spotify:collection:tracks") {
+                Library.setSaved(context, listOf(trackUri), true)
+            } else {
+                Krespot.playlists.addTrack(context, playlistUri, trackUri)
+            }
             log.i("add '$trackUri' -> '$playlistUri' ok=$ok")
             ok
         },
