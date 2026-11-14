@@ -145,11 +145,11 @@ class PlaybackBridge(private val context: Context) {
         if (repeatTrackOn(server)) return commandFor(ended, context)
         val upcoming = enhancedUpcoming(context, ended)
         if (upcoming.isNotEmpty()) {
-            val pick = upcoming.firstOrNull()?.uri.orEmpty()
-            if (pick.isNotBlank() && pick != ended) return commandFor(pick, context)
+            val pick = upcoming.map { it.uri }.firstOrNull { it != ended && !bannedCachedUri(it) }
+            if (!pick.isNullOrBlank() && pick != ended) return commandFor(pick, context)
         }
-        queuedTail.firstOrNull()?.let { queued ->
-            if (queued.uri != ended) return CommandTrack(
+        queuedTail.firstOrNull { it.uri != ended && !bannedCachedUri(it.uri) }?.let { queued ->
+            return CommandTrack(
                 uri = queued.uri,
                 name = queued.title,
                 artists = queued.artist,
@@ -167,11 +167,15 @@ class PlaybackBridge(private val context: Context) {
         }
         if (sessionQueueContext == context && sessionQueue.isNotEmpty()) {
             val rest = if (sessionQueue.firstOrNull() == ended) sessionQueue.drop(1) else sessionQueue
-            rest.firstOrNull()?.takeIf { it != ended }?.let { return commandFor(it, context) }
+            rest.firstOrNull { it != ended && !bannedCachedUri(it) }?.let { return commandFor(it, context) }
         }
         if (shuffleOn(server) && !smartOn(server)) return null
         val at = rowOf(rows, ended)
-        if (at >= 0 && at + 1 in rows.indices) return commandFor(rows[at + 1], context)
+        if (at >= 0) {
+            var next = at + 1
+            while (next in rows.indices && bannedCachedUri(rows[next])) next++
+            if (next in rows.indices) return commandFor(rows[next], context)
+        }
         return null
     }
 
@@ -1120,7 +1124,7 @@ class PlaybackBridge(private val context: Context) {
         if (uris.isEmpty()) return
         var wanted = 0
         uris.forEach { uri ->
-            if (uri.startsWith("spotify:track:") || uri.startsWith("spotify:episode:")) {
+            if ((uri.startsWith("spotify:track:") || uri.startsWith("spotify:episode:")) && !bannedCachedUri(uri)) {
                 wanted++
                 player.prefetch(uri, connect.spclientHost)
             }
@@ -1141,6 +1145,11 @@ class PlaybackBridge(private val context: Context) {
                 "ctxIdx=$index '${track.title}' uid=${track.uid.take(12)} context='${cluster.contextUri}'"
         )
         if (track.uri.startsWith("spotify:track:") || track.uri.startsWith("spotify:episode:")) {
+            val artist = track.artistUri.ifBlank { artistUriOf(track.uri) }
+            if (artist.isNotBlank() && ArtistBanStore.bannedCached(artist)) {
+                log.i("play: '${track.uri.takeLast(12)}' blocked, artist '$artist' is banned")
+                return false
+            }
             player.prefetch(track.uri, connect.spclientHost)
         }
         markPending(track.uri, index, cluster.contextUri)
@@ -2261,17 +2270,23 @@ class PlaybackBridge(private val context: Context) {
         }
         val here = playingUri(cluster)
         if (forward) {
-            val queuedUri = queuedTail.firstOrNull()?.uri ?: cluster.queued.firstOrNull()?.uri
-            if (!queuedUri.isNullOrBlank() && queuedUri != here) {
+            val queuedUris = queuedTail.map { it.uri } + cluster.queued.map { it.uri }
+            val queuedIdx = queuedUris.indexOfFirst { it != here && !bannedTrack(it).also { banned ->
+                if (banned) log.i("skip: bypassing banned queued '${it.takeLast(12)}'")
+            } }
+            if (queuedIdx >= 0) {
+                val queuedUri = queuedUris[queuedIdx]
                 log.i("skip next to the queued '${queuedUri.takeLast(12)}' of " +
                     "${queuedTail.size + cluster.queued.size} queued"
                 )
-                queuedTail = queuedTail.drop(1)
+                queuedTail = queuedTail.drop((queuedIdx + 1).coerceAtMost(queuedTail.size))
                 playTrack(queuedUri, chainContext.ifBlank { cluster.contextUri }, -1)
                 return
             }
             val upcoming = enhancedUpcoming(chainContext.ifBlank { cluster.contextUri }, here)
-            val pick = upcoming.firstOrNull()?.uri
+            val pick = upcoming.map { it.uri }.firstOrNull { it != here && !bannedTrack(it).also { banned ->
+                if (banned) log.i("skip: bypassing banned upcoming '${it.takeLast(12)}'")
+            } }
             if (!pick.isNullOrBlank() && pick != here) {
                 log.i("skip next from the enhanced queue: '${pick.takeLast(12)}' " +
                     "of ${upcoming.size} upcoming"
@@ -2282,8 +2297,22 @@ class PlaybackBridge(private val context: Context) {
         }
         if (sessionQueueContext == chainContext.ifBlank { cluster.contextUri } && sessionQueue.isNotEmpty()) {
             if (sessionQueue.firstOrNull() == here) sessionQueue = sessionQueue.drop(1)
-            val pick = sessionQueue.firstOrNull()
-            if (!pick.isNullOrBlank()) {
+            var pick: String? = null
+            while (sessionQueue.isNotEmpty()) {
+                val candidate = sessionQueue.first()
+                if (candidate == here) {
+                    sessionQueue = sessionQueue.drop(1)
+                    continue
+                }
+                if (bannedTrack(candidate)) {
+                    log.i("skip: bypassing banned play-order '${candidate.takeLast(12)}'")
+                    sessionQueue = sessionQueue.drop(1)
+                    continue
+                }
+                pick = candidate
+                break
+            }
+            if (pick != null) {
                 log.i("skip next from the play order: '${pick.takeLast(12)}' of ${sessionQueue.size} ahead")
                 playTrack(pick, chainContext.ifBlank { cluster.contextUri }, -1)
                 return
@@ -2292,11 +2321,18 @@ class PlaybackBridge(private val context: Context) {
         val chain = chainFor()
         val chainAt = rowOf(chain, here)
         if (chainAt >= 0 && chainAt + 1 < chain.size) {
-            val row = chain[chainAt + 1]
-            log.i("skip next from the chain: row ${chainAt + 1} of ${chain.size} '${row.takeLast(12)}'")
-            resumeRow = chainAt + 1
-            playTrack(row, chainContext, chainAt + 1)
-            return
+            var row = chainAt + 1
+            while (row < chain.size && bannedTrack(chain[row]).also { banned ->
+                if (banned) log.i("skip: bypassing banned chain row $row '${chain[row].takeLast(12)}'")
+            }) {
+                row++
+            }
+            if (row < chain.size) {
+                log.i("skip next from the chain: row $row of ${chain.size} '${chain[row].takeLast(12)}'")
+                resumeRow = row
+                playTrack(chain[row], chainContext, row)
+                return
+            }
         }
         val window = cluster.window()
         val at = window.indexOfFirst { it.uri == here }
@@ -2306,7 +2342,7 @@ class PlaybackBridge(private val context: Context) {
         }
         val step = if (forward) 1 else -1
         var cursor = at + step
-        while (cursor in window.indices && (!window[cursor].isVisible || untitled(window[cursor]))) cursor += step
+        while (cursor in window.indices && (!window[cursor].isVisible || untitled(window[cursor]) || bannedRow(window[cursor]))) cursor += step
         if (cursor !in window.indices) {
             if (repeatContextOn(cluster)) {
                 cursor = if (forward) {
@@ -2322,7 +2358,7 @@ class PlaybackBridge(private val context: Context) {
         }
         if (forward && shuffleOn(cluster) && !smartOn(cluster)) {
             val pool = window.indices.filter { i ->
-                window[i].isVisible && window[i].uri != here && !untitled(window[i])
+                window[i].isVisible && window[i].uri != here && !untitled(window[i]) && !bannedRow(window[i])
             }
             if (pool.isNotEmpty()) cursor = pool.random()
         }
@@ -2451,6 +2487,30 @@ class PlaybackBridge(private val context: Context) {
         log.i("previous: window $back ctxIdx=${cluster.indexOf(back)} '${track.title}'")
         resumeRow = -1
         playTrack(track.uri, cluster.contextUri, cluster.indexOf(back))
+    }
+
+    private suspend fun bannedTrack(uri: String): Boolean {
+        val artist = artistUriOf(uri)
+        return artist.isNotBlank() && ArtistBanStore.banned(context, artist)
+    }
+
+    private fun bannedCachedUri(uri: String): Boolean {
+        val artist = artistUriOf(uri)
+        return artist.isNotBlank() && ArtistBanStore.bannedCached(artist)
+    }
+
+    private fun bannedRow(track: ClusterTrack): Boolean {
+        val artist = track.artistUri.ifBlank { artistUriOf(track.uri) }
+        val banned = artist.isNotBlank() && ArtistBanStore.bannedCached(artist)
+        if (banned) log.i("skip: bypassing banned window row '${track.uri.takeLast(12)}'")
+        return banned
+    }
+
+    private fun bannedAheadTrack(track: ClusterTrack): Boolean {
+        val artist = track.artistUri.ifBlank { artistUriOf(track.uri) }
+        val banned = artist.isNotBlank() && ArtistBanStore.bannedCached(artist)
+        if (banned) log.i("prefetch: skipping banned lookahead '${track.uri.takeLast(12)}'")
+        return banned
     }
 
     private suspend fun playTrack(uri: String, contextUri: String, hint: Int) {
@@ -2858,7 +2918,11 @@ class PlaybackBridge(private val context: Context) {
         if (cluster.activeDevice?.id != deviceId) {
             log.v("prefetch skipped, another device owns the stream")
         } else {
-            player.prefetchAhead(cluster.nextTracks.take(KEY_LOOKAHEAD), connect.spclientHost, cluster.track.uri)
+            player.prefetchAhead(
+                cluster.nextTracks.filter { !bannedAheadTrack(it) }.take(KEY_LOOKAHEAD),
+                connect.spclientHost,
+                cluster.track.uri
+            )
         }
         if (cluster.activeDeviceId.isNotBlank() && cluster.activeDeviceId != activeSeen) {
             activeSeen = cluster.activeDeviceId
