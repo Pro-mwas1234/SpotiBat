@@ -1736,7 +1736,7 @@ private fun SearchEmptyState(query: String) {
             modifier = Modifier.padding(horizontal = 32.dp)
         ) {
             Text(
-                text = "Couldn't find \"$query\"",
+                text = stringResource(R.string.couldnt_find_query, query),
                 style = EncoreTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
