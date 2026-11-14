@@ -54,14 +54,16 @@ import com.quackify.backend.model.ShelfItem
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.backend.library.Krespot
+import androidx.compose.ui.res.stringResource
+import com.quackify.compose.R
 
 private data class DiscographyTab(val key: String, val label: String)
 
 private val TABS = listOf(
-    DiscographyTab("all", "Popular releases"),
-    DiscographyTab("albums", "Albums"),
+    DiscographyTab("all", stringResource(R.string.popular_releases)),
+    DiscographyTab("albums", stringResource(R.string.albums)),
     DiscographyTab("singles", "Singles and EPs"),
-    DiscographyTab("compilations", "Compilations"),
+    DiscographyTab("compilations", stringResource(R.string.compilations)),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -158,7 +160,7 @@ fun DiscographySheet(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Discography",
+                        text = stringResource(R.string.discography),
                         style = EncoreTheme.typography.titleLarge.copy(fontSize = 20.sp)
                     )
                     Text(
@@ -169,12 +171,12 @@ fun DiscographySheet(
                     )
                 }
                 SheetPill(
-                    text = if (alphabetical) "A-Z" else "Recent",
+                    text = if (alphabetical) stringResource(R.string.az) else stringResource(R.string.recent),
                     onClick = { alphabetical = !alphabetical }
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 SheetPill(
-                    text = if (grid) "Grid" else "List",
+                    text = if (grid) stringResource(R.string.grid) else stringResource(R.string.list),
                     onClick = { grid = !grid }
                 )
             }
@@ -345,7 +347,7 @@ private fun StatusTile(failed: Boolean) {
     ) {
         if (failed) {
             Text(
-                text = "Could not load this section",
+                text = stringResource(R.string.could_not_load_this_section),
                 style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary)
             )
         } else {
@@ -363,7 +365,7 @@ private fun EmptyTile() {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "Nothing here yet",
+            text = stringResource(R.string.nothing_here_yet),
             style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary)
         )
     }
