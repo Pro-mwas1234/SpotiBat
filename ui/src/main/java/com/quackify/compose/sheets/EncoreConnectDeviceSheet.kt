@@ -52,6 +52,7 @@ import com.quackify.compose.theme.EncoreCornerRadii
 import com.quackify.compose.theme.EncoreSpacers
 import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
 
 enum class DeviceType {
     PHONE,
@@ -66,7 +67,7 @@ data class EncoreDevice(
     val name: String,
     val type: DeviceType,
     val isCurrent: Boolean = false,
-    val protocol: String = "Connect",
+    val protocol: String = stringResource(R.string.connect),
     val volumeFraction: Float = -1f,
     val local: Boolean = false
 )
@@ -115,13 +116,13 @@ fun EncoreConnectDeviceSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Listening on",
+                    text = stringResource(R.string.listening_on),
                     style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                 )
 
                 EncoreIconButton(
                     iconRes = R.drawable.encore_icon_x_24,
-                    contentDescription = "Close",
+                    contentDescription = stringResource(R.string.close),
                     onClick = onDismissRequest,
                     tint = EncoreColors.TextPrimary,
                     size = 36.dp,
@@ -153,7 +154,7 @@ fun EncoreConnectDeviceSheet(
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.encore_icon_device_mobile_24),
-                                contentDescription = "Active Device",
+                                contentDescription = stringResource(R.string.active_device),
                                 tint = EncoreColors.PureBlack,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -163,7 +164,7 @@ fun EncoreConnectDeviceSheet(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Current Device",
+                                text = stringResource(R.string.current_device),
                                 style = EncoreTheme.typography.marginalBold.copy(color = EncoreColors.Green)
                             )
                             Text(
@@ -189,7 +190,7 @@ fun EncoreConnectDeviceSheet(
                             painter = painterResource(
                                 id = if (volume == 0f) R.drawable.encore_icon_volume_off_24 else R.drawable.encore_icon_volume_24
                             ),
-                            contentDescription = "Volume",
+                            contentDescription = stringResource(R.string.volume),
                             tint = if (volumeEnabled) EncoreColors.Green else EncoreColors.TextDisabled,
                             modifier = Modifier.size(20.dp)
                         )
@@ -220,7 +221,7 @@ fun EncoreConnectDeviceSheet(
             Spacer(modifier = Modifier.height(EncoreSpacers.Looser2))
 
             Text(
-                text = "Select another device",
+                text = stringResource(R.string.select_another_device),
                 style = EncoreTheme.typography.bodySmallBold.copy(color = EncoreColors.TextSecondary),
                 modifier = Modifier.padding(horizontal = EncoreSpacers.Base)
             )
@@ -288,16 +289,16 @@ private fun DeviceRow(
 }
 
 private fun defaultDeviceList(): List<EncoreDevice> = listOf(
-    EncoreDevice("1", "This Phone", DeviceType.PHONE, isCurrent = true),
+    EncoreDevice("1", stringResource(R.string.this_phone), DeviceType.PHONE, isCurrent = true),
     EncoreDevice("2", "Living Room Speaker", DeviceType.SPEAKER, protocol = "Google Cast"),
-    EncoreDevice("3", "MacBook Pro", DeviceType.COMPUTER, protocol = "Connect"),
-    EncoreDevice("4", "Kitchen Echo", DeviceType.SPEAKER, protocol = "Connect"),
+    EncoreDevice("3", "MacBook Pro", DeviceType.COMPUTER, protocol = stringResource(R.string.connect)),
+    EncoreDevice("4", "Kitchen Echo", DeviceType.SPEAKER, protocol = stringResource(R.string.connect)),
     EncoreDevice("5", "Tesla Model 3", DeviceType.CAR, protocol = "Bluetooth")
 )
 
 fun ConnectDevice.toEncoreDevice(): EncoreDevice = EncoreDevice(
     id = id,
-    name = name.ifBlank { "Unknown device" },
+    name = name.ifBlank { stringResource(R.string.unknown_device) },
     type = when (kind) {
         DeviceKind.PHONE, DeviceKind.TABLET -> DeviceType.PHONE
         DeviceKind.COMPUTER -> DeviceType.COMPUTER
@@ -308,7 +309,7 @@ fun ConnectDevice.toEncoreDevice(): EncoreDevice = EncoreDevice(
         DeviceKind.UNKNOWN -> DeviceType.COMPUTER
     },
     isCurrent = active,
-    protocol = if (brand.isBlank()) "Connect" else brand,
+    protocol = if (brand.isBlank()) stringResource(R.string.connect) else brand,
     volumeFraction = if (volumeSteps > 0) (volume.toFloat() / volumeSteps.toFloat()).coerceIn(0f, 1f) else -1f,
     local = local
 )
