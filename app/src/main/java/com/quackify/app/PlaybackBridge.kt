@@ -3210,16 +3210,27 @@ class PlaybackBridge(private val context: Context) {
 
     private fun refreshLocalOutput() {
         if (state.controllingRemote) return
+        val wasExternal = state.connectedDevice.isNotBlank()
         val label = localOutputLabel()
+        val kind = localOutputKind()
         if (state.connectedDevice == label &&
-            state.devices.firstOrNull { it.local }?.kind == localOutputKind()
+            state.devices.firstOrNull { it.local }?.kind == kind
         ) return
         state = state.copy(
             connectedDevice = label,
             devices = state.devices.map {
-                if (it.local) it.copy(kind = localOutputKind()) else it
+                if (it.local) it.copy(kind = kind) else it
             }
         )
+        if (wasExternal && label.isBlank()) scope.launch { pauseOnOutputLost() }
+    }
+
+    private suspend fun pauseOnOutputLost() {
+        if (!player.hasSource || !player.isPlaying) return
+        log.i("output lost: the bluetooth or wired device is gone, pausing locally")
+        player.pause()
+        state = state.copy(isPlaying = false, isBuffering = false)
+        reportPaused()
     }
 
     private fun localDeviceRow(active: Boolean): ConnectDevice = ConnectDevice(
