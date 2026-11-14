@@ -188,6 +188,7 @@ fun ProfileDrawerSheet(
                 ProfileDrawerItem(
                     title = stringResource(R.string.log_out),
                     iconRes = R.drawable.encore_icon_arrow_left_24,
+                    destructive = true,
                     onClick = {
                         onDismiss()
                         onLogoutClick()
@@ -206,7 +207,8 @@ private fun ProfileDrawerItem(
     iconRes: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    showUnreadDot: Boolean = false
+    showUnreadDot: Boolean = false,
+    destructive: Boolean = false
 ) {
     Row(
         modifier = modifier
@@ -218,7 +220,7 @@ private fun ProfileDrawerItem(
         Icon(
             painter = painterResource(id = iconRes),
             contentDescription = title,
-            tint = EncoreColors.TextPrimary,
+            tint = if (destructive) EncoreColors.Error else EncoreColors.TextPrimary,
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
@@ -226,7 +228,8 @@ private fun ProfileDrawerItem(
             text = title,
             style = EncoreTheme.typography.bodyMedium.copy(
                 fontWeight = FontWeight.Medium,
-                fontSize = 16.sp
+                fontSize = 16.sp,
+                color = if (destructive) EncoreColors.Error else EncoreColors.TextPrimary
             ),
             modifier = Modifier.weight(1f)
         )
