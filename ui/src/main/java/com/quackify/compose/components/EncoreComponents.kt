@@ -56,6 +56,7 @@ import com.quackify.compose.format.parseHexColor
 import com.quackify.compose.theme.EncoreAnimation
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
 
 /**
  * Supports the optional shuffle badge (11dp) at the bottom-right corner used in playlist headers.
@@ -115,7 +116,7 @@ fun EncorePlayButton(
             ) { targetIcon ->
                 Icon(
                     painter = painterResource(id = targetIcon),
-                    contentDescription = if (isPlaying) "Pause" else "Play",
+                    contentDescription = if (isPlaying) "Pause" else stringResource(R.string.play),
                     tint = iconColor,
                     modifier = Modifier.size(iconSize)
                 )
@@ -134,7 +135,7 @@ fun EncorePlayButton(
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.encore_icon_shuffle_16),
-                    contentDescription = "Shuffle",
+                    contentDescription = stringResource(R.string.shuffle),
                     tint = Color.Black,
                     modifier = Modifier.size(9.dp)
                 )
@@ -347,7 +348,7 @@ fun EncorePlayIndicator(
 }
 
 /**
- * a small rounded gray square with a tiny bold "E". Kept deliberately smaller
+ * a small rounded gray square with a tiny bold stringResource(R.string.explicit_badge). Kept deliberately smaller
  * than the surrounding text so it never visually outweighs the track title.
  */
 @Composable
@@ -367,7 +368,7 @@ fun EncoreExplicitTag(
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "E",
+            text = stringResource(R.string.explicit_badge),
             style = EncoreTheme.typography.tagLabel.copy(
                 fontSize = fontSize,
                 lineHeight = fontSize,
@@ -486,7 +487,7 @@ fun EncoreTrackRow(
                     if (hasVideo) {
                         Icon(
                             painter = painterResource(R.drawable.encore_icon_video_24),
-                            contentDescription = "Music video",
+                            contentDescription = stringResource(R.string.music_video),
                             tint = EncoreColors.TextSecondary,
                             modifier = Modifier
                                 .padding(end = 4.dp)
@@ -600,9 +601,9 @@ fun EncoreSmartShuffleButton(
             Icon(
                 painter = painterResource(id = iconRes),
                 contentDescription = when (mode) {
-                    ShuffleMode.OFF -> "Shuffle off"
-                    ShuffleMode.SHUFFLE -> "Shuffle on"
-                    ShuffleMode.SMART_SHUFFLE -> "Smart Shuffle on"
+                    ShuffleMode.OFF -> stringResource(R.string.shuffle_off)
+                    ShuffleMode.SHUFFLE -> stringResource(R.string.shuffle_on)
+                    ShuffleMode.SMART_SHUFFLE -> stringResource(R.string.smart_shuffle_on)
                 },
                 tint = tint,
                 modifier = Modifier.size(24.dp)
@@ -673,9 +674,9 @@ fun EncoreRepeatButton(
             Icon(
                 painter = painterResource(id = iconRes),
                 contentDescription = when (mode) {
-                    RepeatMode.OFF -> "Repeat off"
-                    RepeatMode.REPEAT_ALL -> "Repeat all on"
-                    RepeatMode.REPEAT_ONE -> "Repeat one on"
+                    RepeatMode.OFF -> stringResource(R.string.repeat_off)
+                    RepeatMode.REPEAT_ALL -> stringResource(R.string.repeat_all_on)
+                    RepeatMode.REPEAT_ONE -> stringResource(R.string.repeat_one_on)
                 },
                 tint = tint,
                 modifier = Modifier.size(24.dp)
@@ -770,7 +771,7 @@ fun EncoreHeartButton(
                 painter = painterResource(
                     id = if (liked) R.drawable.encore_icon_heart_active_24 else R.drawable.encore_icon_heart_24
                 ),
-                contentDescription = if (liked) "Remove from Your Library" else "Save to Your Library",
+                contentDescription = if (liked) stringResource(R.string.remove_from_your_library) else stringResource(R.string.save_to_your_library),
                 tint = if (liked) EncoreColors.Green else EncoreColors.TextSecondary,
                 modifier = Modifier.size(iconSize)
             )
