@@ -484,7 +484,7 @@ fun EncoreArtistScreen(
                 val isCurrentTrack =
                     matchesCurrent(track.uri, currentTrackUri, track.title, currentTrackTitle)
                 SwipeToQueueBox(
-                    onAddToQueue = onTrackAddToQueue?.let { handler -> { handler(track) } }
+                    onAddToQueue = onTrackAddToQueue?.takeIf { !isBanned }?.let { handler -> { handler(track) } }
                 ) {
                     Row(
                         modifier = Modifier
@@ -564,14 +564,16 @@ fun EncoreArtistScreen(
                             }
                         }
 
-                        EncoreIconButton(
-                            iconRes = if (track.saved == true) R.drawable.encore_icon_heart_active_24 else R.drawable.encore_icon_heart_24,
-                            contentDescription = if (track.saved == true) "Remove from Liked Songs" else "Add to Liked Songs",
-                            onClick = { onTrackLikeToggle(track) },
-                            tint = if (track.saved == true) EncoreColors.Green else EncoreColors.TextSecondary,
-                            size = 32.dp,
-                            iconSize = 18.dp
-                        )
+                        if (!isBanned) {
+                            EncoreIconButton(
+                                iconRes = if (track.saved == true) R.drawable.encore_icon_heart_active_24 else R.drawable.encore_icon_heart_24,
+                                contentDescription = if (track.saved == true) "Remove from Liked Songs" else "Add to Liked Songs",
+                                onClick = { onTrackLikeToggle(track) },
+                                tint = if (track.saved == true) EncoreColors.Green else EncoreColors.TextSecondary,
+                                size = 32.dp,
+                                iconSize = 18.dp
+                            )
+                        }
 
                         EncoreIconButton(
                             iconRes = R.drawable.encore_icon_more_android_24,
