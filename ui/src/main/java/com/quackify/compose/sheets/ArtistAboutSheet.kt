@@ -159,7 +159,7 @@ fun ArtistAboutSheet(
                             modifier = Modifier.weight(1f)
                         )
                         Text(
-                            text = compact(stat.listeners) + stringResource(R.string.listeners_suffix),
+                            text = stringResource(R.string.listener_count, compact(stat.listeners)),
                             style = EncoreTheme.typography.bodySmall.copy(
                                 color = EncoreColors.TextSecondary
                             )
