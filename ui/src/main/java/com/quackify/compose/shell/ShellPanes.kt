@@ -845,7 +845,8 @@ internal fun ShellPlaylistPane(
                 onEditPlaylistDetails?.invoke(activePlaylistUri, name, description, cover, clearCover)
             },
             onDeletePlaylist = { onDeletePlaylist?.invoke(activePlaylistUri) },
-            isEditable = playlistDetail?.editable == true
+            isEditable = playlistDetail?.editable == true,
+            canAddTracks = playlistDetail?.editable == true || activePlaylistUri.startsWith("spotify:collection:")
         )
     }
 }
