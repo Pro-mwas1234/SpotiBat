@@ -519,9 +519,11 @@ fun EncoreAppShell(
     /** Single funnel for every "add to queue" action so they all fire the
      * Spotify-style confirmation toast from one place. */
     val toast = remember { SpotifyToastState() }
+    val addedToQueueLabel = stringResource(R.string.add_to_queue)
+    val queueToastLabel = stringResource(R.string.queue)
     val handleQueueAdd: (String) -> Unit = { uri ->
         playerListener?.onQueueAdd(uri)
-        toast.show("Added to queue", stringResource(R.string.queue)) {
+        toast.show(addedToQueueLabel, queueToastLabel) {
             isPlayerExpanded = true
             shellScope.launch {
                 // Let the player's reveal animation finish before the queue
@@ -554,19 +556,14 @@ fun EncoreAppShell(
 
     val handleSkipPrevious: () -> Unit = { actions.skipPrevious() }
 
-    val navItems = remember {
+    val homeLabel = stringResource(R.string.home)
+    val searchLabel = stringResource(R.string.search)
+    val yourLibraryLabel = stringResource(R.string.your_library)
+    val navItems = remember(homeLabel, searchLabel, yourLibraryLabel) {
         listOf(
-            NavItem(stringResource(R.string.home), R.drawable.encore_icon_home_24, R.drawable.encore_icon_home_active_24),
-            NavItem(
-                stringResource(R.string.search),
-                R.drawable.encore_icon_search_24,
-                R.drawable.encore_icon_search_active_24
-            ),
-            NavItem(
-                stringResource(R.string.your_library),
-                R.drawable.encore_icon_your_library_24,
-                R.drawable.encore_icon_your_library_active_24
-            )
+            NavItem(homeLabel, R.drawable.encore_icon_home_24, R.drawable.encore_icon_home_active_24),
+            NavItem(searchLabel, R.drawable.encore_icon_search_24, R.drawable.encore_icon_search_active_24),
+            NavItem(yourLibraryLabel, R.drawable.encore_icon_your_library_24, R.drawable.encore_icon_your_library_active_24)
         )
     }
 
