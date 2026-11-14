@@ -763,7 +763,8 @@ class MainActivity : ComponentActivity() {
                             PlaybackHost.bridge?.listener?.onPlayUri(link.uri)
                         }
 
-                        val bridge = remember { PlaybackHost.ensure(context) }
+                        val hostGeneration by PlaybackHost.generation
+                        val bridge = remember(hostGeneration) { PlaybackHost.ensure(context) }
                         val playback = bridge.state
 
                         LaunchedEffect(playback.videoActive) {
@@ -961,8 +962,8 @@ class MainActivity : ComponentActivity() {
             super.onDestroy()
             return
         }
-        if (sawStop && PlaybackHost.started) {
-            log.i("activity gone, handing the stream back and stopping the service")
+        if (sawStop && PlaybackHost.started && isFinishing) {
+            log.i("activity finished by the user, handing the stream back and stopping the service")
             PlaybackHost.teardown(this)
         }
         super.onDestroy()
