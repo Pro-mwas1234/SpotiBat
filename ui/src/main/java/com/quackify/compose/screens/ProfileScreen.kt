@@ -56,6 +56,7 @@ import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.theme.rememberBottomPadding
+import androidx.compose.ui.res.stringResource
 
 data class ProfileContextCard(
     val uri: String,
@@ -93,7 +94,7 @@ fun EncoreProfileScreen(
     onTrackOptionsClick: (ProfileTopTrack) -> Unit,
     onTrackAddToQueue: ((ProfileTopTrack) -> Unit)? = null,
     onContextClick: (ProfileContextCard) -> Unit,
-    contextsTitle: String = "Recently played",
+    contextsTitle: String = stringResource(R.string.recently_played),
     fallbackName: String = "",
     avatarUrl: String = "",
     topContentUnavailable: Boolean = false,
@@ -136,18 +137,18 @@ fun EncoreProfileScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "Couldn't load this profile",
+                        text = stringResource(R.string.couldn_t_load_this_profile),
                         style = EncoreTheme.typography.titleLarge
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Check your internet connection and try again.",
+                        text = stringResource(R.string.check_your_internet_connection_and_try_again),
                         style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextSecondary),
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     TextButton(onClick = onRetry) {
-                        Text(text = "Try again", color = EncoreColors.Green)
+                        Text(text = stringResource(R.string.try_again), color = EncoreColors.Green)
                     }
                 }
             }
@@ -169,7 +170,7 @@ fun EncoreProfileScreen(
                 val topArtists = topContent?.topArtists.orEmpty()
                 if (topArtists.isNotEmpty()) {
                     item {
-                        ProfileSectionTitle(title = "Top artists this month")
+                        ProfileSectionTitle(title = stringResource(R.string.top_artists_this_month))
                     }
                     item {
                         LazyRow(
@@ -189,7 +190,7 @@ fun EncoreProfileScreen(
                 val topTracks = topContent?.topTracks.orEmpty()
                 if (topTracks.isNotEmpty()) {
                     item {
-                        ProfileSectionTitle(title = "Top tracks this month")
+                        ProfileSectionTitle(title = stringResource(R.string.top_tracks_this_month))
                     }
                     items(topTracks) { track ->
                         EncoreTrackRow(
@@ -208,11 +209,11 @@ fun EncoreProfileScreen(
                 }
                 if (topContentUnavailable && topArtists.isEmpty() && topTracks.isEmpty()) {
                     item {
-                        ProfileSectionTitle(title = "Top artists this month")
+                        ProfileSectionTitle(title = stringResource(R.string.top_artists_this_month))
                     }
                     item {
                         Text(
-                            text = "Their top artists and tracks are private, or they haven't listened to anything recently.",
+                            text = stringResource(R.string.their_top_artists_and_tracks_are_private_or_they),
                             style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextSecondary),
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
@@ -256,7 +257,7 @@ fun EncoreProfileScreen(
         ) {
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_arrow_left_24,
-                contentDescription = "Back",
+                contentDescription = stringResource(R.string.back),
                 onClick = onBackClick,
                 tint = EncoreColors.TextPrimary
             )
@@ -277,7 +278,7 @@ private fun ProfileHeader(
             .padding(top = 24.dp, bottom = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        val name = profile?.name?.takeIf { it.isNotBlank() } ?: fallbackName.ifBlank { "Quackify" }
+        val name = profile?.name?.takeIf { it.isNotBlank() } ?: fallbackName.ifBlank { stringResource(R.string.quackify) }
         val fallbackColor = parseHexColor(profile?.colorHex) ?: EncoreColors.CardElevated
         Box(
             modifier = Modifier
