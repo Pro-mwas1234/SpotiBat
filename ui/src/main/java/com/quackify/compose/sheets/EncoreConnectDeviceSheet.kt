@@ -185,12 +185,16 @@ fun EncoreConnectDeviceSheet(
 
             Spacer(modifier = Modifier.height(EncoreSpacers.Tighter2))
 
+            val playingRemote = devices.any { it.isCurrent && !it.local }
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.85f)
             ) {
-                items(devices.filter { !it.isCurrent }, key = { it.id }) { device ->
+                items(
+                    devices.filter { !it.isCurrent && (!it.local || playingRemote) },
+                    key = { it.id }
+                ) { device ->
                     DeviceRow(
                         device = device,
                         onClick = { onSelectDevice(device) }
