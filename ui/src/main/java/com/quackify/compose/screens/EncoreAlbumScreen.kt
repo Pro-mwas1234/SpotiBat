@@ -71,6 +71,7 @@ import com.quackify.compose.components.ShimmerBlock
 import com.quackify.compose.components.ShimmerHost
 import com.quackify.compose.theme.EncoreAnimation
 import com.quackify.compose.format.formatCollectionDuration
+import com.quackify.compose.format.formatExactCount
 import com.quackify.backend.model.collectionDuration
 import com.quackify.compose.playlist.TrackItem
 import com.quackify.compose.theme.EncoreColors
@@ -821,6 +822,15 @@ private fun AlbumTrackRow(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+            }
+
+            if (track.plays > 0L) {
+                Text(
+                    text = formatExactCount(track.plays),
+                    style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
+                    maxLines = 1,
+                    modifier = Modifier.padding(end = 12.dp)
+                )
             }
 
             EncoreHeartButton(
