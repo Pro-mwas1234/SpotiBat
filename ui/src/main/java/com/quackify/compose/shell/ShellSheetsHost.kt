@@ -152,7 +152,8 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
             ?.takeIf { it.isNotBlank() }
             ?.let { uri ->
                 uri != currentTrackUri &&
-                    playbackState?.queue.orEmpty().none { it.uri == uri }
+                    playbackState?.queue.orEmpty().none { it.uri == uri } &&
+                    !com.quackify.compose.bans.ArtistBans.isBanned(local.trackForOptions?.artistUri.orEmpty())
             } ?: false,
         currentTrackTitle = env.currentTrackTitle,
         currentTrackArtist = env.currentArtist,
