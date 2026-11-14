@@ -187,6 +187,7 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
                 } else {
                     env.onArtistBanChanged?.invoke(sheetArtistUri, next)
                     ArtistBanStore.invalidate()
+                    com.quackify.compose.bans.ArtistBans.setBanned(sheetArtistUri, next)
                 }
                 Toast.makeText(
                     env.context,

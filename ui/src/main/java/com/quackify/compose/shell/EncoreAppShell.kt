@@ -350,6 +350,9 @@ fun EncoreAppShell(
     var selectedNavIndex by navController.nav::selectedNavIndex
     var isPlayerExpanded by navController.nav::isPlayerExpanded
 
+    val banContext = LocalContext.current
+    LaunchedEffect(banContext) { com.quackify.compose.bans.ArtistBans.ensureLoaded(banContext) }
+
     LaunchedEffect(currentScreen) {
         if (currentScreen == ShellScreen.HOME) onHomeEntered()
     }
