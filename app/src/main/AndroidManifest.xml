@@ -81,6 +81,41 @@
             android:foregroundServiceType="mediaPlayback" />
 
         <receiver
+            android:name=".widget.HomeWidget"
+            android:exported="true"
+            android:label="@string/slim_player">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.quackify.app.widget.WIDGET_PLAYPAUSE" />
+                <action android:name="com.quackify.app.widget.WIDGET_PREV" />
+                <action android:name="com.quackify.app.widget.WIDGET_NEXT" />
+                <action android:name="com.quackify.app.widget.REPEAT_ACTION" />
+                <action android:name="com.quackify.app.widget.SHUFFLE_ACTION" />
+                <action android:name="com.quackify.app.widget.ADDTOFAV_ACTION" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/home_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.MusicCardWidget"
+            android:exported="true"
+            android:label="@string/music_card_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.quackify.app.widget.CARD_PLAYPAUSE" />
+                <action android:name="com.quackify.app.widget.CARD_PREV" />
+                <action android:name="com.quackify.app.widget.CARD_NEXT" />
+                <action android:name="com.quackify.app.widget.CARD_REPEAT" />
+                <action android:name="com.quackify.app.widget.CARD_SHUFFLE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_music_card_info" />
+        </receiver>
+
+        <receiver
             android:name=".widget.QuackifyWidget4x1Receiver"
             android:exported="false"
             android:label="@string/widget_4x1_label">
@@ -114,24 +149,6 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_3x3" />
-        </receiver>
-
-        <receiver
-            android:name=".widget.HomeWidget"
-            android:exported="true"
-            android:label="@string/slim_player">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.quackify.app.widget.WIDGET_PLAYPAUSE" />
-                <action android:name="com.quackify.app.widget.WIDGET_PREV" />
-                <action android:name="com.quackify.app.widget.WIDGET_NEXT" />
-                <action android:name="com.quackify.app.widget.REPEAT_ACTION" />
-                <action android:name="com.quackify.app.widget.SHUFFLE_ACTION" />
-                <action android:name="com.quackify.app.widget.ADDTOFAV_ACTION" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/home_widget_info" />
         </receiver>
 
         <provider

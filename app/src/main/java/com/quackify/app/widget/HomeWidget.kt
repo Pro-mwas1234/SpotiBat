@@ -79,7 +79,8 @@ class HomeWidget : AppWidgetProvider() {
         private fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
             val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
             val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
-            val isExpanded = minHeight >= 128
+            val rowSpan = if (minHeight > 0) ((minHeight + 30) / 70).coerceAtLeast(1) else 1
+            val isExpanded = rowSpan >= 2
             val layoutId = if (isExpanded) R.layout.widget_expanded else R.layout.home_widget
             val remoteViews = RemoteViews(context.packageName, layoutId)
 
@@ -167,7 +168,7 @@ class HomeWidget : AppWidgetProvider() {
                     remoteViews.setInt(R.id.btn_wfav, "setColorFilter", favColor)
                 }
 
-                // Artwork with native rounded corners
+                // Artwork with native rounded corners (expanded mode only; slim widget stays flush)
                 val artUrl = resolveRemoteImageUrl(snapshot.coverUrl)
                 val art = artUrl?.let { url -> runCatching { WidgetArt.cached(url) }.getOrNull() }
                 if (art != null && !art.isRecycled) {
@@ -177,9 +178,20 @@ class HomeWidget : AppWidgetProvider() {
                         val targetW = Math.max(1, (art.width * (if (scale < 1.0f) scale else 1.0f)).toInt())
                         val targetH = Math.max(1, (art.height * (if (scale < 1.0f) scale else 1.0f)).toInt())
                         val scaled = Bitmap.createScaledBitmap(art, targetW, targetH, true)
-                        val density = context.resources.displayMetrics.density
-                        val rounded = roundCorners(scaled, if (isExpanded) 12f else 14f, density)
-                        remoteViews.setImageViewBitmap(R.id.img_cover, rounded)
+                        if (isExpanded) {
+                            val density = context.resources.displayMetrics.density
+                            val rounded = roundCorners(scaled, 12f, density)
+                            remoteViews.setImageViewBitmap(R.id.img_cover, rounded)
+                        } else {
+                            val safeBitmap = if (scaled.config != Bitmap.Config.RGB_565) {
+                                val rgbBitmap = scaled.copy(Bitmap.Config.RGB_565, false)
+                                if (scaled != art && !scaled.isRecycled) scaled.recycle()
+                                rgbBitmap ?: scaled
+                            } else {
+                                scaled
+                            }
+                            remoteViews.setImageViewBitmap(R.id.img_cover, safeBitmap)
+                        }
                     } catch (e: Throwable) {
                         remoteViews.setImageViewResource(R.id.img_cover, R.drawable.logo_duck)
                     }
