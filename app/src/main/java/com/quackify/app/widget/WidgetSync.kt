@@ -127,6 +127,11 @@ object WidgetSync {
         updateAllSafely(QuackifyWidget4x1(), context)
         updateAllSafely(QuackifyWidget3x2(), context)
         updateAllSafely(QuackifyWidget3x3(), context)
+        try {
+            HomeWidget.updateAllWidgets(context)
+        } catch (t: Throwable) {
+            log.w("HomeWidget update failed: ${t.message}", t)
+        }
     }
 
     private suspend fun updateAllSafely(widget: GlanceAppWidget, context: Context) {

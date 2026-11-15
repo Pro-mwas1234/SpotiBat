@@ -6,4 +6,7 @@
     <string name="widget_4x1_desc">Playback bar with cover, like and controls</string>
     <string name="widget_3x2_desc">Playback card with cover, progress and controls</string>
     <string name="widget_3x3_desc">Large playback card with big cover and controls</string>
+    <string name="slim_player">Slim Player</string>
+    <string name="txt_notrack">No Track</string>
+    <string name="txt_noartist">No Artist</string>
 </resources>

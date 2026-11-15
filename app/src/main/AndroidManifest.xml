@@ -116,6 +116,24 @@
                 android:resource="@xml/widget_3x3" />
         </receiver>
 
+        <receiver
+            android:name=".widget.HomeWidget"
+            android:exported="true"
+            android:label="@string/slim_player">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.quackify.app.widget.WIDGET_PLAYPAUSE" />
+                <action android:name="com.quackify.app.widget.WIDGET_PREV" />
+                <action android:name="com.quackify.app.widget.WIDGET_NEXT" />
+                <action android:name="com.quackify.app.widget.REPEAT_ACTION" />
+                <action android:name="com.quackify.app.widget.SHUFFLE_ACTION" />
+                <action android:name="com.quackify.app.widget.ADDTOFAV_ACTION" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/home_widget_info" />
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
