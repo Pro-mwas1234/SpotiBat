@@ -278,6 +278,8 @@ fun EncoreAppShell(
     onArtistFollowToggle: ((artistUri: String, follow: Boolean) -> Unit)? = null,
     onArtistTrackLikeToggle: ((TrackItem) -> Unit)? = null,
     onAlbumTrackLikeToggle: ((TrackItem) -> Unit)? = null,
+    albumSaved: Boolean? = null,
+    onAlbumSavedToggle: ((uri: String, saved: Boolean) -> Unit)? = null,
     onPlaylistTrackLikeToggle: ((TrackItem) -> Unit)? = null,
     onArtistRadio: (suspend (artistUri: String) -> String?)? = null,
     profile: UserProfile? = null,
@@ -721,6 +723,8 @@ fun EncoreAppShell(
             playlistDetail = playlistDetail,
             playlistSaved = playlistSaved,
             albumDetail = albumDetail,
+            albumSaved = albumSaved,
+            onAlbumSavedToggle = onAlbumSavedToggle,
             artistDetail = artistDetail,
             artistFollowed = artistFollowed,
             artistBanned = artistBanned,
@@ -865,6 +869,8 @@ fun EncoreAppShell(
                     onLoadMoreAlbumTracks = onLoadMoreAlbumTracks,
                     onRetryAlbum = onRetryAlbum,
                     onAlbumTrackLikeToggle = onAlbumTrackLikeToggle,
+                    albumSaved = albumSaved,
+                    onAlbumSavedToggle = onAlbumSavedToggle,
                 )
 
                 ShellScreen.ARTIST -> ShellArtistRoute(

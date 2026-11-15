@@ -224,6 +224,7 @@ class MainActivity : ComponentActivity() {
     private var editableUris by mutableStateOf<Set<String>>(emptySet())
     private var albumDetail by mutableStateOf<AlbumDetail?>(null)
     private var albumTracks by mutableStateOf<List<TrackItem>?>(null)
+    private var albumSaved by mutableStateOf<Boolean?>(null)
     private var artistDetail by mutableStateOf<ArtistDetail?>(null)
     private var trackCredits by mutableStateOf<Credits?>(null)
     private var addToPlaylistChoices by mutableStateOf<List<PlaylistChoice>?>(null)
@@ -625,6 +626,7 @@ class MainActivity : ComponentActivity() {
                             if (albumUri.isBlank()) {
                                 albumDetail = null
                                 albumTracks = null
+                                albumSaved = null
                                 albumLoading = false
                                 albumFailed = false
                                 return@LaunchedEffect
@@ -632,6 +634,7 @@ class MainActivity : ComponentActivity() {
                             val uri = albumUri
                             albumDetail = null
                             albumTracks = null
+                            albumSaved = null
                             albumFailed = false
                             albumHasMore = false
                             albumLoading = true
@@ -644,6 +647,8 @@ class MainActivity : ComponentActivity() {
                                 albumHasMore = detail != null &&
                                     detail.fetched < detail.total && detail.tracks.isNotEmpty()
                                 albumFailed = detail == null
+                                val inLibrary = Library.saved(context, listOf(uri))
+                                albumSaved = if (inLibrary.isEmpty()) detail?.saved == true else uri in inLibrary
                             } finally {
                                 if (uri == albumUri) albumLoading = false
                             }
@@ -1640,6 +1645,14 @@ class MainActivity : ComponentActivity() {
         },
         onAlbumTrackLikeToggle = { track ->
             toggleAlbumTrackLike(context, scope, track, { albumTracks }) { albumTracks = it }
+        },
+        albumSaved = albumSaved,
+        onAlbumSavedToggle = { uri, saved ->
+            scope.launch {
+                val ok = Library.setSaved(applicationContext, listOf(uri), saved)
+                log.i("album save '$uri' -> $saved ok=$ok")
+                if (ok && uri == albumUri) albumSaved = saved
+            }
         },
         onPlaylistTrackLikeToggle = { track ->
             togglePlaylistTrackLike(

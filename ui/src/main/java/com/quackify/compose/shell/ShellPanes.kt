@@ -381,6 +381,8 @@ internal fun ShellAlbumPane(
     openArtist: (String, String) -> Unit,
     openAlbum: (String, String, String) -> Unit,
     onAlbumOptions: () -> Unit,
+    albumSaved: Boolean = false,
+    onAlbumLikeToggle: () -> Unit = {},
     onPlaybackOrigin: (PlaybackOrigin?) -> Unit = {}
 ) {
     androidx.compose.runtime.key(activeAlbumTitle, activeAlbumArtist) {
@@ -438,6 +440,8 @@ internal fun ShellAlbumPane(
             onTrackLikeToggle = { onTrackLikeToggle?.invoke(it) },
             onTrackAddToQueue = onTrackAddToQueue,
             onAlbumOptionsClick = onAlbumOptions,
+            isSaved = albumSaved,
+            onLikeToggle = onAlbumLikeToggle,
             onArtistClick = { artist -> openArtist(artist, albumDetail?.artistUri.orEmpty()) },
             onAlbumClick = { release -> openAlbum(release.title, activeAlbumArtist, release.uri) }
         )

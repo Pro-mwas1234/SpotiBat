@@ -48,6 +48,7 @@ fun AlbumOptionsSheet(
     coverUrl: String?,
     isOpen: Boolean,
     onDismiss: () -> Unit,
+    isSaved: Boolean = false,
     onAddToLibrary: () -> Unit = {},
     onDownload: () -> Unit = {},
     onAddToQueue: () -> Unit = {},
@@ -131,8 +132,9 @@ fun AlbumOptionsSheet(
             )
 
             ContextMenuRowItem(
-                title = stringResource(R.string.add_to_your_library),
-                iconRes = R.drawable.encore_icon_plus_24,
+                title = if (isSaved) stringResource(R.string.remove_from_your_library)
+                else stringResource(R.string.add_to_your_library),
+                iconRes = if (isSaved) R.drawable.encore_icon_trash_24 else R.drawable.encore_icon_plus_24,
                 onClick = {
                     onDismiss()
                     onAddToLibrary()
