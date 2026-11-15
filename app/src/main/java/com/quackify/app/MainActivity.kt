@@ -1640,6 +1640,13 @@ class MainActivity : ComponentActivity() {
                 if (uri == nowPlaying.artistUri) nowPlayingArtistFollowed = follow
             }
         },
+        onShowFollowToggle = { uri, follow ->
+            scope.launch {
+                val ok = Library.setSaved(applicationContext, listOf(uri), follow)
+                log.i("show follow '$uri' -> $follow ok=$ok")
+                if (ok && uri == showUri) showDetail = showDetail?.copy(saved = follow)
+            }
+        },
         onArtistTrackLikeToggle = { track ->
             toggleArtistTrackLike(context, scope, track, { artistTracks }) { artistTracks = it }
         },

@@ -14,6 +14,7 @@ import com.quackify.backend.core.auth.EncoreAuth
 import com.quackify.backend.model.AlbumDetail
 import com.quackify.backend.model.ArtistDetail
 import com.quackify.backend.model.CollectionDetail
+import com.quackify.backend.model.ShowDetail
 import com.quackify.compose.playlist.TrackItem
 import com.quackify.compose.sheets.EntityOptions
 import com.quackify.compose.sheets.SleepTimerOption
@@ -58,6 +59,8 @@ internal class ShellSheetsEnv(
     val albumDetail: AlbumDetail?,
     val albumSaved: Boolean?,
     val onAlbumSavedToggle: ((String, Boolean) -> Unit)?,
+    val showDetail: ShowDetail?,
+    val onShowFollowToggle: ((String, Boolean) -> Unit)?,
     val artistDetail: ArtistDetail?,
     val artistFollowed: Boolean?,
     val artistBanned: Boolean?,
@@ -148,6 +151,7 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
             trackOptions = flags.isTrackOptionsOpen,
             playlistOptions = flags.isPlaylistOptionsOpen,
             albumOptions = flags.isAlbumOptionsOpen,
+            showOptions = flags.isShowOptionsOpen,
             artistOptions = flags.isArtistOptionsOpen,
             sort = flags.isSortSheetOpen,
             create = flags.isCreateSheetOpen,
@@ -185,6 +189,18 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
                 env.onAlbumSavedToggle?.invoke(uri, env.albumSaved != true)
             }
         },
+        showName = env.showDetail?.name.orEmpty(),
+        showPublisher = env.showDetail?.publisher.orEmpty(),
+        showCoverUrl = env.showDetail?.imageUrl?.takeIf { it.isNotBlank() },
+        showUri = active.showUri.ifBlank { env.showDetail?.uri.orEmpty() },
+        showFollowing = env.showDetail?.saved == true,
+        onShowFollowToggle = {
+            val uri = active.showUri.ifBlank { env.showDetail?.uri.orEmpty() }
+            if (uri.startsWith("spotify:show:")) {
+                env.onShowFollowToggle?.invoke(uri, env.showDetail?.saved != true)
+            }
+        },
+        onDismissShowOptions = { flags.isShowOptionsOpen = false },
         artistName = sheetArtistName,
         artistAvatarUrl = sheetArtistAvatarUrl,
         artistUri = sheetArtistUri,

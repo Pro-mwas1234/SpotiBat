@@ -217,6 +217,7 @@ internal class ShellUiFlags {
     var isPlaylistEditMode by mutableStateOf(false)
     var isAlbumOptionsOpen by mutableStateOf(false)
     var isArtistOptionsOpen by mutableStateOf(false)
+    var isShowOptionsOpen by mutableStateOf(false)
     var isArtistOptionsFromPlayer by mutableStateOf(false)
     var isSortSheetOpen by mutableStateOf(false)
     var isCreateSheetOpen by mutableStateOf(false)

@@ -20,6 +20,7 @@ import com.quackify.compose.sheets.SleepTimerSheet
 import com.quackify.compose.sheets.CanvasResolutionSheet
 import com.quackify.compose.sheets.EncoreConnectDeviceSheet
 import com.quackify.compose.sheets.EncoreQueueSheet
+import com.quackify.compose.sheets.ShowOptionsSheet
 import com.quackify.compose.sheets.TrackOptionsSheet
 import com.quackify.compose.sheets.toEncoreDevice
 
@@ -29,6 +30,7 @@ internal data class SheetFlags(
     val trackOptions: Boolean = false,
     val playlistOptions: Boolean = false,
     val albumOptions: Boolean = false,
+    val showOptions: Boolean = false,
     val artistOptions: Boolean = false,
     val sort: Boolean = false,
     val create: Boolean = false,
@@ -64,6 +66,13 @@ internal fun ShellSheets(
     albumUri: String = "",
     albumSaved: Boolean? = null,
     onToggleAlbumSaved: (() -> Unit)? = null,
+    showName: String,
+    showPublisher: String,
+    showCoverUrl: String?,
+    showUri: String = "",
+    showFollowing: Boolean = false,
+    onShowFollowToggle: () -> Unit = {},
+    onDismissShowOptions: () -> Unit = {},
     artistName: String,
     artistAvatarUrl: String?,
     artistUri: String = "",
@@ -173,6 +182,13 @@ internal fun ShellSheets(
         albumUri = albumUri,
         albumSaved = albumSaved,
         onToggleAlbumSaved = onToggleAlbumSaved,
+        showName = showName,
+        showPublisher = showPublisher,
+        showCoverUrl = showCoverUrl,
+        showUri = showUri,
+        showFollowing = showFollowing,
+        onShowFollowToggle = onShowFollowToggle,
+        onDismissShowOptions = onDismissShowOptions,
         artistName = artistName,
         artistAvatarUrl = artistAvatarUrl,
         artistUri = artistUri,
@@ -312,6 +328,13 @@ private fun ShellEntityOptionsSheets(
     albumUri: String,
     albumSaved: Boolean?,
     onToggleAlbumSaved: (() -> Unit)?,
+    showName: String,
+    showPublisher: String,
+    showCoverUrl: String?,
+    showUri: String,
+    showFollowing: Boolean,
+    onShowFollowToggle: () -> Unit,
+    onDismissShowOptions: () -> Unit,
     artistName: String,
     artistAvatarUrl: String?,
     artistUri: String,
@@ -396,6 +419,17 @@ private fun ShellEntityOptionsSheets(
         onAddToPlaylist = onAddToPlaylistFromAlbum,
         onAlbumRadio = onAlbumRadio,
         onShare = { albumUri.takeIf { it.startsWith("spotify:album:") }?.let(onShare) }
+    )
+
+    ShowOptionsSheet(
+        showName = showName,
+        publisher = showPublisher,
+        coverUrl = showCoverUrl,
+        isOpen = flags.showOptions,
+        onDismiss = onDismissShowOptions,
+        isFollowing = showFollowing,
+        onFollowToggle = onShowFollowToggle,
+        onShare = { showUri.takeIf { it.startsWith("spotify:show:") }?.let(onShare) }
     )
 
     ArtistOptionsSheet(

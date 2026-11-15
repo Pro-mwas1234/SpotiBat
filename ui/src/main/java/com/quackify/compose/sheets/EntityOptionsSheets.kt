@@ -208,6 +208,117 @@ fun AlbumOptionsSheet(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun ShowOptionsSheet(
+    showName: String,
+    publisher: String,
+    coverUrl: String?,
+    isOpen: Boolean,
+    onDismiss: () -> Unit,
+    isFollowing: Boolean = false,
+    onFollowToggle: () -> Unit = {},
+    onShare: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    if (!isOpen) return
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        properties = BackNotDismissSheet,
+        sheetState = sheetState,
+        containerColor = Color(0xFF242424),
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(vertical = 10.dp)
+                    .size(width = 36.dp, height = 4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Color.White.copy(alpha = 0.3f))
+            )
+        },
+        modifier = modifier
+    ) {
+        BackHandler { onDismiss() }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.85f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .navigationBarsPadding(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            EncoreArtworkImage(
+                imageUrl = coverUrl,
+                contentDescription = showName,
+                cornerRadius = 8.dp,
+                modifier = Modifier.size(112.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = showName,
+                style = EncoreTheme.typography.titleLarge.copy(
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = EncoreColors.TextPrimary
+                ),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = stringResource(R.string.podcast_with_host, publisher),
+                style = EncoreTheme.typography.bodyMedium.copy(
+                    fontSize = 14.sp,
+                    color = EncoreColors.TextSecondary
+                ),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+            )
+
+            HorizontalDivider(
+                color = Color.White.copy(alpha = 0.1f),
+                thickness = 1.dp,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
+
+            ContextMenuRowItem(
+                title = if (isFollowing) stringResource(R.string.following) else "Follow",
+                iconRes = if (isFollowing) R.drawable.encore_icon_check_24 else R.drawable.encore_icon_plus_24,
+                iconTint = if (isFollowing) EncoreColors.Green else EncoreColors.TextPrimary,
+                onClick = {
+                    onDismiss()
+                    onFollowToggle()
+                }
+            )
+
+            ContextMenuRowItem(
+                title = stringResource(R.string.share),
+                iconRes = R.drawable.encore_icon_share_android_24,
+                onClick = {
+                    onDismiss()
+                    onShare()
+                }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+/**
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun ArtistOptionsSheet(
     artistName: String,
     avatarUrl: String?,
