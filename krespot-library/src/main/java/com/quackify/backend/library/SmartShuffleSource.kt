@@ -40,12 +40,17 @@ data class SmartShuffleEligibility(
 /**
  * One row of the enhanced context answer. The server hands out the item id
  * and the ready-made signal payloads, so taps never need local crafting.
+ * [distribution] carries the server's shuffle position for the row (from the
+ * `shuffle.distribution` format attribute), shared by playlist tracks and
+ * recommendations alike; sorted by it the two interleave like the official
+ * queue does.
  */
 data class SmartShuffleRow(
     val uri: String,
     val itemId: String,
     val enhanced: Boolean,
     val signals: Map<String, String>,
+    val distribution: Double = -1.0,
 )
 
 object SmartShuffleSource {
@@ -175,10 +180,15 @@ object SmartShuffleSource {
             if (!uri.startsWith("spotify:track:")) continue
             val attrs = item.optJSONObject("attributes") ?: continue
             var provider = ""
+            var distribution = -1.0
             val format = attrs.optJSONArray("formatAttributes")
             for (j in 0 until (format?.length() ?: 0)) {
                 val field = format!!.optJSONObject(j) ?: continue
-                if (field.optString("key") == "provider") provider = field.optString("value")
+                when (field.optString("key")) {
+                    "provider" -> provider = field.optString("value")
+                    "shuffle.distribution" -> distribution =
+                        field.optString("value").substringAfter("d(").substringBefore(")").toDoubleOrNull() ?: -1.0
+                }
             }
             val signals = buildMap {
                 val available = attrs.optJSONArray("availableSignals")
@@ -189,7 +199,7 @@ object SmartShuffleSource {
                     if (id.isNotBlank() && data.isNotBlank()) put(id, data)
                 }
             }
-            rows.add(SmartShuffleRow(uri, attrs.optString("itemId"), provider == ENHANCED_PROVIDER, signals))
+            rows.add(SmartShuffleRow(uri, attrs.optString("itemId"), provider == ENHANCED_PROVIDER, signals, distribution))
         }
         return rows
     }

@@ -1196,7 +1196,11 @@ class MainActivity : ComponentActivity() {
     }
 
     internal fun buildHistoryStats(stats: PlayStatsSnapshot, history: List<PlayedTrack>): HistoryStats {
-        val replayed = history.filter { it.plays > 1 }.maxByOrNull { it.plays }
+        val replayed = history
+            .groupBy { it.item.title.trim().lowercase() to it.item.artist.trim().lowercase() }
+            .filterValues { rows -> rows.sumOf { it.plays } > 1 }
+            .mapValues { (_, rows) -> rows.sumOf { it.plays } to rows.first().item }
+            .maxByOrNull { it.value.first }
         return HistoryStats(
             totalPlayedMs = stats.totalMs,
             listenStreakDays = stats.listenStreak,
@@ -1205,9 +1209,9 @@ class MainActivity : ComponentActivity() {
             topArtistPlays = stats.topArtistPlays,
             topPlaylistName = stats.topPlaylistName,
             topPlaylistPlays = stats.topPlaylistPlays,
-            topReplayTitle = replayed?.item?.title.orEmpty(),
-            topReplayArtist = replayed?.item?.artist.orEmpty(),
-            topReplayPlays = replayed?.plays ?: 0,
+            topReplayTitle = replayed?.value?.second?.title.orEmpty(),
+            topReplayArtist = replayed?.value?.second?.artist.orEmpty(),
+            topReplayPlays = replayed?.value?.first ?: 0,
         )
     }
 

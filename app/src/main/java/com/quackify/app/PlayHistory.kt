@@ -52,7 +52,7 @@ object PlayHistory {
                 plays = node.optInt("plays", 1).coerceAtLeast(1),
             )
 
-            if (out.none { sameSong(it.item, candidate.item) }) {
+            if (out.none { sameSong(it.item, candidate.item) && sameDay(it.playedAtMs, candidate.playedAtMs) }) {
                 out += candidate
             }
         }
@@ -83,12 +83,10 @@ object PlayHistory {
             track
         }
 
-        val plays = previous.firstOrNull { sameSong(it.item, track) }?.plays ?: 0
+        val previousPlays = previous.firstOrNull { sameSong(it.item, track) }?.plays ?: 0
         val next = (
-                listOf(PlayedTrack(enriched, playedAtMs, plays + 1)) +
-                        previous.filterNot {
-                            sameSong(it.item, track)
-                        }
+                listOf(PlayedTrack(enriched, playedAtMs, previousPlays + 1)) +
+                        previous
                 ).take(LIMIT)
 
         write(context, next)
@@ -127,6 +125,20 @@ object PlayHistory {
         if (a.uri.isNotEmpty() && a.uri == b.uri) return true
         return a.title.trim().equals(b.title.trim(), ignoreCase = true) &&
                 a.artist.trim().equals(b.artist.trim(), ignoreCase = true)
+    }
+
+    /**
+     * A replay belongs to the day it was replayed on: the history keeps the
+     * yesterday row and adds a today row instead of moving the old one.
+     */
+    private fun sameDay(aMs: Long, bMs: Long): Boolean {
+        if (aMs <= 0L || bMs <= 0L) return true
+        val cal = java.util.Calendar.getInstance()
+        cal.timeInMillis = aMs
+        val a = cal.get(java.util.Calendar.YEAR) * 1000 + cal.get(java.util.Calendar.DAY_OF_YEAR)
+        cal.timeInMillis = bMs
+        val b = cal.get(java.util.Calendar.YEAR) * 1000 + cal.get(java.util.Calendar.DAY_OF_YEAR)
+        return a == b
     }
 
     private fun write(

@@ -1436,10 +1436,23 @@ class PlaybackBridge(private val context: Context) {
         return true
     }
 
-    private fun enhancedQueue(contextUri: String): List<SmartShuffleRow> =
-        if (contextUri.isNotBlank() &&
-            contextUri.substringAfterLast(':') == enhancedFor.substringAfterLast(':')
-        ) enhancedRows else emptyList()
+    /**
+     * The enhanced answer in the server's own shuffle order: the lens hands
+     * every row (playlist track and recommendation alike) a distribution
+     * position, so sorting by it interleaves the two exactly like the
+     * official queue does. Rows without a position keep insertion order at
+     * the end.
+     */
+    private fun enhancedQueue(contextUri: String): List<SmartShuffleRow> {
+        if (contextUri.isBlank() ||
+            contextUri.substringAfterLast(':') != enhancedFor.substringAfterLast(':')
+        ) return emptyList()
+        val rows = enhancedRows
+        if (rows.size < 2) return rows
+        return rows.sortedBy { it.distribution }.let { sorted ->
+            if (sorted.all { it.distribution < 0.0 }) rows else sorted
+        }
+    }
 
     /**
      * The next candidates are the enhanced rows we have not played in this
@@ -1452,10 +1465,10 @@ class PlaybackBridge(private val context: Context) {
         val rows = enhancedQueue(contextUri)
         if (rows.isEmpty()) return emptyList()
         val fresh = rows
-            .filter { it.enhanced && it.uri != current && it.uri !in playedSmart }
+            .filter { it.uri != current && it.uri !in playedSmart }
         if (fresh.isNotEmpty()) return fresh
         playedSmart.clear()
-        return rows.filter { it.enhanced && it.uri != current }
+        return rows.filter { it.uri != current }
     }
 
     /**
@@ -2156,8 +2169,8 @@ class PlaybackBridge(private val context: Context) {
         val enhanced = enhancedQueue(contextUri)
         if (enhanced.isNotEmpty()) {
             val kept = connect.cluster.value?.window().orEmpty()
-            val rows = enhanced
-                .filter { it.enhanced && it.uri != state.trackUri }
+            val rows = enhancedUpcoming(contextUri, state.trackUri)
+                .filter { it.uri != state.trackUri }
                 .distinctBy { it.uri }
                 .take(ENHANCED_TAIL_MAX)
             return rows.map { row ->
@@ -2884,6 +2897,7 @@ class PlaybackBridge(private val context: Context) {
                 coverUrl = row.imageUrl.orEmpty(),
                 trackUri = uri,
                 artistUri = row.artistUri.ifBlank { state.artistUri.takeIf { state.trackUri == uri }.orEmpty() },
+                albumUri = row.albumUri.ifBlank { state.albumUri.takeIf { state.trackUri == uri }.orEmpty() },
             )
         }
     }
@@ -3044,6 +3058,9 @@ class PlaybackBridge(private val context: Context) {
             artistUri = cluster.track.artistUri
                 .ifBlank { if (sameTrack) state.artistUri else "" }
                 .ifBlank { artistUriOf(cluster.track.uri) },
+            albumUri = cluster.track.albumUri
+                .ifBlank { if (sameTrack) state.albumUri else "" }
+                .ifBlank { albumUriOf(cluster.track.uri) },
             isPlaying = if (local) player.isPlaying else (intent ?: followPlaying),
             isBuffering = if (local) player.state.value.buffering else false,
             explicit = if (sameTrack) state.explicit else cluster.track.explicit,
