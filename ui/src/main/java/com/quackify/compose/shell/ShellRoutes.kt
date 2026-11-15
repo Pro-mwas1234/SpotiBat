@@ -342,6 +342,8 @@ internal fun ShellAlbumRoute(
     onLoadMoreAlbumTracks: (() -> Unit)?,
     onRetryAlbum: (() -> Unit)?,
     onAlbumTrackLikeToggle: ((TrackItem) -> Unit)?,
+    albumSaved: Boolean? = null,
+    onAlbumSavedToggle: ((String, Boolean) -> Unit)? = null,
 ) {
     ShellAlbumPane(
         activeAlbumTitle = env.active.albumTitle,
@@ -371,6 +373,13 @@ internal fun ShellAlbumRoute(
         openArtist = env.openArtist,
         openAlbum = env.openAlbum,
         onAlbumOptions = { env.flags.isAlbumOptionsOpen = true },
+        albumSaved = albumSaved == true,
+        onAlbumLikeToggle = {
+            val uri = env.active.albumUri.ifBlank { albumDetail?.uri.orEmpty() }
+            if (uri.startsWith("spotify:album:")) {
+                onAlbumSavedToggle?.invoke(uri, albumSaved != true)
+            }
+        },
         onPlaybackOrigin = { env.local.playbackOrigin = it }
     )
 }

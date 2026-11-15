@@ -118,6 +118,8 @@ fun EncoreAlbumScreen(
     onTrackLikeToggle: (TrackItem) -> Unit = {},
     onTrackAddToQueue: ((TrackItem) -> Unit)? = null,
     onAlbumOptionsClick: () -> Unit = {},
+    isSaved: Boolean = false,
+    onLikeToggle: () -> Unit = {},
     onArtistClick: (String) -> Unit = {},
     onAlbumClick: (ArtistRelease) -> Unit = {},
     modifier: Modifier = Modifier,
@@ -131,7 +133,6 @@ fun EncoreAlbumScreen(
     onRetry: () -> Unit = {}
 ) {
     val density = LocalDensity.current
-    var isLiked by remember { mutableStateOf(false) }
     var isDownloaded by remember { mutableStateOf(false) }
     var isShuffle by remember { mutableStateOf(false) }
     val bottomPadding = rememberBottomPadding()
@@ -389,15 +390,15 @@ fun EncoreAlbumScreen(
                                     modifier = Modifier
                                         .size(32.dp)
                                         .clip(CircleShape)
-                                        .clickable { isLiked = !isLiked },
+                                        .clickable(onClick = onLikeToggle),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         painter = painterResource(
-                                            id = if (isLiked) R.drawable.encore_icon_heart_active_24 else R.drawable.encore_icon_heart_24
+                                            id = if (isSaved) R.drawable.encore_icon_heart_active_24 else R.drawable.encore_icon_heart_24
                                         ),
                                         contentDescription = stringResource(R.string.save_album),
-                                        tint = if (isLiked) EncoreColors.Green else EncoreColors.TextSecondary,
+                                        tint = if (isSaved) EncoreColors.Green else EncoreColors.TextSecondary,
                                         modifier = Modifier.size(22.dp)
                                     )
                                 }

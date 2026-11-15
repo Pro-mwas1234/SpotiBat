@@ -56,6 +56,8 @@ internal class ShellSheetsEnv(
     val playlistDetail: CollectionDetail?,
     val playlistSaved: Boolean?,
     val albumDetail: AlbumDetail?,
+    val albumSaved: Boolean?,
+    val onAlbumSavedToggle: ((String, Boolean) -> Unit)?,
     val artistDetail: ArtistDetail?,
     val artistFollowed: Boolean?,
     val artistBanned: Boolean?,
@@ -176,6 +178,13 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
         albumArtist = active.albumArtist,
         albumCoverUrl = active.albumCoverUrl,
         albumUri = active.albumUri.ifBlank { env.albumDetail?.uri.orEmpty() },
+        albumSaved = env.albumSaved,
+        onToggleAlbumSaved = {
+            val uri = active.albumUri.ifBlank { env.albumDetail?.uri.orEmpty() }
+            if (uri.startsWith("spotify:album:")) {
+                env.onAlbumSavedToggle?.invoke(uri, env.albumSaved != true)
+            }
+        },
         artistName = sheetArtistName,
         artistAvatarUrl = sheetArtistAvatarUrl,
         artistUri = sheetArtistUri,
