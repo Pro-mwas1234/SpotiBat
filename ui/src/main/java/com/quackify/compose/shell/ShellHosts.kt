@@ -12,6 +12,7 @@ import com.quackify.backend.model.PlaylistChoice
 import com.quackify.backend.model.PlaylistPermissions
 import com.quackify.backend.model.ProfileUser
 import com.quackify.backend.model.SearchHit
+import com.quackify.backend.model.ShowDetail
 import com.quackify.compose.components.RepeatMode
 import com.quackify.compose.components.ShuffleMode
 import com.quackify.compose.library.LibraryItem
@@ -106,6 +107,8 @@ internal class ShellHosts(
     val albumDetail: AlbumDetail?,
     val albumSaved: Boolean?,
     val onAlbumSavedToggle: ((String, Boolean) -> Unit)?,
+    val showDetail: ShowDetail?,
+    val onShowFollowToggle: ((String, Boolean) -> Unit)?,
     val artistDetail: ArtistDetail?,
     val artistFollowed: Boolean?,
     val artistBanned: Boolean?,
@@ -292,6 +295,8 @@ internal class ShellHosts(
         albumDetail = albumDetail,
         albumSaved = albumSaved,
         onAlbumSavedToggle = onAlbumSavedToggle,
+        showDetail = showDetail,
+        onShowFollowToggle = onShowFollowToggle,
         artistDetail = artistDetail,
         artistFollowed = artistFollowed,
         artistBanned = artistBanned,

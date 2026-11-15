@@ -949,7 +949,9 @@ internal fun ShellShowPane(
     onEpisodeClick: (String) -> Unit,
     onPlayEpisode: (EpisodeRow) -> Unit = {},
     onPlayPause: () -> Unit,
-    onLoadMore: () -> Unit
+    onLoadMore: () -> Unit,
+    onFollowToggle: () -> Unit = {},
+    onMoreClick: (() -> Unit)? = null
 ) {
     if (show == null) {
         ShellLoadingState(
@@ -967,6 +969,7 @@ internal fun ShellShowPane(
             ratingCount = show.ratingCount,
             topics = show.topics,
             isFollowing = show.saved,
+            onFollowToggle = onFollowToggle,
             episodes = show.episodes,
             total = show.total,
             isPlaying = isPlaying,
@@ -975,7 +978,8 @@ internal fun ShellShowPane(
             onPlayEpisode = onPlayEpisode,
             onBackClick = onBack,
             onPlayPauseClick = onPlayPause,
-            onLoadMore = onLoadMore
+            onLoadMore = onLoadMore,
+            onMoreClick = onMoreClick
         )
     }
 }

@@ -88,11 +88,13 @@ object Library {
         val operation = if (saved) OP_ADD else OP_REMOVE
         var allOk = true
         writable.chunked(BATCH).forEach { chunk ->
-            val variables = JSONObject()
-                .put("libraryItemUris", JSONArray(chunk))
-                .put("interactionId", UUID.randomUUID().toString())
-                .toString()
-            val json = Pathfinder.queryPost(context, token, operation, variables, fallbackToGet = false)
+            val variables = JSONObject().put("libraryItemUris", JSONArray(chunk))
+            if (chunk.all { typeOf(it) == "show" }) {
+                variables.put("interactionId", JSONObject.NULL)
+            } else {
+                variables.put("interactionId", UUID.randomUUID().toString())
+            }
+            val json = Pathfinder.queryPost(context, token, operation, variables.toString(), fallbackToGet = false)
             val key = if (saved) "addLibraryItems" else "removeLibraryItems"
             val ok = json?.optJSONObject("data")?.optJSONObject(key) != null
             if (!ok) allOk = false

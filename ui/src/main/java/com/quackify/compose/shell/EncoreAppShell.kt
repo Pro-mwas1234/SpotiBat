@@ -276,6 +276,7 @@ fun EncoreAppShell(
     onArtistUnban: ((String) -> Unit)? = null,
     onArtistBanChanged: ((String, Boolean) -> Unit)? = null,
     onArtistFollowToggle: ((artistUri: String, follow: Boolean) -> Unit)? = null,
+    onShowFollowToggle: ((showUri: String, follow: Boolean) -> Unit)? = null,
     onArtistTrackLikeToggle: ((TrackItem) -> Unit)? = null,
     onAlbumTrackLikeToggle: ((TrackItem) -> Unit)? = null,
     albumSaved: Boolean? = null,
@@ -580,6 +581,7 @@ fun EncoreAppShell(
                 flags.isPlaylistOptionsOpen ||
                 flags.isAlbumOptionsOpen ||
                 flags.isArtistOptionsOpen ||
+                flags.isShowOptionsOpen ||
                 flags.isSortSheetOpen ||
                 flags.isCreateSheetOpen ||
                 flags.isCreatePlaylistOpen ||
@@ -606,6 +608,8 @@ fun EncoreAppShell(
             flags.isAlbumOptionsOpen = false
         } else if (flags.isArtistOptionsOpen) {
             flags.isArtistOptionsOpen = false
+        } else if (flags.isShowOptionsOpen) {
+            flags.isShowOptionsOpen = false
         } else if (flags.isSortSheetOpen) {
             flags.isSortSheetOpen = false
         } else if (flags.isCreateSheetOpen) {
@@ -725,6 +729,8 @@ fun EncoreAppShell(
             albumDetail = albumDetail,
             albumSaved = albumSaved,
             onAlbumSavedToggle = onAlbumSavedToggle,
+            showDetail = showDetail,
+            onShowFollowToggle = onShowFollowToggle,
             artistDetail = artistDetail,
             artistFollowed = artistFollowed,
             artistBanned = artistBanned,
@@ -969,6 +975,7 @@ fun EncoreAppShell(
                     loading = showLoading,
                     onOpenShow = onOpenShow,
                     onLoadMore = onLoadMoreEpisodes,
+                    onShowFollowToggle = onShowFollowToggle,
                 )
 
                 ShellScreen.EPISODE -> ShellEpisodeRoute(

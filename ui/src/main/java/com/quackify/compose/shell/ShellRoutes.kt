@@ -677,6 +677,7 @@ internal fun ShellShowRoute(
     loading: Boolean,
     onOpenShow: ((String) -> Unit)?,
     onLoadMore: (() -> Unit)?,
+    onShowFollowToggle: ((String, Boolean) -> Unit)? = null,
 ) {
     ShellShowPane(
         show = show,
@@ -691,7 +692,14 @@ internal fun ShellShowRoute(
             env.playerListener?.onPlayEpisode(episode.uri, env.active.showUri, episode.video)
         },
         onPlayPause = env.handlePlayPause,
-        onLoadMore = { onLoadMore?.invoke() }
+        onLoadMore = { onLoadMore?.invoke() },
+        onFollowToggle = {
+            val uri = env.active.showUri.ifBlank { show?.uri.orEmpty() }
+            if (uri.startsWith("spotify:show:")) {
+                onShowFollowToggle?.invoke(uri, show?.saved != true)
+            }
+        },
+        onMoreClick = { env.flags.isShowOptionsOpen = true }
     )
 }
 
