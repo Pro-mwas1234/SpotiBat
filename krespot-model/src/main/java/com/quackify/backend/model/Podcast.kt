@@ -61,6 +61,7 @@ data class ShowDetail(
     val ratingCount: Int = 0,
     val saved: Boolean = false,
     val mediaType: String = "AUDIO",
+    val topics: List<String> = emptyList(),
     val episodes: List<EpisodeRow> = emptyList(),
     val total: Int = 0,
     val offset: Int = 0,

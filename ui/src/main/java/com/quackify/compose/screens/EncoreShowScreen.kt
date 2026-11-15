@@ -74,6 +74,7 @@ fun EncoreShowScreen(
     headerColor: Color,
     rating: Double = 0.0,
     ratingCount: Int = 0,
+    topics: List<String> = emptyList(),
     isFollowing: Boolean = false,
     onFollowToggle: () -> Unit = {},
     episodes: List<EpisodeRow> = emptyList(),
@@ -215,6 +216,14 @@ fun EncoreShowScreen(
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = ratingLabel,
+                            style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
+                        )
+                    }
+
+                    if (topics.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = topics.joinToString(" • "),
                             style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
                         )
                     }

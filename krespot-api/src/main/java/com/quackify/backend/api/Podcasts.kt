@@ -51,6 +51,7 @@ object Podcasts {
         val page = episodesPage(context, token, uri, 0, PAGE)
         val rows = page?.rows.orEmpty().distinctBy { it.uri }
         val related = relatedShows(context, token, uri)
+        val averageRating = union.optJSONObject("rating")?.optJSONObject("averageRating")
         val detail = ShowDetail(
             uri = uri,
             name = union.optString("name").plainText(),
@@ -58,10 +59,11 @@ object Podcasts {
             description = union.optString("description").plainText(),
             imageUrl = GraphQl.entityImage(union),
             colorHex = GraphQl.visualColor(union).ifBlank { GraphQl.entityColor(union) },
-            rating = union.optJSONObject("rating")?.optDouble("averageRating", 0.0) ?: 0.0,
-            ratingCount = union.optJSONObject("rating")?.optInt("totalRatingCount", 0) ?: 0,
+            rating = averageRating?.optDouble("average", 0.0) ?: 0.0,
+            ratingCount = averageRating?.optInt("totalRatings", 0) ?: 0,
             saved = union.optBoolean("saved", false),
             mediaType = union.optString("mediaType").plainText().ifBlank { "AUDIO" },
+            topics = showTopics(union),
             episodes = rows,
             total = page?.total ?: 0,
             offset = 0,
@@ -181,6 +183,16 @@ object Podcasts {
         log.i("episodes $uri offset=$offset -> ${page.fetched}/${page.total} next=${page.nextOffset ?: "none"}"
         )
         return page
+    }
+
+    private fun showTopics(union: JSONObject): List<String> {
+        val items = union.optJSONObject("topics")?.optJSONArray("items") ?: return emptyList()
+        val out = LinkedHashSet<String>()
+        for (i in 0 until items.length()) {
+            val title = items.optJSONObject(i)?.optString("title").orEmpty().plainText()
+            if (title.isNotBlank()) out += title
+        }
+        return out.toList()
     }
 
     private suspend fun relatedShows(context: Context, token: String, uri: String): List<ShowCard> {
