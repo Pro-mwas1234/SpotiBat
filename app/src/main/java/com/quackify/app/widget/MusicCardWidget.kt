@@ -83,8 +83,8 @@ class MusicCardWidget : AppWidgetProvider() {
             val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
             val colSpan = if (minWidth > 0) ((minWidth + 30) / 70).coerceAtLeast(1) else 2
             val rowSpan = if (minHeight > 0) ((minHeight + 30) / 70).coerceAtLeast(1) else 3
-            // Base tile size is 2x3. When expanded to 3+ columns or 4+ rows (e.g. 3x3, 3x4, 4x5)
-            val isLarge = colSpan >= 3 || rowSpan >= 4
+            // Base tile size is 2x3. Only show shuffle/repeat when widened to 3+ columns
+            val isLarge = colSpan >= 3
 
             val bridge = PlaybackHost.bridge
             val live = bridge?.let { WidgetSnapshot.from(it.state, it.progress) }?.takeIf { it.hasTrack }
