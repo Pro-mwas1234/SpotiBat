@@ -1449,26 +1449,36 @@ class PlaybackBridge(private val context: Context) {
         ) return emptyList()
         val rows = enhancedRows
         if (rows.size < 2) return rows
-        return rows.sortedBy { it.distribution }.let { sorted ->
-            if (sorted.all { it.distribution < 0.0 }) rows else sorted
-        }
+        return rows.sortedBy { if (it.distribution >= 0.0) it.distribution else Double.MAX_VALUE }
+            .let { sorted ->
+                if (sorted.all { it.distribution < 0.0 }) rows else sorted
+            }
     }
 
     /**
-     * The next candidates are the enhanced rows we have not played in this
-     * session, in local insertion order: the reset sets the order and each
-     * tap appends the server's new feed at the end. The local play history
-     * is what prevents repeats; when the pool runs out it resets and the
-     * server's view takes over again.
+     * The rows after the playing one, in the queue's own order. Smart shuffle
+     * is a cursor over the interleaved rows, not a pool of unheard tracks:
+     * skipping from B lands on whatever follows B (A stays behind it), so
+     * playlist tracks and recommendations both come up in the order the
+     * queue shows. Rows appended by a tap feed keep their place after the
+     * rows the server already positioned.
      */
     private fun enhancedUpcoming(contextUri: String, current: String): List<SmartShuffleRow> {
         val rows = enhancedQueue(contextUri)
         if (rows.isEmpty()) return emptyList()
-        val fresh = rows
-            .filter { it.uri != current && it.uri !in playedSmart }
-        if (fresh.isNotEmpty()) return fresh
-        playedSmart.clear()
-        return rows.filter { it.uri != current }
+        val at = rows.indexOfFirst { it.uri == current }
+        if (at < 0) {
+            // The playing track is not in the lens answer (it predates the
+            // enhance session): everything the server positioned is ahead.
+            return rows.filter { it.distribution >= 0.0 }
+        }
+        val after = rows.drop(at + 1)
+        return if (after.isNotEmpty()) after else {
+            // The cursor sits on the last row: the tail rows the taps fed in
+            // after it are still worth offering before starting over.
+            val unpositioned = rows.filter { it.distribution < 0.0 && it.uri != current }
+            if (unpositioned.isNotEmpty()) unpositioned else rows.filter { it.uri != current }
+        }
     }
 
     /**
@@ -2620,10 +2630,8 @@ class PlaybackBridge(private val context: Context) {
         rearmSmart(chainContext.ifBlank { context })
         val enhancedNow = enhancedQueue(context).any { it.uri == uri && it.enhanced }
         if (enhancedNow) {
-            val current = connect.cluster.value?.let { playingUri(it) }.orEmpty()
-            val upcoming = enhancedUpcoming(chainContext.ifBlank { context }, current)
-            val ahead = upcoming.indexOfFirst { it.uri == uri }
-            if (ahead > 0) upcoming.take(ahead).forEach { playedSmart.add(it.uri) }
+            // Track the consumption so the tap feed knows what played; the
+            // queue cursor itself no longer depends on this set.
             playedSmart.add(uri)
         }
         if (state.isEnhanced != enhancedNow) state = state.copy(isEnhanced = enhancedNow)
