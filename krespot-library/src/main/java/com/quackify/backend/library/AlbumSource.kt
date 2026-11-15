@@ -50,8 +50,9 @@ object AlbumSource {
         val token = EncoreAuth.token(context)
         if (token.isBlank()) return null
         val album = albumPage(context, token, uri, 0, PAGE) ?: return null
+        val coverUrl = GraphQl.entityImage(album)
         val tracks = album.optJSONObject("tracksV2")
-        val rows = albumRows(tracks)
+        val rows = albumRows(tracks, coverUrl)
         val iso = album.optJSONObject("date")?.optString("isoString").orEmpty().plainText()
         val precision = album.optJSONObject("date")?.optString("precision").orEmpty().plainText()
         val copyrights = album.optJSONObject("copyright")?.optJSONArray("items")
@@ -74,7 +75,7 @@ object AlbumSource {
             artistImageUrl = GraphQl.entityImage(artistNode?.optJSONObject("visuals") ?: artistNode),
             year = iso.take(4),
             releaseDate = formatDate(iso, precision),
-            imageUrl = GraphQl.entityImage(album),
+            imageUrl = coverUrl,
             colorHex = GraphQl.visualColor(album).ifBlank { GraphQl.entityColor(album) },
             tracks = rows,
             total = tracks?.optInt("totalCount", rows.size) ?: rows.size,
@@ -97,7 +98,7 @@ object AlbumSource {
         return detail
     }
 
-    suspend fun albumMore(context: Context, uri: String, offset: Int): TrackPage? {
+    suspend fun albumMore(context: Context, uri: String, offset: Int, coverUrl: String = ""): TrackPage? {
         val token = EncoreAuth.token(context)
         if (token.isBlank()) return null
         val variables = JSONObject()
@@ -110,7 +111,7 @@ object AlbumSource {
             ?.optJSONObject("albumUnion")
             ?.optJSONObject("tracksV2")
             ?: return null
-        val rows = albumRows(tracks)
+        val rows = albumRows(tracks, coverUrl)
         return TrackPage(
             rows = rows,
             total = tracks.optInt("totalCount", offset + rows.size),
@@ -181,11 +182,11 @@ object AlbumSource {
             ?.optJSONObject("albumUnion")
     }
 
-    private fun albumRows(tracks: JSONObject?): List<TrackRow> {
+    private fun albumRows(tracks: JSONObject?, coverUrl: String): List<TrackRow> {
         val items = tracks?.optJSONArray("items")
         val rows = ArrayList<TrackRow>(items?.length() ?: 0)
         for (i in 0 until (items?.length() ?: 0)) {
-            track(items?.optJSONObject(i)?.optJSONObject("track"), "")?.let(rows::add)
+            track(items?.optJSONObject(i)?.optJSONObject("track"), "", fallbackImageUrl = coverUrl)?.let(rows::add)
         }
         return rows
     }

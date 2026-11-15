@@ -165,4 +165,18 @@ object Collection2 {
         log.i("taste profile $uri excluded=$excluded ok=$ok")
         return ok
     }
+
+    suspend fun artistBanned(context: Context, uri: String): Boolean =
+        contains(context, ARTIST_BAN, listOf(uri)).contains(uri)
+
+    suspend fun setArtistBanned(context: Context, uri: String, banned: Boolean): Boolean {
+        if (!uri.startsWith("spotify:artist:")) return false
+        val ok = if (banned) {
+            add(context, ARTIST_BAN, listOf(uri))
+        } else {
+            remove(context, ARTIST_BAN, listOf(uri))
+        }
+        log.i("artist ban $uri banned=$banned ok=$ok")
+        return ok
+    }
 }

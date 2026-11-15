@@ -1,7 +1,9 @@
 package com.quackify.compose.sheets
 
 import androidx.compose.foundation.background
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -33,6 +36,7 @@ import com.quackify.compose.R
 import com.quackify.compose.components.EncoreArtworkImage
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
 
 /**
  */
@@ -55,11 +59,12 @@ fun AlbumOptionsSheet(
 ) {
     if (!isOpen) return
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DarkSystemBarsSheet,
+        properties = BackNotDismissSheet,
         sheetState = sheetState,
         containerColor = Color(0xFF242424),
         dragHandle = {
@@ -73,9 +78,11 @@ fun AlbumOptionsSheet(
         },
         modifier = modifier
     ) {
+        BackHandler { onDismiss() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.85f)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .navigationBarsPadding(),
@@ -106,7 +113,7 @@ fun AlbumOptionsSheet(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Album • $artist",
+                text = stringResource(R.string.album_with_year, artist),
                 style = EncoreTheme.typography.bodyMedium.copy(
                     fontSize = 14.sp,
                     color = EncoreColors.TextSecondary
@@ -124,7 +131,7 @@ fun AlbumOptionsSheet(
             )
 
             ContextMenuRowItem(
-                title = "Add to Your Library",
+                title = stringResource(R.string.add_to_your_library),
                 iconRes = R.drawable.encore_icon_plus_24,
                 onClick = {
                     onDismiss()
@@ -133,7 +140,7 @@ fun AlbumOptionsSheet(
             )
 
             ContextMenuRowItem(
-                title = "Download",
+                title = stringResource(R.string.download),
                 iconRes = R.drawable.encore_icon_download_24,
                 onClick = {
                     onDismiss()
@@ -142,7 +149,7 @@ fun AlbumOptionsSheet(
             )
 
             ContextMenuRowItem(
-                title = "Add to queue",
+                title = stringResource(R.string.add_to_queue),
                 iconRes = R.drawable.encore_icon_add_to_queue_24,
                 onClick = {
                     onDismiss()
@@ -152,7 +159,7 @@ fun AlbumOptionsSheet(
 
             if (onAddToPlaylist != null) {
                 ContextMenuRowItem(
-                    title = "Add to playlist",
+                    title = stringResource(R.string.add_to_playlist),
                     iconRes = R.drawable.encore_icon_add_to_playlist_24,
                     onClick = {
                         onDismiss()
@@ -163,7 +170,7 @@ fun AlbumOptionsSheet(
 
             if (onAlbumRadio != null) {
                 ContextMenuRowItem(
-                    title = "Go to album radio",
+                    title = stringResource(R.string.go_to_album_radio),
                     iconRes = R.drawable.encore_icon_radio_24,
                     onClick = {
                         onDismiss()
@@ -173,7 +180,7 @@ fun AlbumOptionsSheet(
             }
 
             ContextMenuRowItem(
-                title = "Go to artist",
+                title = stringResource(R.string.go_to_artist),
                 iconRes = R.drawable.encore_icon_artist_24,
                 onClick = {
                     onDismiss()
@@ -182,7 +189,7 @@ fun AlbumOptionsSheet(
             )
 
             ContextMenuRowItem(
-                title = "Share",
+                title = stringResource(R.string.share),
                 iconRes = R.drawable.encore_icon_share_android_24,
                 onClick = {
                     onDismiss()
@@ -207,16 +214,18 @@ fun ArtistOptionsSheet(
     isFollowing: Boolean = false,
     onFollowToggle: () -> Unit = {},
     onGoToRadio: () -> Unit = {},
+    isBanned: Boolean = false,
     onDontPlayArtist: () -> Unit = {},
     onShare: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (!isOpen) return
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        properties = BackNotDismissSheet,
         sheetState = sheetState,
         containerColor = Color(0xFF242424),
         dragHandle = {
@@ -230,9 +239,11 @@ fun ArtistOptionsSheet(
         },
         modifier = modifier
     ) {
+        BackHandler { onDismiss() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.85f)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .navigationBarsPadding(),
@@ -263,7 +274,7 @@ fun ArtistOptionsSheet(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Artist",
+                text = stringResource(R.string.artist),
                 style = EncoreTheme.typography.bodyMedium.copy(
                     fontSize = 14.sp,
                     color = EncoreColors.TextSecondary
@@ -279,7 +290,7 @@ fun ArtistOptionsSheet(
             )
 
             ContextMenuRowItem(
-                title = if (isFollowing) "Following" else "Follow",
+                title = if (isFollowing) stringResource(R.string.following) else "Follow",
                 iconRes = if (isFollowing) R.drawable.encore_icon_check_24 else R.drawable.encore_icon_plus_24,
                 iconTint = if (isFollowing) EncoreColors.Green else EncoreColors.TextPrimary,
                 onClick = {
@@ -289,7 +300,7 @@ fun ArtistOptionsSheet(
             )
 
             ContextMenuRowItem(
-                title = "Don't play this artist",
+                title = if (isBanned) stringResource(R.string.allow_this_artist_to_play) else stringResource(R.string.dont_play_this_artist),
                 iconRes = R.drawable.encore_icon_ban_24,
                 onClick = {
                     onDismiss()
@@ -298,7 +309,7 @@ fun ArtistOptionsSheet(
             )
 
             ContextMenuRowItem(
-                title = "Go to artist radio",
+                title = stringResource(R.string.go_to_artist_radio),
                 iconRes = R.drawable.encore_icon_radio_24,
                 onClick = {
                     onDismiss()
@@ -307,7 +318,7 @@ fun ArtistOptionsSheet(
             )
 
             ContextMenuRowItem(
-                title = "Share",
+                title = stringResource(R.string.share),
                 iconRes = R.drawable.encore_icon_share_android_24,
                 onClick = {
                     onDismiss()

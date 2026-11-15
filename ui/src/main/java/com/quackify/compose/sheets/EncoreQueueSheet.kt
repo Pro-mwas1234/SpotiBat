@@ -2,12 +2,14 @@ package com.quackify.compose.sheets
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -32,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -56,10 +59,11 @@ import com.quackify.compose.theme.EncoreCornerRadii
 import com.quackify.compose.theme.EncoreSpacers
 import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
 
 /**
- * - "Now playing" item with animated Encore equalizer indicator
- * - "Next in queue" with dismiss action and reordering handles
+ * - stringResource(R.string.now_playing) item with animated Encore equalizer indicator
+ * - stringResource(R.string.next_in_queue) with dismiss action and reordering handles
  * - "Next from: [Context]" with upcoming queue items
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,7 +82,7 @@ fun EncoreQueueSheet(
     onReorderQueue: (List<TrackItem>) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val listState = rememberLazyListState()
     val haptics = LocalHapticFeedback.current
     val queueRows = remember(userQueue) { userQueue.toQueueRows() }
@@ -104,7 +108,7 @@ fun EncoreQueueSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        properties = DarkSystemBarsSheet,
+        properties = BackNotDismissSheet,
         sheetState = sheetState,
         containerColor = EncoreColors.Background,
         contentColor = EncoreColors.TextPrimary,
@@ -112,9 +116,11 @@ fun EncoreQueueSheet(
         dragHandle = null,
         modifier = modifier
     ) {
+        BackHandler { onDismissRequest() }
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.85f)
                 .statusBarsPadding()
                 .navigationBarsPadding()
         ) {
@@ -127,7 +133,7 @@ fun EncoreQueueSheet(
             ) {
                 EncoreIconButton(
                     iconRes = R.drawable.encore_icon_chevron_down_24,
-                    contentDescription = "Collapse queue",
+                    contentDescription = stringResource(R.string.collapse_queue),
                     onClick = onDismissRequest,
                     size = 40.dp,
                     iconSize = 24.dp,
@@ -135,14 +141,14 @@ fun EncoreQueueSheet(
                 )
 
                 Text(
-                    text = "Queue",
+                    text = stringResource(R.string.queue),
                     style = EncoreTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
                 )
 
                 if (userQueue.isNotEmpty()) {
                     TextButton(onClick = onClearQueue) {
                         Text(
-                            text = "Clear queue",
+                            text = stringResource(R.string.clear_queue),
                             style = EncoreTheme.typography.bodySmallBold.copy(color = EncoreColors.Green)
                         )
                     }
@@ -159,7 +165,7 @@ fun EncoreQueueSheet(
             ) {
                 item {
                     Text(
-                        text = "Now playing",
+                        text = stringResource(R.string.now_playing),
                         style = EncoreTheme.typography.bodySmallBold.copy(color = EncoreColors.TextSecondary),
                         modifier = Modifier.padding(horizontal = EncoreSpacers.Base, vertical = EncoreSpacers.Tighter)
                     )
@@ -208,7 +214,7 @@ fun EncoreQueueSheet(
                 if (queueRows.isNotEmpty()) {
                     item {
                         Text(
-                            text = "Next in queue",
+                            text = stringResource(R.string.next_in_queue),
                             style = EncoreTheme.typography.bodySmallBold.copy(color = EncoreColors.TextSecondary),
                             modifier = Modifier.padding(horizontal = EncoreSpacers.Base, vertical = EncoreSpacers.Tighter)
                         )
@@ -245,7 +251,7 @@ fun EncoreQueueSheet(
                     item {
                         Text(
                             text = if (queueSourceContext.isBlank()) {
-                                "Next up"
+                                stringResource(R.string.next_up)
                             } else {
                                 "Next from: $queueSourceContext"
                             },
@@ -276,10 +282,11 @@ private fun QueueTrackRow(
     handleModifier: Modifier = Modifier,
     modifier: Modifier = Modifier
 ) {
+    val isBanned = com.quackify.compose.bans.ArtistBans.isBanned(track.artistUri)
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onSelect)
+            .clickable(enabled = !isBanned, onClick = onSelect)
             .padding(horizontal = EncoreSpacers.Base, vertical = EncoreSpacers.Tighter2),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -295,7 +302,10 @@ private fun QueueTrackRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = track.title,
-                style = EncoreTheme.typography.bodyMediumBold.copy(color = EncoreColors.TextPrimary),
+                style = EncoreTheme.typography.bodyMediumBold.copy(
+                    color = if (isBanned) EncoreColors.TextSecondary.copy(alpha = 0.55f)
+                    else EncoreColors.TextPrimary
+                ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -307,7 +317,7 @@ private fun QueueTrackRow(
                 if (track.isEnhanced) {
                     Icon(
                         painter = painterResource(id = R.drawable.encore_icon_enhance_badge_16),
-                        contentDescription = "Smart Shuffle recommendation",
+                        contentDescription = stringResource(R.string.smart_shuffle_recommendation),
                         tint = EncoreColors.Green,
                         modifier = Modifier
                             .padding(end = 4.dp)
@@ -316,7 +326,10 @@ private fun QueueTrackRow(
                 }
                 Text(
                     text = track.artist,
-                    style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
+                    style = EncoreTheme.typography.bodySmall.copy(
+                        color = EncoreColors.TextSecondary.takeIf { !isBanned }
+                            ?: EncoreColors.TextSecondary.copy(alpha = 0.55f)
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -326,7 +339,7 @@ private fun QueueTrackRow(
         if (onRemove != null) {
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_x_24,
-                contentDescription = "Remove from queue",
+                contentDescription = stringResource(R.string.remove_from_queue),
                 onClick = onRemove,
                 size = 36.dp,
                 iconSize = 18.dp,
@@ -341,7 +354,7 @@ private fun QueueTrackRow(
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.encore_icon_sort_24),
-                    contentDescription = "Reorder",
+                    contentDescription = stringResource(R.string.reorder),
                     tint = EncoreColors.TextSecondary,
                     modifier = Modifier.size(20.dp)
                 )

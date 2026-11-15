@@ -3,6 +3,7 @@ package com.quackify.compose.sheets
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,14 +54,16 @@ import com.quackify.backend.model.ShelfItem
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.backend.library.Krespot
+import androidx.compose.ui.res.stringResource
+import com.quackify.compose.R
 
-private data class DiscographyTab(val key: String, val label: String)
+private data class DiscographyTab(val key: String, val labelRes: Int)
 
 private val TABS = listOf(
-    DiscographyTab("all", "Popular releases"),
-    DiscographyTab("albums", "Albums"),
-    DiscographyTab("singles", "Singles and EPs"),
-    DiscographyTab("compilations", "Compilations"),
+    DiscographyTab("all", R.string.popular_releases),
+    DiscographyTab("albums", R.string.albums),
+    DiscographyTab("singles", R.string.singles_and_eps),
+    DiscographyTab("compilations", R.string.compilations),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,7 +78,8 @@ fun DiscographySheet(
 ) {
     if (!isOpen) return
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val context = LocalContext.current
     val listState = rememberLazyListState()
     val gridState = rememberLazyGridState()
@@ -127,7 +131,7 @@ fun DiscographySheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DarkSystemBarsSheet,
+        properties = BackNotDismissSheet,
         sheetState = sheetState,
         containerColor = EncoreColors.Card,
         dragHandle = {
@@ -141,6 +145,7 @@ fun DiscographySheet(
         },
         modifier = modifier
     ) {
+        BackHandler { onDismiss() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -155,7 +160,7 @@ fun DiscographySheet(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Discography",
+                        text = stringResource(R.string.discography),
                         style = EncoreTheme.typography.titleLarge.copy(fontSize = 20.sp)
                     )
                     Text(
@@ -166,12 +171,12 @@ fun DiscographySheet(
                     )
                 }
                 SheetPill(
-                    text = if (alphabetical) "A-Z" else "Recent",
+                    text = if (alphabetical) stringResource(R.string.az) else stringResource(R.string.recent),
                     onClick = { alphabetical = !alphabetical }
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 SheetPill(
-                    text = if (grid) "Grid" else "List",
+                    text = if (grid) stringResource(R.string.grid) else stringResource(R.string.list),
                     onClick = { grid = !grid }
                 )
             }
@@ -189,7 +194,7 @@ fun DiscographySheet(
                     val count = counts[tab.key] ?: 0
                     if (tab.key != "all" && count == 0) return@forEach
                     DiscographyChip(
-                        label = tab.label,
+                        label = stringResource(tab.labelRes),
                         count = count,
                         selected = section == tab.key,
                         onClick = { if (section != tab.key) section = tab.key }
@@ -342,7 +347,7 @@ private fun StatusTile(failed: Boolean) {
     ) {
         if (failed) {
             Text(
-                text = "Could not load this section",
+                text = stringResource(R.string.could_not_load_this_section),
                 style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary)
             )
         } else {
@@ -360,7 +365,7 @@ private fun EmptyTile() {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "Nothing here yet",
+            text = stringResource(R.string.nothing_here_yet),
             style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary)
         )
     }

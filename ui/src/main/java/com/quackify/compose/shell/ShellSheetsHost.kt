@@ -3,8 +3,13 @@ package com.quackify.compose.shell
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.quackify.backend.api.ArtistBanStore
 import com.quackify.backend.api.Collection2
-import com.quackify.backend.api.Library
 import com.quackify.backend.core.auth.EncoreAuth
 import com.quackify.backend.model.AlbumDetail
 import com.quackify.backend.model.ArtistDetail
@@ -14,6 +19,8 @@ import com.quackify.compose.sheets.EntityOptions
 import com.quackify.compose.sheets.SleepTimerOption
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.quackify.compose.R
 
 internal class ShellSheetsEnv(
     val flags: ShellUiFlags,
@@ -51,6 +58,8 @@ internal class ShellSheetsEnv(
     val albumDetail: AlbumDetail?,
     val artistDetail: ArtistDetail?,
     val artistFollowed: Boolean?,
+    val artistBanned: Boolean?,
+    val onArtistBanChanged: ((String, Boolean) -> Unit)?,
     val trackTasteExcluded: Boolean?,
     val setTrackTasteExcluded: (Boolean?) -> Unit,
     val tasteExclusionCache: MutableMap<String, Boolean>,
@@ -93,12 +102,38 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
     val flags = env.flags
     val local = env.local
     val currentTrackUri = playbackState?.trackUri.orEmpty()
+    val artistBlockedMsg = stringResource(R.string.artist_blocked)
+    val artistUnblockedMsg = stringResource(R.string.artist_unblocked)
+    val artistUpdateFailedMsg = stringResource(R.string.couldnt_update_this_artist)
+    val tasteExcludedMsg = stringResource(R.string.excluded_from_taste_profile)
+    val tasteIncludedMsg = stringResource(R.string.included_in_taste_profile)
+    val tasteUpdateFailedMsg = stringResource(R.string.couldnt_update_taste_profile)
+    val trackRadioTitle = stringResource(R.string.radio_title, local.trackForOptions?.title.orEmpty())
+    val albumRadioTitle = stringResource(R.string.radio_title, active.albumTitle)
+
+    val sheetArtistFromPlayer = flags.isArtistOptionsFromPlayer
+    val sheetArtistName = if (sheetArtistFromPlayer) local.artistOptionsName else active.artistName
+    val sheetArtistUri = if (sheetArtistFromPlayer) local.artistOptionsUri else active.artistUri
+    val sheetArtistAvatarUrl = if (sheetArtistFromPlayer) {
+        local.artistOptionsAvatarUrl
+    } else {
+        active.artistAvatarUrl
+            ?: env.artistDetail?.imageUrl?.takeIf { it.isNotBlank() }
+            ?: env.artistDetail?.headerImageUrl?.takeIf { it.isNotBlank() }
+    }
+    val artistRadioTitle = stringResource(R.string.radio_title, sheetArtistName)
+    var artistBannedState by remember { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(flags.isArtistOptionsOpen, sheetArtistUri) {
+        if (!flags.isArtistOptionsOpen) return@LaunchedEffect
+        if (!sheetArtistUri.startsWith("spotify:artist:")) return@LaunchedEffect
+        artistBannedState = runCatching { Collection2.artistBanned(env.context, sheetArtistUri) }.getOrNull()
+    }
 
     val playlistEntity = if (active.playlistUri.isBlank() && active.playlistTitle.isBlank()) null
     else EntityOptions(
         title = env.playlistDetail?.title?.takeIf { it.isNotBlank() } ?: active.playlistTitle,
         subtitle = if (active.playlistUri.startsWith("spotify:playlist:"))
-            "Playlist • " + (env.playlistDetail?.creator?.takeIf { it.isNotBlank() } ?: env.userDisplayName)
+            stringResource(R.string.playlist_by, env.playlistDetail?.creator?.takeIf { it.isNotBlank() } ?: env.userDisplayName)
         else "",
         imageUrl = active.playlistCoverUrl ?: env.playlistDetail?.imageUrl?.takeIf { it.isNotBlank() },
         uri = active.playlistUri,
@@ -127,7 +162,8 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
             ?.takeIf { it.isNotBlank() }
             ?.let { uri ->
                 uri != currentTrackUri &&
-                    playbackState?.queue.orEmpty().none { it.uri == uri }
+                    playbackState?.queue.orEmpty().none { it.uri == uri } &&
+                    !com.quackify.compose.bans.ArtistBans.isBanned(local.trackForOptions?.artistUri.orEmpty())
             } ?: false,
         currentTrackTitle = env.currentTrackTitle,
         currentTrackArtist = env.currentArtist,
@@ -140,25 +176,49 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
         albumArtist = active.albumArtist,
         albumCoverUrl = active.albumCoverUrl,
         albumUri = active.albumUri.ifBlank { env.albumDetail?.uri.orEmpty() },
-        artistName = active.artistName,
-        artistAvatarUrl = active.artistAvatarUrl
-            ?: env.artistDetail?.imageUrl?.takeIf { it.isNotBlank() }
-            ?: env.artistDetail?.headerImageUrl?.takeIf { it.isNotBlank() },
-        artistUri = active.artistUri,
+        artistName = sheetArtistName,
+        artistAvatarUrl = sheetArtistAvatarUrl,
+        artistUri = sheetArtistUri,
         artistFollowing = env.artistFollowed == true,
+        artistBanned = artistBannedState == true,
         onArtistFollowToggle = {
-            if (active.artistUri.startsWith("spotify:artist:")) {
-                env.onArtistFollowToggle?.invoke(active.artistUri, env.artistFollowed != true)
+            if (sheetArtistUri.startsWith("spotify:artist:")) {
+                env.onArtistFollowToggle?.invoke(sheetArtistUri, env.artistFollowed != true)
+            }
+        },
+        onDontPlayArtist = toggle@{
+            if (!sheetArtistUri.startsWith("spotify:artist:")) return@toggle
+            val previous = artistBannedState
+            val next = previous != true
+            artistBannedState = next
+            env.shellScope.launch {
+                val ok = Collection2.setArtistBanned(env.context, sheetArtistUri, next)
+                if (!ok) {
+                    artistBannedState = previous
+                } else {
+                    env.onArtistBanChanged?.invoke(sheetArtistUri, next)
+                    ArtistBanStore.invalidate()
+                    com.quackify.compose.bans.ArtistBans.setBanned(sheetArtistUri, next)
+                }
+                Toast.makeText(
+                    env.context,
+                    when {
+                        ok && next -> artistBlockedMsg
+                        ok -> artistUnblockedMsg
+                        else -> artistUpdateFailedMsg
+                    },
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         },
         onArtistRadio = {
             flags.isArtistOptionsOpen = false
-            val artistUriNow = active.artistUri
+            val artistUriNow = sheetArtistUri
             if (artistUriNow.startsWith("spotify:artist:")) {
                 env.shellScope.launch {
                     val radio = env.onArtistRadio?.invoke(artistUriNow)
                     if (radio != null && radio.startsWith("spotify:playlist:")) {
-                        env.openPlaylist(active.artistName + " Radio", radio)
+                        env.openPlaylist(artistRadioTitle, radio)
                     }
                 }
             }
@@ -186,7 +246,10 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
         onDismissTrackOptions = { flags.isTrackOptionsOpen = false },
         onDismissPlaylistOptions = { flags.isPlaylistOptionsOpen = false },
         onDismissAlbumOptions = { flags.isAlbumOptionsOpen = false },
-        onDismissArtistOptions = { flags.isArtistOptionsOpen = false },
+        onDismissArtistOptions = {
+            flags.isArtistOptionsOpen = false
+            flags.isArtistOptionsFromPlayer = false
+        },
         onDismissSort = { flags.isSortSheetOpen = false },
         onDismissCreate = { flags.isCreateSheetOpen = false },
         onDismissDevice = { flags.isDeviceSheetOpen = false },
@@ -194,13 +257,6 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
         onDismissSleepTimer = { flags.isSleepTimerOpen = false },
         onCanvasResolutionClick = { flags.isCanvasResolutionSheetOpen = true },
         onDismissCanvasResolution = { flags.isCanvasResolutionSheetOpen = false },
-        onAddToPlaylist = {
-            local.trackForOptions?.let { track ->
-                flags.isAddToPlaylistOpen = true
-                local.addTrackTarget = track
-                env.onAddToPlaylist?.invoke(track)
-            }
-        },
         onShowCredits = {
             local.trackForOptions?.let { track ->
                 flags.isCreditsOpen = true
@@ -242,26 +298,6 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
         },
         onSettings = env.handleOpenSettings,
         onLogout = { env.onLogout?.invoke() },
-        onLikeToggle = { liked ->
-            val uri = local.trackForOptions?.uri.orEmpty()
-            when {
-                uri.isNotBlank() && uri == currentTrackUri && env.playerListener != null ->
-                    if (playbackState?.isLiked != liked) env.playerListener.onLikeToggle()
-                uri.startsWith("spotify:track:") -> {
-                    local.trackForOptions = local.trackForOptions?.copy(saved = liked)
-                    local.trackOptionsSaved = liked
-                    env.shellScope.launch {
-                        val ok = Library.setSaved(env.context, listOf(uri), liked)
-                        if (!ok && uri == local.trackForOptions?.uri) {
-                            local.trackForOptions = local.trackForOptions?.copy(saved = !liked)
-                            local.trackOptionsSaved = !liked
-                        }
-                    }
-                }
-                env.playerListener != null -> env.playerListener.onLikeToggle()
-                else -> local.isLiked = liked
-            }
-        },
         onAddToQueue = { track -> env.handleQueueAdd(track.uri) },
         onViewArtist = { artist, uri ->
             flags.isTrackOptionsOpen = false
@@ -273,13 +309,12 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
             env.setIsPlayerExpanded(false)
             env.openAlbum(album, local.trackForOptions?.artist ?: "", uri)
         },
-        onSleepTimerClick = { flags.isSleepTimerOpen = true },
+        onSortSelected = { selected, direction -> local.sortOption = selected; local.sortDirection = direction },
         onGoToArtist = { artist ->
             flags.isAlbumOptionsOpen = false
             env.setIsPlayerExpanded(false)
             env.openArtist(artist, env.albumDetail?.artistUri.orEmpty())
         },
-        onSortSelected = { selected, direction -> local.sortOption = selected; local.sortDirection = direction },
         onCreatePlaylist = {
             env.shellScope.launch {
                 local.playlistCreateName = env.onPlaylistDefaultName?.invoke() ?: "My Playlist"
@@ -289,10 +324,9 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
         onCreateFolder = { local.folderDraft = FolderDraft(mode = FolderMode.CREATE) },
         onSelectDevice = { id -> env.setLocalDevice(id); flags.isDeviceSheetOpen = false; env.playerListener?.onSelectDevice(id) },
         onDeviceVisible = { visible -> env.playerListener?.onDeviceSheetVisible(visible) },
-        onVolumeChange = { id, level -> env.playerListener?.onVolumeChange(id, level) },
         userQueue = playbackState?.queue.orEmpty(),
         trackTasteExcluded = env.trackTasteExcluded,
-        trackSavedOverride = local.trackOptionsSaved,
+        trackPlaysOverride = local.trackOptionsPlays,
         onToggleTasteExclusion = toggle@{ exclude ->
             val track = local.trackForOptions
             val uri = track?.uri.orEmpty()
@@ -310,9 +344,9 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
                     Toast.makeText(
                         env.context,
                         when {
-                            ok && exclude -> "Excluded from your taste profile"
-                            ok -> "Included in your taste profile"
-                            else -> "Couldn't update your taste profile"
+                            ok && exclude -> tasteExcludedMsg
+                            ok -> tasteIncludedMsg
+                            else -> tasteUpdateFailedMsg
                         },
                         Toast.LENGTH_SHORT
                     ).show()
@@ -370,7 +404,7 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
                 env.shellScope.launch {
                     val radio = env.onArtistRadio?.invoke(trackNow.uri)
                     if (radio != null && radio.startsWith("spotify:playlist:")) {
-                        env.openPlaylist(trackNow.title + " Radio", radio)
+                        env.openPlaylist(trackRadioTitle, radio)
                     }
                 }
             }
@@ -383,7 +417,7 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
                 env.shellScope.launch {
                     val radio = env.onArtistRadio?.invoke(albumUriNow)
                     if (radio != null && radio.startsWith("spotify:playlist:")) {
-                        env.openPlaylist(active.albumTitle + " Radio", radio)
+                        env.openPlaylist(albumRadioTitle, radio)
                     }
                 }
             }

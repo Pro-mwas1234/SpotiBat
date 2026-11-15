@@ -8,6 +8,8 @@ import com.quackify.compose.library.LibraryItem
 import com.quackify.compose.library.LibraryItemType
 import com.quackify.compose.playlist.TrackItem
 import com.quackify.compose.sheets.EntityOptions
+import androidx.compose.ui.res.stringResource
+import com.quackify.compose.R
 
 internal class ShellActions(
     private val flags: ShellUiFlags,

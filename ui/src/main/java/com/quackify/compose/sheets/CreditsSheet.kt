@@ -2,6 +2,7 @@ package com.quackify.compose.sheets
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,6 +35,8 @@ import com.quackify.backend.model.Credits
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreSpacers
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
+import com.quackify.compose.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,11 +52,12 @@ fun CreditsSheet(
 ) {
     if (!isOpen) return
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DarkSystemBarsSheet,
+        properties = BackNotDismissSheet,
         sheetState = sheetState,
         containerColor = EncoreColors.Card,
         dragHandle = {
@@ -67,6 +71,7 @@ fun CreditsSheet(
         },
         modifier = modifier
     ) {
+        BackHandler { onDismiss() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -85,7 +90,7 @@ fun CreditsSheet(
                 Spacer(modifier = Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Credits",
+                        text = stringResource(R.string.credits),
                         style = EncoreTheme.typography.marginal.copy(color = EncoreColors.TextSecondary)
                     )
                     Text(
@@ -108,13 +113,13 @@ fun CreditsSheet(
             if (credits == null) {
                 Spacer(modifier = Modifier.height(EncoreSpacers.Looser))
                 Text(
-                    text = "Loading credits…",
+                    text = stringResource(R.string.loading_credits),
                     style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextSecondary)
                 )
             } else if (credits.isEmpty) {
                 Spacer(modifier = Modifier.height(EncoreSpacers.Looser))
                 Text(
-                    text = "No credits for this track",
+                    text = stringResource(R.string.no_credits_for_this_track),
                     style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextSecondary)
                 )
             } else {
@@ -170,7 +175,7 @@ fun CreditsSheet(
                     HorizontalDivider(color = EncoreColors.PureBlack.copy(alpha = 0.5f), thickness = 1.dp)
                     Spacer(modifier = Modifier.height(EncoreSpacers.Base))
                     Text(
-                        text = "Sources",
+                        text = stringResource(R.string.sources),
                         style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                     Spacer(modifier = Modifier.height(EncoreSpacers.Tighter2))

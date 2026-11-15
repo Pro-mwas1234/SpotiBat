@@ -62,12 +62,13 @@ import com.quackify.compose.R
 import com.quackify.compose.components.EncoreArtworkImage
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
 
 /**
  * - Image 1: Discard changes dialog
- * - Image 2: Initial Edit mode (←, "Edit playlist", Green "Save", circular minus ⊖, artwork with play triangle, sort handle ≡, bottom "Select" pill)
+ * - Image 2: Initial Edit mode (←, stringResource(R.string.edit_playlist), Green stringResource(R.string.save), circular minus ⊖, artwork with play triangle, sort handle ≡, bottom stringResource(R.string.select) pill)
  * - Image 3: Edit mode with changes (Top capsule with Undo/Redo arrows)
- * - Image 4: Select mode (Checkboxes ☐/☑, "N selected" title, bottom bar with circular ✕, "Move", "Remove" pills)
+ * - Image 4: Select mode (Checkboxes ☐/☑, "N selected" title, bottom bar with circular ✕, stringResource(R.string.move), stringResource(R.string.remove) pills)
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -229,7 +230,7 @@ fun PlaylistEditModeContent(
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.encore_icon_arrow_left_24),
-                        contentDescription = "Back",
+                        contentDescription = stringResource(R.string.back),
                         tint = Color.White,
                         modifier = Modifier.size(24.dp)
                     )
@@ -242,11 +243,11 @@ fun PlaylistEditModeContent(
                     AnimatedContent(
                         targetState = Triple(isSelectMode, selectedIndices.size, hasChanges),
                         transitionSpec = { fadeIn() togetherWith fadeOut() },
-                        label = "TopBarCenter"
+                        label = stringResource(R.string.topbarcenter)
                     ) { (inSelect, selCount, dirty) ->
                         if (inSelect) {
                             Text(
-                                text = "$selCount selected",
+                                text = stringResource(R.string.selected_count, selCount),
                                 style = EncoreTheme.typography.titleMedium.copy(
                                     fontSize = 17.sp,
                                     fontWeight = FontWeight.Bold,
@@ -269,7 +270,7 @@ fun PlaylistEditModeContent(
                                 ) {
                                     Icon(
                                         painter = painterResource(id = R.drawable.encore_icon_undo_24),
-                                        contentDescription = "Undo",
+                                        contentDescription = stringResource(R.string.undo),
                                         tint = if (canUndo) Color.White else Color(0xFF666666),
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -282,7 +283,7 @@ fun PlaylistEditModeContent(
                                 ) {
                                     Icon(
                                         painter = painterResource(id = R.drawable.encore_icon_undo_24),
-                                        contentDescription = "Redo",
+                                        contentDescription = stringResource(R.string.redo),
                                         tint = if (canRedo) Color.White else Color(0xFF666666),
                                         modifier = Modifier
                                             .size(20.dp)
@@ -292,7 +293,7 @@ fun PlaylistEditModeContent(
                             }
                         } else {
                             Text(
-                                text = "Edit playlist",
+                                text = stringResource(R.string.edit_playlist),
                                 style = EncoreTheme.typography.titleMedium.copy(
                                     fontSize = 17.sp,
                                     fontWeight = FontWeight.Bold,
@@ -311,7 +312,7 @@ fun PlaylistEditModeContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Save",
+                            text = stringResource(R.string.save),
                             style = EncoreTheme.typography.bodyMedium.copy(
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
@@ -413,7 +414,7 @@ fun PlaylistEditModeContent(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Select",
+                        text = stringResource(R.string.select),
                         style = EncoreTheme.typography.bodyMedium.copy(
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
@@ -442,7 +443,7 @@ fun PlaylistEditModeContent(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.encore_icon_x_24),
-                            contentDescription = "Exit select mode",
+                            contentDescription = stringResource(R.string.exit_select_mode),
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
@@ -460,7 +461,7 @@ fun PlaylistEditModeContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Move",
+                            text = stringResource(R.string.move),
                             style = EncoreTheme.typography.bodyMedium.copy(
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
@@ -488,7 +489,7 @@ fun PlaylistEditModeContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Remove",
+                            text = stringResource(R.string.remove),
                             style = EncoreTheme.typography.bodyMedium.copy(
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
@@ -515,7 +516,7 @@ fun PlaylistEditModeContent(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.encore_icon_arrow_left_24),
-                            contentDescription = "Back to actions",
+                            contentDescription = stringResource(R.string.back_to_actions),
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
@@ -541,7 +542,7 @@ fun PlaylistEditModeContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "To top",
+                            text = stringResource(R.string.to_top),
                             style = EncoreTheme.typography.bodyMedium.copy(
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
@@ -570,7 +571,7 @@ fun PlaylistEditModeContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "To bottom",
+                            text = stringResource(R.string.to_bottom),
                             style = EncoreTheme.typography.bodyMedium.copy(
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
@@ -631,7 +632,7 @@ private fun EditTrackRow(
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.encore_icon_minus_alt_24),
-                    contentDescription = "Remove track",
+                    contentDescription = stringResource(R.string.remove_track),
                     tint = Color(0xFF888888),
                     modifier = Modifier.size(22.dp)
                 )
@@ -658,7 +659,7 @@ private fun EditTrackRow(
                     if (isSelected) {
                         Icon(
                             painter = painterResource(id = R.drawable.encore_icon_check_24),
-                            contentDescription = "Selected",
+                            contentDescription = stringResource(R.string.selected),
                             tint = Color.Black,
                             modifier = Modifier.size(14.dp)
                         )
@@ -692,7 +693,7 @@ private fun EditTrackRow(
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.encore_icon_play_16),
-                    contentDescription = "Play preview",
+                    contentDescription = stringResource(R.string.play_preview),
                     tint = Color.White,
                     modifier = Modifier.size(10.dp)
                 )
@@ -737,7 +738,7 @@ private fun EditTrackRow(
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.encore_icon_sort_24),
-                contentDescription = "Drag to reorder",
+                contentDescription = stringResource(R.string.drag_to_reorder),
                 tint = Color(0xFF888888),
                 modifier = Modifier.size(22.dp)
             )

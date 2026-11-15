@@ -63,6 +63,7 @@ internal fun parseDevice(node: JSONObject, activeId: String, localId: String): C
     val id = node.devText("device_id")
     if (id.isBlank()) return null
     val caps = node.optJSONObject("capabilities") ?: JSONObject()
+    if (caps.optBoolean("hidden", false)) return null
     val name = node.devText("name")
     return ConnectDevice(
         id = id,
@@ -92,10 +93,12 @@ internal fun parseDevices(root: JSONObject, activeId: String, localId: String): 
     val map = root.optJSONObject("devices") ?: return emptyList()
     val keys = map.keys()
     val out = ArrayList<ConnectDevice>(map.length())
+    val seen = HashSet<String>(map.length())
     while (keys.hasNext()) {
         val key = keys.next()
         val node = map.optJSONObject(key) ?: continue
-        parseDevice(node, activeId, localId)?.let { out.add(it) }
+        val parsed = parseDevice(node, activeId, localId) ?: continue
+        if (seen.add(parsed.id)) out.add(parsed)
     }
     return out
 }

@@ -73,6 +73,7 @@ import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.theme.rememberBottomPadding
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
 
 data class PodcastEpisode(
     val id: String,
@@ -132,7 +133,12 @@ fun EncorePodcastScreen(
     val tabsHeight = 48.dp
     val tabsHeightPx = with(density) { tabsHeight.toPx() }
 
-    val tabs = remember { listOf("Episodes", "About", "More like this") }
+    val episodesTabLabel = stringResource(R.string.episodes)
+    val aboutTabLabel = stringResource(R.string.about)
+    val moreLikeTabLabel = stringResource(R.string.more_like_this)
+    val tabs = remember(episodesTabLabel, aboutTabLabel, moreLikeTabLabel) {
+        listOf(episodesTabLabel, aboutTabLabel, moreLikeTabLabel)
+    }
     val pagerState = rememberPagerState(initialPage = 0) { tabs.size }
 
     val episodesListState = rememberLazyListState()
@@ -346,7 +352,7 @@ fun EncorePodcastScreen(
                     }
 
                     Text(
-                        text = "★ $rating",
+                        text = stringResource(R.string.rating_stars, rating),
                         style = EncoreTheme.typography.marginal.copy(
                             color = EncoreColors.TextSecondary,
                             fontSize = 12.sp,
@@ -389,7 +395,7 @@ fun EncorePodcastScreen(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.encore_icon_play_24),
-                            contentDescription = "Play teaser",
+                            contentDescription = stringResource(R.string.play_teaser),
                             tint = Color.White,
                             modifier = Modifier.size(16.dp)
                         )
@@ -405,7 +411,7 @@ fun EncorePodcastScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (isFollowing) "Following" else "Follow",
+                            text = if (isFollowing) stringResource(R.string.following) else "Follow",
                             style = EncoreTheme.typography.bodySmallBold.copy(
                                 color = followTextColor,
                                 fontSize = 13.sp
@@ -424,7 +430,7 @@ fun EncorePodcastScreen(
                             painter = painterResource(
                                 id = if (hasNotifications) R.drawable.encore_icon_notifications_active_24 else R.drawable.encore_icon_notification_new_24
                             ),
-                            contentDescription = "Notifications",
+                            contentDescription = stringResource(R.string.notifications),
                             tint = if (hasNotifications) EncoreColors.Green else EncoreColors.TextSecondary,
                             modifier = Modifier.size(22.dp)
                         )
@@ -439,7 +445,7 @@ fun EncorePodcastScreen(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.encore_icon_settings_24),
-                            contentDescription = "Show settings",
+                            contentDescription = stringResource(R.string.show_settings),
                             tint = EncoreColors.TextSecondary,
                             modifier = Modifier.size(22.dp)
                         )
@@ -533,7 +539,7 @@ fun EncorePodcastScreen(
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Text(
-                                                text = "All episodes • Newest",
+                                                text = stringResource(R.string.all_episodes_newest),
                                                 style = EncoreTheme.typography.bodySmallBold.copy(
                                                     color = Color.White,
                                                     fontSize = 12.sp,
@@ -543,7 +549,7 @@ fun EncorePodcastScreen(
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Icon(
                                                 painter = painterResource(id = R.drawable.encore_icon_chevron_down_24),
-                                                contentDescription = "Filter",
+                                                contentDescription = stringResource(R.string.filter),
                                                 tint = Color.White,
                                                 modifier = Modifier.size(16.dp)
                                             )
@@ -582,7 +588,7 @@ fun EncorePodcastScreen(
                             item {
                                 if (aboutDescription.isNotBlank()) {
                                     Text(
-                                        text = "About",
+                                        text = stringResource(R.string.about),
                                         style = EncoreTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.Bold,
                                             color = Color.White,
@@ -603,7 +609,7 @@ fun EncorePodcastScreen(
 
                                 if (rating.isNotBlank() || category.isNotBlank()) {
                                     Text(
-                                        text = "Ratings & Reviews",
+                                        text = stringResource(R.string.ratings_and_reviews),
                                         style = EncoreTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.Bold,
                                             color = Color.White,
@@ -639,7 +645,7 @@ fun EncorePodcastScreen(
                         ) {
                             item {
                                 Text(
-                                    text = "More Like This",
+                                    text = stringResource(R.string.more_like_this),
                                     style = EncoreTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White,
@@ -681,7 +687,7 @@ fun EncorePodcastScreen(
                                             )
                                         )
                                         Text(
-                                            text = "Podcast • $host",
+                                            text = stringResource(R.string.podcast_with_host, host),
                                             style = EncoreTheme.typography.bodySmall.copy(
                                                 color = EncoreColors.TextSecondary
                                             )
@@ -717,7 +723,7 @@ fun EncorePodcastScreen(
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.encore_icon_arrow_left_24),
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.back),
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
                 )
@@ -755,7 +761,7 @@ fun EncorePodcastScreen(
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.encore_icon_more_android_24),
-                    contentDescription = "Show options",
+                    contentDescription = stringResource(R.string.show_options),
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
                 )
@@ -897,7 +903,7 @@ private fun PodcastEpisodeRow(
                         painter = painterResource(
                             id = if (isEpisodeAdded) R.drawable.encore_icon_check_24 else R.drawable.encore_icon_plus_24
                         ),
-                        contentDescription = "Add episode",
+                        contentDescription = stringResource(R.string.add_episode),
                         tint = if (isEpisodeAdded) EncoreColors.Green else EncoreColors.TextSecondary,
                         modifier = Modifier.size(20.dp)
                     )
@@ -914,7 +920,7 @@ private fun PodcastEpisodeRow(
                         painter = painterResource(
                             id = if (isEpisodeDownloaded) R.drawable.encore_icon_downloaded_24 else R.drawable.encore_icon_download_24
                         ),
-                        contentDescription = "Download episode",
+                        contentDescription = stringResource(R.string.download_episode),
                         tint = if (isEpisodeDownloaded) EncoreColors.Green else EncoreColors.TextSecondary,
                         modifier = Modifier.size(20.dp)
                     )
@@ -929,7 +935,7 @@ private fun PodcastEpisodeRow(
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.encore_icon_share_android_24),
-                        contentDescription = "Share episode",
+                        contentDescription = stringResource(R.string.share_episode),
                         tint = EncoreColors.TextSecondary,
                         modifier = Modifier.size(18.dp)
                     )
@@ -944,7 +950,7 @@ private fun PodcastEpisodeRow(
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.encore_icon_more_android_24),
-                        contentDescription = "Episode options",
+                        contentDescription = stringResource(R.string.episode_options),
                         tint = EncoreColors.TextSecondary,
                         modifier = Modifier.size(18.dp)
                     )
@@ -963,7 +969,7 @@ private fun PodcastEpisodeRow(
                     painter = painterResource(
                         id = if (isPlaying) R.drawable.encore_icon_pause_24 else R.drawable.encore_icon_play_24
                     ),
-                    contentDescription = if (isPlaying) "Pause" else "Play",
+                    contentDescription = if (isPlaying) "Pause" else stringResource(R.string.play),
                     tint = Color.Black,
                     modifier = Modifier.size(16.dp)
                 )

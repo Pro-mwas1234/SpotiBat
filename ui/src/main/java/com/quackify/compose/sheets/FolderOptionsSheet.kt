@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import com.quackify.compose.R
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
 
 /**
  * Matches Screenshot 3:
@@ -136,7 +137,7 @@ fun FolderOptionsSheet(
 
             if (canPin) {
                 FolderActionItem(
-                    title = if (isPinned) "Unpin from top" else "Pin to top",
+                    title = if (isPinned) stringResource(R.string.unpin_from_top) else stringResource(R.string.pin_to_top),
                     iconRes = R.drawable.encore_icon_pin_24,
                     onClick = {
                         onDismiss()
@@ -146,7 +147,7 @@ fun FolderOptionsSheet(
             }
 
             FolderActionItem(
-                title = "Move to folder",
+                title = stringResource(R.string.move_to_folder),
                 iconRes = R.drawable.encore_icon_folder_24,
                 onClick = {
                     onDismiss()
@@ -155,7 +156,7 @@ fun FolderOptionsSheet(
             )
 
             FolderActionItem(
-                title = "Rename folder",
+                title = stringResource(R.string.rename_folder),
                 iconRes = R.drawable.encore_icon_edit_24,
                 onClick = {
                     onDismiss()
@@ -165,7 +166,7 @@ fun FolderOptionsSheet(
 
             if (isNested) {
                 FolderActionItem(
-                    title = "Move to Your Library",
+                    title = stringResource(R.string.move_to_your_library),
                     iconRes = R.drawable.encore_icon_your_library_24,
                     onClick = {
                         onDismiss()
@@ -175,7 +176,7 @@ fun FolderOptionsSheet(
             }
 
             FolderActionItem(
-                title = "Delete folder",
+                title = stringResource(R.string.delete_folder),
                 iconRes = R.drawable.encore_icon_trash_24,
                 onClick = {
                     onDismiss()

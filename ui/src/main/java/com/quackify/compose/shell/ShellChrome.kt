@@ -43,6 +43,7 @@ import com.quackify.compose.theme.EncoreAnimation
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.util.rememberIsOffline
+import androidx.compose.ui.res.stringResource
 
 private const val NAV_BAR_TOP_ALPHA = 0.70f
 
@@ -108,7 +109,7 @@ internal fun ShellBottomBar(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "You're offline. Check your internet connection.",
+                    text = stringResource(R.string.you_re_offline_check_your_internet_connection),
                     style = EncoreTheme.typography.bodySmall.copy(
                         color = EncoreColors.TextPrimary,
                         fontWeight = FontWeight.Medium

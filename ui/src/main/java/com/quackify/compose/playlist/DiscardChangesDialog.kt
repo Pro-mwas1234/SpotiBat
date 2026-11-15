@@ -29,13 +29,15 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.quackify.compose.theme.EncoreColors
+import androidx.compose.ui.res.stringResource
+import com.quackify.compose.R
 
 /**
  * - Center card dialog
  * - Pure white background card with rounded corners (~16dp)
- * - Black text: Title "Discard changes?" (bold)
- * - Subtitle: "If you go back now, you'll lose your changes."
- * - Subdued text button below: "Discard" (black text, bold)
+ * - Black text: Title stringResource(R.string.discard_changes) (bold)
+ * - Subtitle: stringResource(R.string.if_you_go_back_now_you_ll_lose_your_changes)
+ * - Subdued text button below: stringResource(R.string.discard) (black text, bold)
  */
 @Composable
 fun DiscardChangesDialog(
@@ -72,7 +74,7 @@ fun DiscardChangesDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Discard changes?",
+                        text = stringResource(R.string.discard_changes),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black,
@@ -82,7 +84,7 @@ fun DiscardChangesDialog(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "If you go back now, you'll lose your changes.",
+                        text = stringResource(R.string.if_you_go_back_now_you_ll_lose_your_changes),
                         fontSize = 14.sp,
                         color = Color(0xFF333333),
                         textAlign = TextAlign.Center,
@@ -102,7 +104,7 @@ fun DiscardChangesDialog(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Keep editing",
+                            text = stringResource(R.string.keep_editing),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
@@ -119,7 +121,7 @@ fun DiscardChangesDialog(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Discard",
+                            text = stringResource(R.string.discard),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.Black

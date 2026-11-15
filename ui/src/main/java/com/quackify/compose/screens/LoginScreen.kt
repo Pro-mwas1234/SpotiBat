@@ -51,6 +51,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withTimeoutOrNull
 import com.quackify.backend.core.log.Logs
+import androidx.compose.ui.res.stringResource
+import com.quackify.compose.R
 
 private val log = Logs.of(Logs.Module.LOGIN)
 
@@ -242,17 +244,14 @@ private fun WebViewUnavailableScreen(onRetry: () -> Unit) {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "System WebView unavailable",
+                text = stringResource(R.string.system_webview_unavailable),
                 style = EncoreTheme.typography.titleMedium,
                 color = EncoreColors.TextPrimary,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(10.dp))
             Text(
-                text = "The Android System WebView package is missing, disabled " +
-                        "or updating on this device, so the login page can't open. " +
-                        "Enable or update Android System WebView in system settings, " +
-                        "then retry.",
+                text = stringResource(R.string.webview_missing_message),
                 style = EncoreTheme.typography.bodyMedium,
                 color = EncoreColors.TextSecondary,
                 textAlign = TextAlign.Center,
@@ -267,7 +266,7 @@ private fun WebViewUnavailableScreen(onRetry: () -> Unit) {
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "RETRY",
+                    text = stringResource(R.string.retry),
                     style = EncoreTheme.typography.marginalBold.copy(
                         color = EncoreColors.PureBlack,
                         letterSpacing = 1.2.sp,

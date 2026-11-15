@@ -103,6 +103,7 @@ import com.quackify.compose.theme.rememberBottomPadding
 import com.quackify.compose.util.search.GenericSearchEngine
 import com.quackify.compose.util.search.SearchableFieldExtractor
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
 
 data class TrackItem(
     val title: String,
@@ -120,6 +121,7 @@ data class TrackItem(
     val trackNumber: Int = 0,
     val hasVideo: Boolean = false,
     val isEnhanced: Boolean = false,
+    val plays: Long = 0L,
 )
 
 private val trackSearchEngine = GenericSearchEngine<TrackItem>(maxResult = Int.MAX_VALUE)
@@ -131,15 +133,15 @@ private val TRACK_SEARCH_FIELDS = SearchableFieldExtractor<TrackItem> {
 private const val PRELOAD_REMAINING_TRACKS = 25
 
 enum class PlaylistSort(
-    val label: String,
+    val labelRes: Int,
     val reversible: Boolean = true,
     val defaultDirection: SortDirection = SortDirection.ASCENDING
 ) {
-    CUSTOM("Custom order", reversible = false, defaultDirection = SortDirection.ASCENDING),
-    TITLE("Title", reversible = true, defaultDirection = SortDirection.ASCENDING),
-    ARTIST("Artist", reversible = true, defaultDirection = SortDirection.ASCENDING),
-    ALBUM("Album", reversible = true, defaultDirection = SortDirection.ASCENDING),
-    RECENTLY_ADDED("Recently added", reversible = true, defaultDirection = SortDirection.DESCENDING)
+    CUSTOM(R.string.custom_order, reversible = false, defaultDirection = SortDirection.ASCENDING),
+    TITLE(R.string.title, reversible = true, defaultDirection = SortDirection.ASCENDING),
+    ARTIST(R.string.artist, reversible = true, defaultDirection = SortDirection.ASCENDING),
+    ALBUM(R.string.album, reversible = true, defaultDirection = SortDirection.ASCENDING),
+    RECENTLY_ADDED(R.string.recently_added, reversible = true, defaultDirection = SortDirection.DESCENDING)
 }
 
 /**
@@ -174,6 +176,7 @@ fun EncorePlaylistScreen(
     onEditDetails: (suspend (name: String, description: String, cover: ByteArray?, clearCover: Boolean) -> Unit)? = null,
     onDeletePlaylist: (() -> Unit)? = null,
     isEditable: Boolean = false,
+    canAddTracks: Boolean = false,
     contributors: List<PlaylistMember> = emptyList(),
     onContributorsClick: (() -> Unit)? = null,
     onShareClick: () -> Unit = {},
@@ -267,11 +270,11 @@ fun EncorePlaylistScreen(
     val listState = rememberLazyListState()
     val density = LocalDensity.current
 
-    val shouldLoadMore by remember(hasMore, loadingMore, displayedTracks.size, isEditable, onLoadMore) {
+    val shouldLoadMore by remember(hasMore, loadingMore, displayedTracks.size, isEditable, canAddTracks, onLoadMore) {
         derivedStateOf {
             val info = listState.layoutInfo
             val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: -1
-            val leading = 1 + if (isEditable && displayedTracks.isNotEmpty()) 1 else 0
+            val leading = 1 + if ((isEditable || canAddTracks) && displayedTracks.isNotEmpty()) 1 else 0
             hasMore && !loadingMore && displayedTracks.isNotEmpty() &&
                 lastVisible - leading >= displayedTracks.size - PRELOAD_REMAINING_TRACKS
         }
@@ -393,7 +396,7 @@ fun EncorePlaylistScreen(
                 }) {
                     Icon(
                         painter = painterResource(id = R.drawable.encore_icon_arrow_left_24),
-                        contentDescription = "Exit search",
+                        contentDescription = stringResource(R.string.exit_search),
                         tint = Color.White,
                         modifier = Modifier.size(24.dp)
                     )
@@ -423,7 +426,7 @@ fun EncorePlaylistScreen(
                         Box(modifier = Modifier.weight(1f)) {
                             if (searchQuery.isEmpty()) {
                                 Text(
-                                    text = "Find in playlist",
+                                    text = stringResource(R.string.find_in_playlist),
                                     style = EncoreTheme.typography.bodyMedium.copy(
                                         color = EncoreColors.TextSecondary,
                                         fontSize = 14.sp
@@ -447,7 +450,7 @@ fun EncorePlaylistScreen(
                         if (searchQuery.isNotEmpty()) {
                             Icon(
                                 painter = painterResource(id = R.drawable.encore_icon_x_24),
-                                contentDescription = "Clear search",
+                                contentDescription = stringResource(R.string.clear_search),
                                 tint = Color.White,
                                 modifier = Modifier
                                     .size(18.dp)
@@ -460,7 +463,7 @@ fun EncorePlaylistScreen(
                 IconButton(onClick = onPlaylistOptionsClick) {
                     Icon(
                         painter = painterResource(id = R.drawable.encore_icon_more_android_24),
-                        contentDescription = "Playlist options",
+                        contentDescription = stringResource(R.string.playlist_options),
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
@@ -480,13 +483,13 @@ fun EncorePlaylistScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "Couldn't find \"$searchQuery\"",
+                                text = stringResource(R.string.couldnt_find_query, searchQuery),
                                 style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 color = Color.White
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Try searching for a different track title or artist",
+                                text = stringResource(R.string.try_searching_for_a_different_track_title_or_art),
                                 style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary)
                             )
                         }
@@ -502,6 +505,7 @@ fun EncorePlaylistScreen(
                             isExplicit = track.isExplicit,
                             hasVideo = track.hasVideo,
                             imageUrl = track.imageUrl,
+                            artistUri = track.artistUri,
                             onClick = { onTrackSelect(track) },
                             onMoreClick = { onTrackOptionsClick(track) },
                             saved = track.saved,
@@ -619,7 +623,7 @@ fun EncorePlaylistScreen(
                                     onChangeTitle = onChangeTitle,
                                     onShareClick = onShareClick,
                                     onAddTracksClick = {
-                                        if (isEditable) {
+                                        if (isEditable || canAddTracks) {
                                             onAddTracksClick?.invoke() ?: run { isSearching = true }
                                         }
                                     }
@@ -653,7 +657,7 @@ fun EncorePlaylistScreen(
                                                 )
                                                 Spacer(modifier = Modifier.width(8.dp))
                                                 Text(
-                                                    text = "Find in playlist",
+                                                    text = stringResource(R.string.find_in_playlist),
                                                     style = EncoreTheme.typography.bodyMedium.copy(
                                                         color = Color.White.copy(alpha = 0.85f),
                                                         fontSize = 13.5.sp,
@@ -742,8 +746,8 @@ fun EncorePlaylistScreen(
                                             id = if (isSaved == true) R.drawable.encore_icon_check_24 else R.drawable.encore_icon_plus_24
                                         ),
                                         contentDescription = when (isSaved) {
-                                            true -> "Remove from library"
-                                            else -> "Add to library"
+                                            true -> stringResource(R.string.remove_from_library)
+                                            else -> stringResource(R.string.add_to_library)
                                         },
                                         tint = if (isSaved == true) Color.Black else Color.White,
                                         modifier = Modifier.size(14.dp)
@@ -862,7 +866,7 @@ fun EncorePlaylistScreen(
                                 ) {
                                     Icon(
                                         painter = painterResource(id = R.drawable.encore_icon_globe_24),
-                                        contentDescription = "Public playlist",
+                                        contentDescription = stringResource(R.string.public_playlist),
                                         tint = EncoreColors.TextSecondary,
                                         modifier = Modifier.size(14.dp)
                                     )
@@ -938,7 +942,7 @@ fun EncorePlaylistScreen(
                                             painter = painterResource(
                                                 id = if (isDownloaded) R.drawable.encore_icon_downloaded_24 else R.drawable.encore_icon_download_24
                                             ),
-                                            contentDescription = if (isDownloaded) "Downloaded" else "Download",
+                                            contentDescription = if (isDownloaded) stringResource(R.string.downloaded) else stringResource(R.string.download),
                                             tint = if (isDownloaded) EncoreColors.Green else EncoreColors.TextSecondary,
                                             modifier = Modifier.size(24.dp)
                                         )
@@ -954,7 +958,7 @@ fun EncorePlaylistScreen(
                                     ) {
                                         Icon(
                                             painter = painterResource(id = R.drawable.encore_icon_share_android_24),
-                                            contentDescription = "Share",
+                                            contentDescription = stringResource(R.string.share),
                                             tint = EncoreColors.TextSecondary,
                                             modifier = Modifier.size(22.dp)
                                         )
@@ -970,7 +974,7 @@ fun EncorePlaylistScreen(
                                     ) {
                                         Icon(
                                             painter = painterResource(id = R.drawable.encore_icon_sort_by_24),
-                                            contentDescription = "Sort",
+                                            contentDescription = stringResource(R.string.sort),
                                             tint = if (sortOption != PlaylistSort.CUSTOM) EncoreColors.Green else EncoreColors.TextSecondary,
                                             modifier = Modifier.size(22.dp)
                                         )
@@ -990,7 +994,7 @@ fun EncorePlaylistScreen(
                                     ) {
                                         Icon(
                                             painter = painterResource(id = R.drawable.encore_icon_shuffle_24),
-                                            contentDescription = "Shuffle",
+                                            contentDescription = stringResource(R.string.shuffle),
                                             tint = if (isShuffle) EncoreColors.Green else EncoreColors.TextSecondary,
                                             modifier = Modifier.size(24.dp)
                                         )
@@ -1019,7 +1023,7 @@ fun EncorePlaylistScreen(
                     }
                 }
 
-                if (displayedTracks.isNotEmpty() && isEditable) {
+                if (displayedTracks.isNotEmpty() && (isEditable || canAddTracks)) {
                     stickyHeader(key = "filter_chips_row") {
                     Box(
                         modifier = Modifier
@@ -1030,12 +1034,24 @@ fun EncorePlaylistScreen(
                         PlaylistChipsRow(
                             scrollState = chipsScrollState,
                             onAddClick = {
-                                scope.launch {
-                                    listState.animateScrollToItem(displayedTracks.size + 2)
+                                if (!isEditable && canAddTracks) {
+                                    onAddTracksClick?.invoke()
+                                } else {
+                                    scope.launch {
+                                        listState.animateScrollToItem(displayedTracks.size + 2)
+                                    }
                                 }
                             },
-                            onEditClick = { isEditMode = true; onEditModeChange(true) },
-                            onNameDetailsClick = { isEditDetailsOpen = true }
+                            onEditClick = if (isEditable) {
+                                { isEditMode = true; onEditModeChange(true) }
+                            } else {
+                                null
+                            },
+                            onNameDetailsClick = if (isEditable) {
+                                { isEditDetailsOpen = true }
+                            } else {
+                                null
+                            }
                         )
                     }
                 }
@@ -1058,21 +1074,21 @@ fun EncorePlaylistScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "Couldn't load this playlist",
+                                text = stringResource(R.string.couldn_t_load_this_playlist),
                                 style = EncoreTheme.typography.titleMedium.copy(
                                     color = EncoreColors.TextPrimary
                                 )
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Check your internet connection and try again.",
+                                text = stringResource(R.string.check_your_internet_connection_and_try_again),
                                 style = EncoreTheme.typography.bodySmall.copy(
                                     color = EncoreColors.TextSecondary
                                 )
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             TextButton(onClick = onRetry) {
-                                Text(text = "Try again", color = EncoreColors.Green)
+                                Text(text = stringResource(R.string.try_again), color = EncoreColors.Green)
                             }
                         }
                     }
@@ -1087,6 +1103,7 @@ fun EncorePlaylistScreen(
                         isExplicit = track.isExplicit,
                         hasVideo = track.hasVideo,
                         imageUrl = track.imageUrl,
+                        artistUri = track.artistUri,
                         onClick = { onTrackSelect(track) },
                         onMoreClick = { onTrackOptionsClick(track) },
                         saved = track.saved,
@@ -1112,7 +1129,7 @@ fun EncorePlaylistScreen(
                                 .padding(top = 24.dp, bottom = 12.dp, start = 16.dp, end = 16.dp)
                         ) {
                             Text(
-                                text = "Recommended Songs",
+                                text = stringResource(R.string.recommended_songs),
                                 style = EncoreTheme.typography.titleLarge.copy(
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold,
@@ -1122,7 +1139,7 @@ fun EncorePlaylistScreen(
                             if (displayedTracks.isNotEmpty()) {
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = "Based on what's in this playlist",
+                                    text = stringResource(R.string.based_on_what_s_in_this_playlist),
                                     style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary)
                                 )
                             }
@@ -1202,7 +1219,7 @@ fun EncorePlaylistScreen(
                             ) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.encore_icon_plus_24),
-                                    contentDescription = "Add to playlist",
+                                    contentDescription = stringResource(R.string.add_to_playlist),
                                     tint = Color.White,
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -1228,7 +1245,7 @@ fun EncorePlaylistScreen(
                                     InlineLoadingDots(color = Color.Black)
                                 } else {
                                     Text(
-                                        text = "Refresh",
+                                        text = stringResource(R.string.refresh),
                                         style = EncoreTheme.typography.bodySmallBold.copy(
                                             fontWeight = FontWeight.Bold,
                                             color = Color.Black
@@ -1276,7 +1293,7 @@ fun EncorePlaylistScreen(
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.encore_icon_arrow_left_24),
-                        contentDescription = "Back",
+                        contentDescription = stringResource(R.string.back),
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
@@ -1317,7 +1334,7 @@ fun EncorePlaylistScreen(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.encore_icon_more_android_24),
-                            contentDescription = "Playlist options",
+                            contentDescription = stringResource(R.string.playlist_options),
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
@@ -1385,8 +1402,8 @@ fun EncorePlaylistScreen(
 private fun PlaylistChipsRow(
     scrollState: ScrollState,
     onAddClick: () -> Unit,
-    onEditClick: () -> Unit,
-    onNameDetailsClick: () -> Unit,
+    onEditClick: (() -> Unit)?,
+    onNameDetailsClick: (() -> Unit)?,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -1400,21 +1417,25 @@ private fun PlaylistChipsRow(
 
         PlaylistChip(
             iconRes = R.drawable.encore_icon_plus_24,
-            label = "Add",
+            label = stringResource(R.string.add),
             onClick = onAddClick
         )
 
-        PlaylistChip(
-            iconRes = R.drawable.encore_icon_sort_24,
-            label = "Edit",
-            onClick = onEditClick
-        )
+        if (onEditClick != null) {
+            PlaylistChip(
+                iconRes = R.drawable.encore_icon_sort_24,
+                label = stringResource(R.string.edit),
+                onClick = onEditClick
+            )
+        }
 
-        PlaylistChip(
-            iconRes = R.drawable.encore_icon_edit_24,
-            label = "Name & details",
-            onClick = onNameDetailsClick
-        )
+        if (onNameDetailsClick != null) {
+            PlaylistChip(
+                iconRes = R.drawable.encore_icon_edit_24,
+                label = stringResource(R.string.name_and_details),
+                onClick = onNameDetailsClick
+            )
+        }
 
         Spacer(modifier = Modifier.width(72.dp))
     }
@@ -1464,7 +1485,7 @@ private fun PlaylistChip(
 
 /**
  * - Square Cover placeholder (120dp x 120dp) with centered edit pencil icon
- * - Playlist Title with right-side "Change" pill button
+ * - Playlist Title with right-side stringResource(R.string.change) pill button
  * - Collaborator row with (+) circle button, stacked owner/contributor avatars
  *   and "owner + N more" — tapping it (or the +) opens the contributors sheet
  * - Action row: Globe (public) and Share icon
@@ -1511,7 +1532,7 @@ private fun PlaylistEmptyCurationHeader(
                 } else {
                     Icon(
                         painter = painterResource(id = R.drawable.encore_icon_edit_24),
-                        contentDescription = "Edit cover",
+                        contentDescription = stringResource(R.string.edit_cover),
                         tint = Color.White.copy(alpha = 0.85f),
                         modifier = Modifier.size(36.dp)
                     )
@@ -1552,7 +1573,7 @@ private fun PlaylistEmptyCurationHeader(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Change",
+                            text = stringResource(R.string.change),
                             style = EncoreTheme.typography.bodySmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
@@ -1607,7 +1628,7 @@ private fun PlaylistEmptyCurationHeader(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.encore_icon_plus_24),
-                            contentDescription = "Add contributor",
+                            contentDescription = stringResource(R.string.add_contributor),
                             tint = Color.White,
                             modifier = Modifier.size(12.dp)
                         )
@@ -1673,13 +1694,13 @@ private fun PlaylistEmptyCurationHeader(
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.encore_icon_globe_24),
-                contentDescription = "Public playlist",
+                contentDescription = stringResource(R.string.public_playlist),
                 tint = Color.White.copy(alpha = 0.7f),
                 modifier = Modifier.size(20.dp)
             )
             Icon(
                 painter = painterResource(id = R.drawable.encore_icon_share_android_24),
-                contentDescription = "Share",
+                contentDescription = stringResource(R.string.share),
                 tint = Color.White.copy(alpha = 0.7f),
                 modifier = Modifier
                     .size(20.dp)
@@ -1710,7 +1731,7 @@ private fun PlaylistEmptyCurationHeader(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Add to this playlist",
+                        text = stringResource(R.string.add_to_this_playlist),
                         style = EncoreTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Bold,
                             color = Color.Black,

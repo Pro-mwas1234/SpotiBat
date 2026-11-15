@@ -122,7 +122,7 @@ data class ComposePlaybackState(
     val canSmartShuffle: Boolean = false,
     val canRepeat: Boolean = true,
     val isEnhanced: Boolean = false,
-    val connectedDevice: String = "This Phone",
+    val connectedDevice: String = "",
     val trackUri: String = "",
     val artistUri: String = "",
     val albumUri: String = "",
@@ -171,7 +171,6 @@ interface ComposePlayerListener {
     fun onQueueAdd(uri: String) {}
     fun onSelectDevice(deviceId: String) {}
     fun onDeviceSheetVisible(visible: Boolean) {}
-    fun onVolumeChange(deviceId: String, level: Int) {}
     fun onQueueSet(uris: List<String>) {}
     fun onSearch(query: String) {}
     fun onLoadPlaylist(uri: String) {}
@@ -218,6 +217,7 @@ internal class ShellUiFlags {
     var isPlaylistEditMode by mutableStateOf(false)
     var isAlbumOptionsOpen by mutableStateOf(false)
     var isArtistOptionsOpen by mutableStateOf(false)
+    var isArtistOptionsFromPlayer by mutableStateOf(false)
     var isSortSheetOpen by mutableStateOf(false)
     var isCreateSheetOpen by mutableStateOf(false)
     var isDeviceSheetOpen by mutableStateOf(false)
@@ -274,7 +274,10 @@ internal class ShellLocalState {
     var device by mutableStateOf("")
     var trackForOptions by mutableStateOf<TrackItem?>(null)
     var trackTasteExcluded by mutableStateOf<Boolean?>(null)
-    var trackOptionsSaved by mutableStateOf<Boolean?>(null)
+    var trackOptionsPlays by mutableStateOf<Long?>(null)
+    var artistOptionsName by mutableStateOf("")
+    var artistOptionsUri by mutableStateOf("")
+    var artistOptionsAvatarUrl by mutableStateOf<String?>(null)
     var sortOption by mutableStateOf(LibrarySortOption.RECENTS)
     var sortDirection by mutableStateOf(SortDirection.DESCENDING)
     var playbackOrigin by mutableStateOf<PlaybackOrigin?>(null)

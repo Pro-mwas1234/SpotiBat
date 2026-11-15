@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import com.quackify.compose.R
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
 
 private val CANVAS_RESOLUTIONS = listOf(480, 720, 1080)
 
@@ -66,7 +67,7 @@ fun CanvasResolutionSheet(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             Text(
-                text = "Canvas resolution",
+                text = stringResource(R.string.canvas_resolution),
                 style = EncoreTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
@@ -98,7 +99,7 @@ fun CanvasResolutionSheet(
                     if (isSelected) {
                         Icon(
                             painter = painterResource(id = R.drawable.encore_icon_check_24),
-                            contentDescription = "Selected",
+                            contentDescription = stringResource(R.string.selected),
                             tint = EncoreColors.Green,
                             modifier = Modifier.size(20.dp)
                         )

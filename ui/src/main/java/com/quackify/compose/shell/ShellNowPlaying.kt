@@ -78,6 +78,7 @@ internal fun ShellNowPlaying(
     onShare: () -> Unit = {},
     onTitleClick: () -> Unit = {},
     onArtistClick: () -> Unit = {},
+    onArtistLongClick: (() -> Unit)? = null,
 ) {
     AnimatedVisibility(
         visible = visible,
@@ -152,7 +153,8 @@ internal fun ShellNowPlaying(
             onDeviceClick = onDevice,
             onShareClick = onShare,
             onTitleClick = onTitleClick,
-            onArtistClick = onArtistClick
+            onArtistClick = onArtistClick,
+            onArtistLongClick = onArtistLongClick
         )
     }
 }

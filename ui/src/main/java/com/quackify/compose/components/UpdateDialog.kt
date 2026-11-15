@@ -34,6 +34,7 @@ import com.quackify.compose.R
 import com.quackify.compose.screens.AppUpdate
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
 
 enum class UpdateInstallPhase { Idle, Downloading, Installing }
 
@@ -64,7 +65,7 @@ fun UpdateDialog(
                 .padding(20.dp)
         ) {
             Text(
-                text = "Update available",
+                text = stringResource(R.string.update_available),
                 style = EncoreTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     color = EncoreColors.TextPrimary
@@ -101,7 +102,7 @@ fun UpdateDialog(
             ) {
                 if (update.notes.isBlank()) {
                     Text(
-                        text = "No release notes.",
+                        text = stringResource(R.string.no_release_notes),
                         style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextSecondary)
                     )
                 } else {
@@ -144,7 +145,7 @@ fun UpdateDialog(
                         )
                         Spacer(modifier = Modifier.padding(horizontal = 5.dp))
                         Text(
-                            text = "Installing\u2026",
+                            text = stringResource(R.string.installing),
                             style = EncoreTheme.typography.bodyMediumBold.copy(color = EncoreColors.TextPrimary)
                         )
                     }
@@ -155,7 +156,7 @@ fun UpdateDialog(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "Later",
+                            text = stringResource(R.string.later),
                             style = EncoreTheme.typography.bodyMediumBold.copy(color = EncoreColors.TextSecondary),
                             modifier = Modifier
                                 .clip(RoundedCornerShape(10.dp))
@@ -164,7 +165,7 @@ fun UpdateDialog(
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         Text(
-                            text = "Install",
+                            text = stringResource(R.string.install),
                             style = EncoreTheme.typography.bodyMediumBold.copy(color = Color.White),
                             modifier = Modifier
                                 .clip(RoundedCornerShape(10.dp))

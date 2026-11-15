@@ -52,6 +52,7 @@ import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.theme.rememberBottomPadding
 import java.util.Calendar
+import androidx.compose.ui.res.stringResource
 
 data class QuickAccessItem(
     val title: String,
@@ -123,9 +124,10 @@ fun EncoreHomeScreen(
 
     val quickItems = quickAccessItems.orEmpty()
 
+    val allChipLabel = stringResource(R.string.all)
     val filterChips = remember(chips) {
         buildList {
-            add(HomeChip(id = "", label = "All"))
+            add(HomeChip(id = "", label = allChipLabel))
             addAll(chips)
         }
     }
@@ -287,7 +289,7 @@ fun EncoreHomeScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Couldn't load your feed",
+                            text = stringResource(R.string.couldn_t_load_your_feed),
                             style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextSecondary)
                         )
                     }
@@ -471,7 +473,7 @@ private fun SectionHeading(
         if (onSeeAllClick != null) {
             Icon(
                 painter = painterResource(id = R.drawable.encore_icon_chevron_right_24),
-                contentDescription = "See all $title",
+                contentDescription = stringResource(R.string.see_all, title),
                 tint = EncoreColors.TextSecondary,
                 modifier = Modifier.size(20.dp)
             )
@@ -641,7 +643,7 @@ private fun ArtistShelfSection(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Artist",
+                        text = stringResource(R.string.artist),
                         style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary)
                     )
                 }
@@ -723,13 +725,14 @@ private fun BaselineGridSection(
     }
 }
 
+@Composable
 private fun getGreeting(name: String, feedGreeting: String = ""): String {
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     val base = feedGreeting.ifBlank {
         when (hour) {
-            in 5..11 -> "Good morning"
-            in 12..17 -> "Good afternoon"
-            else -> "Good evening"
+            in 5..11 -> stringResource(R.string.good_morning)
+            in 12..17 -> stringResource(R.string.good_afternoon)
+            else -> stringResource(R.string.good_evening)
         }
     }
     val who = name.trim()

@@ -51,6 +51,7 @@ import com.quackify.compose.theme.EncoreTheme
 import com.quackify.backend.model.BrowseCard
 import com.quackify.backend.model.BrowsePage
 import com.quackify.backend.model.BrowseSection
+import androidx.compose.ui.res.stringResource
 
 private const val HEADER_TINT_WEIGHT = 0.55f
 
@@ -86,7 +87,7 @@ fun EncoreBrowseScreen(
         ) {
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_chevron_left_24,
-                contentDescription = "Back",
+                contentDescription = stringResource(R.string.back),
                 onClick = onBackClick,
                 size = 48.dp,
                 iconSize = 24.dp
@@ -221,7 +222,7 @@ fun EncoreBrowseScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Nothing here yet",
+                            text = stringResource(R.string.nothing_here_yet),
                             style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextSecondary),
                             textAlign = TextAlign.Center
                         )

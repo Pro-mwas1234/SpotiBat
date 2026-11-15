@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,6 +62,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 
 private val playlistSearchEngine = GenericSearchEngine<PlaylistChoice>(maxResult = Int.MAX_VALUE)
 private val PLAYLIST_CHOICE_FIELDS = SearchableFieldExtractor<PlaylistChoice> { arrayOf(it.name) }
@@ -69,14 +72,14 @@ private val PLAYLIST_CHOICE_FIELDS = SearchableFieldExtractor<PlaylistChoice> { 
  *
  * Structure:
  * - Top drag handle (36dp x 4dp)
- * - Top header bar: "Cancel" (left), "Done" (right)
- * - Section headline: "Saved in" (if saved in 1+ destinations) / "Save in" (if empty) + green "New playlist" button
+ * - Top header bar: stringResource(R.string.cancel) (left), stringResource(R.string.done) (right)
+ * - Section headline: "Saved in" (if saved in 1+ destinations) / "Save in" (if empty) + green stringResource(R.string.new_playlist) button
  * - Search box filtering the visible level locally via the generic fuzzy search engine, playlists and folders alike
  * - Destination rows:
  *   - Liked Songs: 48dp purple-blue gradient square with white heart
  *   - Playlists: 48dp artwork, title, subtitle (e.g. "142 songs"), trailing green check (✓) or outline plus (+)
  *   - + New playlist row at the bottom
- * - Floating bottom green pill button: "Done"
+ * - Floating bottom green pill button: stringResource(R.string.done)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,7 +99,8 @@ fun AddToPlaylistSheet(
 ) {
     if (!isOpen) return
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val scope = rememberCoroutineScope()
 
     var currentFolder by remember { mutableStateOf<PlaylistChoice?>(null) }
@@ -195,7 +199,7 @@ fun AddToPlaylistSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DarkSystemBarsSheet,
+        properties = BackNotDismissSheet,
         sheetState = sheetState,
         containerColor = EncoreColors.Card,
         dragHandle = {
@@ -209,6 +213,7 @@ fun AddToPlaylistSheet(
         },
         modifier = modifier
     ) {
+        BackHandler { onDismiss() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -222,7 +227,7 @@ fun AddToPlaylistSheet(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Cancel",
+                    text = stringResource(R.string.cancel),
                     style = EncoreTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = EncoreColors.TextPrimary,
@@ -234,7 +239,7 @@ fun AddToPlaylistSheet(
                 )
 
                 Text(
-                    text = "Done",
+                    text = stringResource(R.string.done),
                     style = EncoreTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = EncoreColors.TextPrimary,
@@ -255,7 +260,7 @@ fun AddToPlaylistSheet(
             ) {
                 Text(
                     text = if (inFolder) currentFolder?.name.orEmpty()
-                    else if (savedCount > 0) "Saved in" else "Save in",
+                    else if (savedCount > 0) stringResource(R.string.saved_in) else stringResource(R.string.save_in),
                     style = EncoreTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
@@ -265,7 +270,7 @@ fun AddToPlaylistSheet(
 
                 if (!inFolder) {
                     Text(
-                        text = "New playlist",
+                        text = stringResource(R.string.new_playlist),
                         style = EncoreTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.SemiBold,
                             color = EncoreColors.Green,
@@ -319,7 +324,7 @@ fun AddToPlaylistSheet(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = parentName?.let { "Back to $it" } ?: "Back to your playlists",
+                                    text = parentName?.let { stringResource(R.string.back_to, it) } ?: stringResource(R.string.back_to_your_playlists),
                                     style = EncoreTheme.typography.bodyMedium.copy(
                                         color = EncoreColors.TextSecondary,
                                         fontWeight = FontWeight.Medium
@@ -336,8 +341,8 @@ fun AddToPlaylistSheet(
                             Text(
                                 text = when {
                                     searchQuery.isNotBlank() -> "No results for \"${searchQuery.trim()}\""
-                                    inFolder -> "This folder is empty"
-                                    else -> "No playlists you can add to"
+                                    inFolder -> stringResource(R.string.this_folder_empty)
+                                    else -> stringResource(R.string.no_playlists_you_can_add_to)
                                 },
                                 style = EncoreTheme.typography.bodyMedium.copy(
                                     color = EncoreColors.TextSecondary
@@ -383,13 +388,13 @@ fun AddToPlaylistSheet(
                                 ) {
                                     Icon(
                                         painter = painterResource(id = R.drawable.encore_icon_plus_24),
-                                        contentDescription = "New playlist",
+                                        contentDescription = stringResource(R.string.new_playlist),
                                         tint = EncoreColors.TextSecondary,
                                         modifier = Modifier.size(24.dp)
                                     )
                                 }
                                 Text(
-                                    text = "New playlist",
+                                    text = stringResource(R.string.new_playlist),
                                     style = EncoreTheme.typography.bodyMedium.copy(
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.Medium
@@ -421,7 +426,7 @@ fun AddToPlaylistSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Done",
+                        text = stringResource(R.string.done),
                         style = EncoreTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
@@ -474,7 +479,7 @@ private fun AddToPlaylistSearchBox(
                 ) {
                     if (query.isEmpty()) {
                         Text(
-                            text = "Search",
+                            text = stringResource(R.string.search),
                             style = EncoreTheme.typography.bodyMedium.copy(
                                 color = EncoreColors.TextSecondary,
                                 fontSize = 15.sp
@@ -488,7 +493,7 @@ private fun AddToPlaylistSearchBox(
         if (query.isNotEmpty()) {
             Icon(
                 painter = painterResource(id = R.drawable.encore_icon_x_24),
-                contentDescription = "Clear search",
+                contentDescription = stringResource(R.string.clear_search),
                 tint = EncoreColors.TextSecondary,
                 modifier = Modifier
                     .size(20.dp)
@@ -559,7 +564,7 @@ private fun AddToPlaylistRow(
 
             if (songCount != null && songCount >= 0) {
                 Text(
-                    text = "$songCount song" + if (songCount == 1) "" else "s",
+                    text = pluralStringResource(R.plurals.song_count, songCount, songCount),
                     style = EncoreTheme.typography.bodySmall.copy(
                         color = EncoreColors.TextSecondary,
                         fontSize = 13.sp

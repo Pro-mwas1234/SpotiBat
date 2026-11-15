@@ -64,6 +64,7 @@ import com.quackify.compose.theme.EncoreTheme
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.launch
 import java.io.File
+import androidx.compose.ui.res.stringResource
 
 /**
  * - `lyrics_share_button_action_label`
@@ -134,13 +135,13 @@ fun LyricsShareDialog(
         ) {
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_x_24,
-                contentDescription = "Close",
+                contentDescription = stringResource(R.string.close),
                 onClick = onDismiss,
                 tint = Color.White
             )
 
             Text(
-                text = "Share lyrics",
+                text = stringResource(R.string.share_lyrics),
                 style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
             )
 
@@ -161,7 +162,7 @@ fun LyricsShareDialog(
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "Share",
+                    text = stringResource(R.string.share),
                     style = EncoreTheme.typography.bodySmallBold.copy(
                         color = EncoreColors.PureBlack,
                         fontWeight = FontWeight.Bold
@@ -323,7 +324,7 @@ private fun ShareCardPreview(
         ) {
             if (selectedIndices.isEmpty()) {
                 Text(
-                    text = "Tap up to 5 lines to share",
+                    text = stringResource(R.string.tap_up_to_5_lines_to_share),
                     style = EncoreTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = 0.6f)),
                     textAlign = textAlign
                 )
@@ -389,7 +390,7 @@ private fun ShareCardPreview(
                     }
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Quackify",
+                        text = stringResource(R.string.quackify),
                         style = EncoreTheme.typography.bodySmallBold.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp,
@@ -426,9 +427,9 @@ private fun ShareFormatControls(
             ) {
                 Text(
                     text = when (textAlignIndex) {
-                        0 -> "Align: Left"
-                        1 -> "Align: Center"
-                        else -> "Align: Right"
+                        0 -> stringResource(R.string.align_left)
+                        1 -> stringResource(R.string.align_center)
+                        else -> stringResource(R.string.align_right)
                     },
                     style = EncoreTheme.typography.marginal.copy(
                         fontWeight = FontWeight.SemiBold,
@@ -462,7 +463,7 @@ private fun ShareFormatControls(
         Spacer(modifier = Modifier.height(6.dp))
 
         Text(
-            text = "Select up to 5 lines ($selectedCount/5)",
+            text = stringResource(R.string.select_lines_limit, selectedCount),
             style = EncoreTheme.typography.marginal.copy(
                 fontWeight = FontWeight.Medium,
                 color = EncoreColors.TextSecondary
@@ -570,5 +571,5 @@ private fun shareLyricCard(
             send.type = "text/plain"
         }
     }
-    runCatching { context.startActivity(Intent.createChooser(send, "Share lyrics")) }
+    runCatching { context.startActivity(Intent.createChooser(send, context.getString(R.string.share_lyrics))) }
 }

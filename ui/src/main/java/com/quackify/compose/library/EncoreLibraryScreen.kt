@@ -61,6 +61,7 @@ import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.theme.rememberBottomPadding
+import androidx.compose.ui.res.stringResource
 
 enum class LibraryItemType {
     PLAYLIST,
@@ -109,7 +110,7 @@ fun EncoreLibraryScreen(
     userDisplayName: String = "Duck User",
     userAvatarUrl: String = "",
     userColorHex: String = "",
-    title: String = "Your Library",
+    title: String = stringResource(R.string.your_library),
     isFolder: Boolean = false,
     onBackClick: (() -> Unit)? = null,
     onFolderOptionsClick: (() -> Unit)? = null,
@@ -122,7 +123,7 @@ fun EncoreLibraryScreen(
     var searchFilterText by remember { mutableStateOf("") }
     val bottomPadding = rememberBottomPadding()
 
-    val filters = listOf("Playlists", "Podcasts", "Albums", "Artists", "Downloaded")
+    val filters = listOf(stringResource(R.string.playlists), "Podcasts", stringResource(R.string.albums), stringResource(R.string.artists), stringResource(R.string.downloaded))
 
     val allLibraryItems = items.orEmpty()
     val filteredItems = remember(allLibraryItems, selectedFilter, searchFilterText, currentSort, sortDirection) {
@@ -195,7 +196,7 @@ fun EncoreLibraryScreen(
                 ) {
                     EncoreIconButton(
                         iconRes = R.drawable.encore_icon_chevron_left_24,
-                        contentDescription = "Cancel search",
+                        contentDescription = stringResource(R.string.cancel_search),
                         onClick = {
                             isSearchActive = false
                             searchFilterText = ""
@@ -229,7 +230,7 @@ fun EncoreLibraryScreen(
                                 Box(modifier = Modifier.weight(1f)) {
                                     if (searchFilterText.isEmpty()) {
                                         Text(
-                                            text = "Search Your Library",
+                                            text = stringResource(R.string.search_your_library),
                                             style = EncoreTheme.typography.bodyMedium.copy(
                                                 fontWeight = FontWeight.Bold,
                                                 color = Color(0xFFB3B3B3)
@@ -241,7 +242,7 @@ fun EncoreLibraryScreen(
                                 if (searchFilterText.isNotEmpty()) {
                                     EncoreIconButton(
                                         iconRes = R.drawable.encore_icon_x_24,
-                                        contentDescription = "Clear",
+                                        contentDescription = stringResource(R.string.clear),
                                         onClick = { searchFilterText = "" },
                                         size = 32.dp,
                                         iconSize = 16.dp,
@@ -262,7 +263,7 @@ fun EncoreLibraryScreen(
                 ) {
                     EncoreIconButton(
                         iconRes = R.drawable.encore_icon_chevron_left_24,
-                        contentDescription = "Back",
+                        contentDescription = stringResource(R.string.back),
                         onClick = { onBackClick?.invoke() },
                         size = 40.dp,
                         iconSize = 24.dp,
@@ -285,7 +286,7 @@ fun EncoreLibraryScreen(
 
                     EncoreIconButton(
                         iconRes = R.drawable.encore_icon_more_android_24,
-                        contentDescription = "Folder options",
+                        contentDescription = stringResource(R.string.folder_options),
                         onClick = { onFolderOptionsClick?.invoke() },
                         size = 40.dp,
                         iconSize = 22.dp,
@@ -294,7 +295,7 @@ fun EncoreLibraryScreen(
 
                     EncoreIconButton(
                         iconRes = R.drawable.encore_icon_plus_24,
-                        contentDescription = "Create",
+                        contentDescription = stringResource(R.string.create),
                         onClick = onPlusClick,
                         size = 40.dp,
                         iconSize = 24.dp,
@@ -303,7 +304,7 @@ fun EncoreLibraryScreen(
 
                     EncoreIconButton(
                         iconRes = R.drawable.encore_icon_play_24,
-                        contentDescription = "Play",
+                        contentDescription = stringResource(R.string.play),
                         onClick = { onPlayClick?.invoke() },
                         size = 40.dp,
                         iconSize = 24.dp,
@@ -338,7 +339,7 @@ fun EncoreLibraryScreen(
 
                     EncoreIconButton(
                         iconRes = R.drawable.encore_icon_search_24,
-                        contentDescription = "Search in library",
+                        contentDescription = stringResource(R.string.search_in_library),
                         onClick = { isSearchActive = true },
                         size = 40.dp,
                         iconSize = 24.dp,
@@ -347,7 +348,7 @@ fun EncoreLibraryScreen(
 
                     EncoreIconButton(
                         iconRes = R.drawable.encore_icon_plus_24,
-                        contentDescription = "Create",
+                        contentDescription = stringResource(R.string.create),
                         onClick = onPlusClick,
                         size = 40.dp,
                         iconSize = 24.dp,
@@ -393,13 +394,13 @@ fun EncoreLibraryScreen(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.encore_icon_sort_24),
-                            contentDescription = "Sort order",
+                            contentDescription = stringResource(R.string.sort_order),
                             tint = EncoreColors.TextPrimary,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = currentSort.displayName,
+                            text = stringResource(currentSort.displayNameRes),
                             style = EncoreTheme.typography.bodySmallBold.copy(color = EncoreColors.TextPrimary)
                         )
                         if (currentSort.reversible) {
@@ -421,7 +422,7 @@ fun EncoreLibraryScreen(
 
                     EncoreIconButton(
                         iconRes = if (isGridView) R.drawable.encore_icon_list_view_24 else R.drawable.encore_icon_grid_view_24,
-                        contentDescription = if (isGridView) "List view" else "Grid view",
+                        contentDescription = if (isGridView) stringResource(R.string.list_view) else stringResource(R.string.grid_view),
                         onClick = { isGridView = !isGridView },
                         tint = EncoreColors.TextPrimary,
                         size = 32.dp,
@@ -456,7 +457,7 @@ fun EncoreLibraryScreen(
                 if (isFolder) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "This folder looks empty",
+                            text = stringResource(R.string.this_folder_looks_empty),
                             style = EncoreTheme.typography.titleLarge.copy(
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold,
@@ -466,7 +467,7 @@ fun EncoreLibraryScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Add playlists from Your Library.",
+                            text = stringResource(R.string.add_playlists_from_your_library),
                             style = EncoreTheme.typography.bodyMedium.copy(
                                 color = EncoreColors.TextSecondary,
                                 fontSize = 14.sp
@@ -480,7 +481,7 @@ fun EncoreLibraryScreen(
                             text = if (isSearchActive && searchFilterText.isNotEmpty()) {
                                 "Couldn't find \"$searchFilterText\""
                             } else {
-                                "Find your favorites"
+                                stringResource(R.string.find_your_favorites)
                             },
                             style = EncoreTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
@@ -488,9 +489,9 @@ fun EncoreLibraryScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = if (isSearchActive && searchFilterText.isNotEmpty()) {
-                                "Try searching again using a different spelling or keyword."
+                                stringResource(R.string.try_searching_again_using_a_different_spelling_o)
                             } else {
-                                "Search everything you've saved, followed, or created."
+                                stringResource(R.string.search_everything_saved)
                             },
                             style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextSecondary)
                         )
@@ -573,7 +574,7 @@ fun EncoreLibraryScreen(
                                 ) {
                                     Icon(
                                         painter = painterResource(id = R.drawable.encore_icon_pin_24),
-                                        contentDescription = "Pinned",
+                                        contentDescription = stringResource(R.string.pinned),
                                         tint = EncoreColors.Green,
                                         modifier = Modifier.size(12.dp)
                                     )
@@ -683,13 +684,13 @@ fun EncoreLibraryScreen(
                                 if (item.isPinned) {
                                     Icon(
                                         painter = painterResource(id = R.drawable.encore_icon_pin_24),
-                                        contentDescription = "Pinned",
+                                        contentDescription = stringResource(R.string.pinned),
                                         tint = EncoreColors.Green,
                                         modifier = Modifier.size(12.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "Pinned • ",
+                                        text = stringResource(R.string.pinned_with_dot),
                                         style = EncoreTheme.typography.bodySmallBold.copy(
                                             color = EncoreColors.Green,
                                             fontSize = 12.sp
@@ -699,7 +700,7 @@ fun EncoreLibraryScreen(
                                 if (item.isDownloaded) {
                                     Icon(
                                         painter = painterResource(id = R.drawable.encore_icon_download_24),
-                                        contentDescription = "Downloaded",
+                                        contentDescription = stringResource(R.string.downloaded),
                                         tint = EncoreColors.Green,
                                         modifier = Modifier.size(12.dp)
                                     )

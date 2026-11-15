@@ -2,6 +2,7 @@ package com.quackify.compose.sheets
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,6 +49,7 @@ import com.quackify.compose.format.parseHexColor
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,13 +64,14 @@ fun ProfileFollowSheet(
 ) {
     if (!isOpen) return
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     var selectedTab by remember { mutableIntStateOf(0) }
     val people = if (selectedTab == 0) followers else following
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DarkSystemBarsSheet,
+        properties = BackNotDismissSheet,
         sheetState = sheetState,
         containerColor = EncoreColors.Card,
         dragHandle = {
@@ -82,6 +85,7 @@ fun ProfileFollowSheet(
         },
         modifier = modifier
     ) {
+        BackHandler { onDismiss() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -89,7 +93,7 @@ fun ProfileFollowSheet(
                 .navigationBarsPadding()
         ) {
             Text(
-                text = "Followers and following",
+                text = stringResource(R.string.followers_and_following),
                 style = EncoreTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
@@ -101,14 +105,14 @@ fun ProfileFollowSheet(
             ) {
                 item {
                     EncoreChip(
-                        text = "Followers",
+                        text = stringResource(R.string.followers),
                         isSelected = selectedTab == 0,
                         onClick = { selectedTab = 0 }
                     )
                 }
                 item {
                     EncoreChip(
-                        text = "Following",
+                        text = stringResource(R.string.following),
                         isSelected = selectedTab == 1,
                         onClick = { selectedTab = 1 }
                     )
@@ -145,7 +149,7 @@ fun ProfileFollowSheet(
                         }
                     }
                     people.isEmpty() -> Text(
-                        text = if (selectedTab == 0) "No followers yet" else "Not following anyone",
+                        text = if (selectedTab == 0) stringResource(R.string.no_followers_yet) else stringResource(R.string.not_following_anyone),
                         style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextSecondary),
                         modifier = Modifier
                             .fillMaxWidth()

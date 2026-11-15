@@ -49,6 +49,7 @@ import com.quackify.compose.playlist.TrackItem
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.theme.rememberBottomPadding
+import androidx.compose.ui.res.stringResource
 
 /**
  * Recommendation & Hub models for dedicated Category / Genre screens
@@ -316,7 +317,7 @@ fun EncoreCategoryScreen(
                             .padding(top = 28.dp, bottom = 12.dp)
                     ) {
                         Text(
-                            text = "Explore $categoryTitle",
+                            text = stringResource(R.string.explore_category, categoryTitle),
                             style = EncoreTheme.typography.titleLarge.copy(
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
@@ -387,7 +388,7 @@ fun EncoreCategoryScreen(
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.encore_icon_arrow_left_24),
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.back),
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
                 )

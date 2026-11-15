@@ -4,7 +4,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
@@ -20,6 +22,7 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -82,7 +85,9 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.input.pointer.positionChangeIgnoreConsumed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalConfiguration
@@ -121,6 +126,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.util.rememberDominantColor
+import androidx.compose.ui.res.stringResource
 
 private const val LANDSCAPE_ARTWORK_PANE_WEIGHT = 0.40f
 private const val LANDSCAPE_CONTROLS_PANE_WEIGHT = 0.60f
@@ -232,6 +238,7 @@ fun EncoreNowPlayingScreen(
     onShareClick: () -> Unit = {},
     onTitleClick: () -> Unit = {},
     onArtistClick: () -> Unit = {},
+    onArtistLongClick: (() -> Unit)? = null,
     canvasFilePath: String? = null,
     isCanvasAllowed: Boolean = true,
     isCanvasEnabled: Boolean = false,
@@ -339,6 +346,18 @@ fun EncoreNowPlayingScreen(
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
+    val canvasImmersive = canvasActive && !videoActive && !isLandscape
+    var canvasControlsRevealed by remember { mutableStateOf(true) }
+    val canvasControlsShown = !canvasImmersive || canvasControlsRevealed
+    var prevCanvasEnabled by remember { mutableStateOf(isCanvasEnabled) }
+
+    LaunchedEffect(canvasImmersive) {
+        if (!canvasImmersive) canvasControlsRevealed = true
+    }
+    LaunchedEffect(isCanvasEnabled) {
+        if (isCanvasEnabled && !prevCanvasEnabled) canvasControlsRevealed = false
+        prevCanvasEnabled = isCanvasEnabled
+    }
     val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
     val dismissThresholdPx = with(density) { DISMISS_THRESHOLD_DP.dp.toPx() }
     val videoTopHeight = (configuration.screenWidthDp * 9f / 16f).dp
@@ -418,6 +437,26 @@ fun EncoreNowPlayingScreen(
             .graphicsLayer {
                 translationY = playerOffsetY.value.coerceAtLeast(0f)
             }
+            .pointerInput(canvasImmersive) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    var consumed = false
+                    var dragDistance = 0f
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Final)
+                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                        if (change.isConsumed) consumed = true
+                        dragDistance += change.positionChangeIgnoreConsumed().getDistance()
+                        if (canvasImmersive && !canvasControlsRevealed && dragDistance > viewConfiguration.touchSlop) {
+                            canvasControlsRevealed = true
+                        }
+                        if (!change.pressed) break
+                    }
+                    if (canvasImmersive && !consumed && dragDistance <= viewConfiguration.touchSlop) {
+                        canvasControlsRevealed = !canvasControlsRevealed
+                    }
+                }
+            }
     ) {
         val viewportHeight = maxHeight
         val dynamicArtworkColor by rememberDominantColor(
@@ -463,8 +502,8 @@ fun EncoreNowPlayingScreen(
             LocalOverscrollConfiguration provides null
         ) {
             val resolvedContextTitle = contextHeaderTitle ?: when {
-                albumOrPlaylistContext.isBlank() || albumOrPlaylistContext.equals("Recommended for you", ignoreCase = true) -> "Recommended for you"
-                else -> "Playing from playlist"
+                albumOrPlaylistContext.isBlank() || albumOrPlaylistContext.equals("Recommended for you", ignoreCase = true) -> stringResource(R.string.recommended_for_you)
+                else -> stringResource(R.string.playing_from_playlist)
             }
             val hasSubtitle = albumOrPlaylistContext.isNotBlank() && !albumOrPlaylistContext.equals("Recommended for you", ignoreCase = true)
 
@@ -545,6 +584,7 @@ fun EncoreNowPlayingScreen(
                             showSmartShuffleBadge = isEnhancedTrack,
                             onTitleClick = onTitleClick,
                             onArtistClick = onArtistClick,
+                            onArtistLongClick = onArtistLongClick,
                             onLikeClick = onLikeClick,
                             onBanClick = onBanClick
                         )
@@ -603,7 +643,7 @@ fun EncoreNowPlayingScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        NowPlayingLyricsPeekCard(
+                        NowPlayingLyricsCard(
                             visible = effectiveLyricsVisible,
                             lyrics = lyrics,
                             activeIndex = activeLyricIndex,
@@ -714,12 +754,18 @@ fun EncoreNowPlayingScreen(
                                 )
                             }
 
-                            MusicVideoSwitchRow(
-                                available = musicVideoAvailable,
-                                active = videoActive,
-                                switching = videoSwitching,
-                                onSwitch = onSwitchVideo
-                            )
+                            AnimatedVisibility(
+                                visible = canvasControlsShown,
+                                enter = fadeIn(tween(200)) + expandVertically(tween(300, easing = EncoreAnimation.DecelerateInterpolator)),
+                                exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
+                            ) {
+                                MusicVideoSwitchRow(
+                                    available = musicVideoAvailable,
+                                    active = videoActive,
+                                    switching = videoSwitching,
+                                    onSwitch = onSwitchVideo
+                                )
+                            }
 
                             if (!videoActive) {
                                 Spacer(modifier = Modifier.height(lyricBottomSpacerHeight))
@@ -733,8 +779,10 @@ fun EncoreNowPlayingScreen(
                                 showSmartShuffleBadge = isEnhancedTrack,
                                 onTitleClick = onTitleClick,
                                 onArtistClick = onArtistClick,
+                                onArtistLongClick = onArtistLongClick,
                                 onLikeClick = onLikeClick,
-                                onBanClick = onBanClick
+                                onBanClick = onBanClick,
+                                coverUrl = if (canvasImmersive) coverUrl else null
                             )
 
                             Spacer(modifier = Modifier.height(16.dp))
@@ -749,45 +797,53 @@ fun EncoreNowPlayingScreen(
                                 markers = chapterFractions(chapters, durationMs)
                             )
 
-                            Spacer(modifier = Modifier.height(20.dp))
+                            AnimatedVisibility(
+                                visible = canvasControlsShown,
+                                enter = fadeIn(tween(200)) + expandVertically(tween(300, easing = EncoreAnimation.DecelerateInterpolator)),
+                                exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
+                            ) {
+                                Column {
+                                    Spacer(modifier = Modifier.height(20.dp))
 
-                            if (isEpisode) {
-                                EpisodeControlsRow(
-                                    playbackSpeed = playbackSpeed,
-                                    isPlaying = isPlaying,
-                                    isLoading = effectiveIsLoading,
-                                    onPlaybackSpeed = onPlaybackSpeed,
-                                    onSkipSeek = onSkipSeek,
-                                    onSkipPreviousClick = onSkipPreviousClick,
-                                    onPlayPauseClick = onPlayPauseClick,
-                                    onSkipNextClick = onSkipNextClick
-                                )
-                            } else {
-                            NowPlayingControlsRow(
-                                shuffleMode = shuffleMode,
-                                repeatMode = repeatMode,
-                                isPlaying = isPlaying,
-                                isLoading = effectiveIsLoading,
-                                canShuffle = canShuffle,
-                                canSmartShuffle = canSmartShuffle,
-                                canRepeat = canRepeat,
-                                canSkipPrevious = canSkipPrevious,
-                                onShuffleClick = onShuffleClick,
-                                onSkipPreviousClick = onSkipPreviousClick,
-                                onPlayPauseClick = onPlayPauseClick,
-                                onSkipNextClick = onSkipNextClick,
-                                onRepeatClick = onRepeatClick
-                            )
+                                    if (isEpisode) {
+                                        EpisodeControlsRow(
+                                            playbackSpeed = playbackSpeed,
+                                            isPlaying = isPlaying,
+                                            isLoading = effectiveIsLoading,
+                                            onPlaybackSpeed = onPlaybackSpeed,
+                                            onSkipSeek = onSkipSeek,
+                                            onSkipPreviousClick = onSkipPreviousClick,
+                                            onPlayPauseClick = onPlayPauseClick,
+                                            onSkipNextClick = onSkipNextClick
+                                        )
+                                    } else {
+                                        NowPlayingControlsRow(
+                                            shuffleMode = shuffleMode,
+                                            repeatMode = repeatMode,
+                                            isPlaying = isPlaying,
+                                            isLoading = effectiveIsLoading,
+                                            canShuffle = canShuffle,
+                                            canSmartShuffle = canSmartShuffle,
+                                            canRepeat = canRepeat,
+                                            canSkipPrevious = canSkipPrevious,
+                                            onShuffleClick = onShuffleClick,
+                                            onSkipPreviousClick = onSkipPreviousClick,
+                                            onPlayPauseClick = onPlayPauseClick,
+                                            onSkipNextClick = onSkipNextClick,
+                                            onRepeatClick = onRepeatClick
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    NowPlayingFooterRow(
+                                        connectedDeviceName = connectedDeviceName,
+                                        onDeviceClick = onDeviceClick,
+                                        onQueueClick = onQueueClick,
+                                        onShareClick = onShareClick
+                                    )
+                                }
                             }
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            NowPlayingFooterRow(
-                                connectedDeviceName = connectedDeviceName,
-                                onDeviceClick = onDeviceClick,
-                                onQueueClick = onQueueClick,
-                                onShareClick = onShareClick
-                            )
                         }
                     }
 
@@ -797,8 +853,8 @@ fun EncoreNowPlayingScreen(
                             .revealAt(reveal, REVEAL_REST_DELAY_MS / REVEAL_MS.toFloat())
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            NowPlayingLyricsPeekCard(
-                                visible = effectiveLyricsVisible,
+                            NowPlayingLyricsCard(
+                                visible = effectiveLyricsVisible && canvasControlsShown,
                                 lyrics = lyrics,
                                 activeIndex = activeLyricIndex,
                                 dominantColor = dynamicArtworkColor,
@@ -807,21 +863,29 @@ fun EncoreNowPlayingScreen(
                             )
 
                             if (!effectiveIsLoading && artist.isNotBlank()) {
-                                if (effectiveLyricsVisible) {
-                                    Spacer(modifier = Modifier.height(EncoreSpacers.Base))
+                                AnimatedVisibility(
+                                    visible = canvasControlsShown,
+                                    enter = fadeIn(tween(200)) + expandVertically(tween(300, easing = EncoreAnimation.DecelerateInterpolator)),
+                                    exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
+                                ) {
+                                    Column {
+                                        if (effectiveLyricsVisible) {
+                                            Spacer(modifier = Modifier.height(EncoreSpacers.Base))
+                                        }
+
+                                        NowPlayingAboutArtistCard(
+                                            artist = artist,
+                                            monthlyListeners = effectiveMonthlyListeners,
+                                            artistBio = effectiveArtistBio,
+                                            artistImageUrl = artistImageUrl,
+                                            isFollowingArtist = isArtistFollowing,
+                                            onFollowToggle = { onArtistFollowToggle(!isArtistFollowing) },
+                                            onArtistClick = onArtistClick
+                                        )
+
+                                        Spacer(modifier = Modifier.height(48.dp))
+                                    }
                                 }
-
-                                NowPlayingAboutArtistCard(
-                                    artist = artist,
-                                    monthlyListeners = effectiveMonthlyListeners,
-                                    artistBio = effectiveArtistBio,
-                                    artistImageUrl = artistImageUrl,
-                                    isFollowingArtist = isArtistFollowing,
-                                    onFollowToggle = { onArtistFollowToggle(!isArtistFollowing) },
-                                    onArtistClick = onArtistClick
-                                )
-
-                                Spacer(modifier = Modifier.height(48.dp))
                             }
                         }
                     }
@@ -1016,7 +1080,7 @@ private fun NowPlayingHeaderRow(
     ) {
         EncoreIconButton(
             iconRes = R.drawable.encore_icon_chevron_down_24,
-            contentDescription = "Collapse player",
+            contentDescription = stringResource(R.string.collapse_player),
             onClick = onCollapseClick,
             tint = ink,
             size = 48.dp,
@@ -1055,7 +1119,7 @@ private fun NowPlayingHeaderRow(
 
         EncoreIconButton(
             iconRes = R.drawable.encore_icon_more_android_24,
-            contentDescription = "More options",
+            contentDescription = stringResource(R.string.more_options),
             onClick = onMoreClick,
             tint = ink,
             size = 48.dp,
@@ -1163,7 +1227,7 @@ private fun NowPlayingArtworkCard(
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.encore_icon_fullscreen_24),
-                                        contentDescription = "Toggle fullscreen video",
+                                        contentDescription = stringResource(R.string.toggle_fullscreen_video),
                                         tint = Color.White,
                                         modifier = Modifier.size(18.dp)
                                     )
@@ -1178,7 +1242,7 @@ private fun NowPlayingArtworkCard(
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.encore_icon_settings_24),
-                                            contentDescription = "Video quality",
+                                            contentDescription = stringResource(R.string.video_quality),
                                             tint = Color.White,
                                             modifier = Modifier.size(18.dp)
                                         )
@@ -1188,7 +1252,7 @@ private fun NowPlayingArtworkCard(
                                         onDismiss = { menuOpen = false },
                                     ) {
                                         EncoreMenuItem(
-                                            label = "Auto",
+                                            label = stringResource(R.string.auto),
                                             onClick = {
                                                 onVideoQuality(0)
                                                 menuOpen = false
@@ -1307,7 +1371,7 @@ private fun MusicVideoSwitchRow(
             .padding(horizontal = 24.dp)
     ) {
         MusicVideoSwitchPill(
-            label = if (active) "Audio" else "Music video",
+            label = if (active) stringResource(R.string.audio) else stringResource(R.string.music_video),
             iconRes = if (active) R.drawable.encore_icon_audio_24 else R.drawable.encore_icon_video_24,
             switching = switching,
             onClick = { onSwitch(!active) }
@@ -1412,6 +1476,7 @@ private fun NowPlayingSyncedLyricLine(
  * Reference: track_info_nowplaying_view.xml & revised_template_overlay.xml (@id/track_info_feedback_container)
  * Live dump: track_info_view_title [63, 1598], feedback_buttons_container [765, 1596][1038, 1722]
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun NowPlayingTrackInfoRow(
     title: String,
@@ -1421,8 +1486,10 @@ private fun NowPlayingTrackInfoRow(
     showSmartShuffleBadge: Boolean,
     onTitleClick: () -> Unit,
     onArtistClick: () -> Unit,
+    onArtistLongClick: (() -> Unit)? = null,
     onLikeClick: () -> Unit,
     onBanClick: (() -> Unit)? = null,
+    coverUrl: String? = null,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -1431,6 +1498,16 @@ private fun NowPlayingTrackInfoRow(
             .padding(start = 24.dp, end = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (coverUrl != null) {
+            EncoreArtworkImage(
+                imageUrl = coverUrl,
+                contentDescription = null,
+                cornerRadius = 8.dp,
+                requestSize = 128,
+                modifier = Modifier.size(48.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
@@ -1456,7 +1533,7 @@ private fun NowPlayingTrackInfoRow(
                 if (showSmartShuffleBadge) {
                     Icon(
                         painter = painterResource(id = R.drawable.encore_icon_enhance_badge_16),
-                        contentDescription = "Smart Shuffle on",
+                        contentDescription = stringResource(R.string.smart_shuffle_on),
                         tint = EncoreColors.Green,
                         modifier = Modifier
                             .padding(end = 6.dp)
@@ -1468,7 +1545,10 @@ private fun NowPlayingTrackInfoRow(
                     style = EncoreTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = 0.70f)),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.clickable(onClick = onArtistClick)
+                    modifier = Modifier.combinedClickable(
+                        onClick = onArtistClick,
+                        onLongClick = onArtistLongClick
+                    )
                 )
             }
         }
@@ -1477,7 +1557,7 @@ private fun NowPlayingTrackInfoRow(
             if (onBanClick != null) {
                 EncoreIconButton(
                     iconRes = R.drawable.encore_icon_ban_24,
-                    contentDescription = "Don't play this",
+                    contentDescription = stringResource(R.string.don_t_play_this),
                     onClick = onBanClick,
                     tint = Color.White.copy(alpha = 0.70f),
                     size = 48.dp,
@@ -1585,7 +1665,7 @@ private fun EpisodeControlsRow(
 
         EncoreIconButton(
             iconRes = R.drawable.encore_icon_seek_back_15,
-            contentDescription = "Back 15 seconds",
+            contentDescription = stringResource(R.string.back_15_seconds),
             onClick = { onSkipSeek(-15_000L) },
             tint = EncoreColors.TextPrimary,
             size = 48.dp,
@@ -1594,7 +1674,7 @@ private fun EpisodeControlsRow(
 
         EncoreIconButton(
             iconRes = R.drawable.encore_icon_skip_back_24,
-            contentDescription = "Previous",
+            contentDescription = stringResource(R.string.previous),
             onClick = onSkipPreviousClick,
             tint = EncoreColors.TextPrimary,
             size = 44.dp,
@@ -1613,7 +1693,7 @@ private fun EpisodeControlsRow(
 
         EncoreIconButton(
             iconRes = R.drawable.encore_icon_skip_forward_24,
-            contentDescription = "Next",
+            contentDescription = stringResource(R.string.next),
             onClick = onSkipNextClick,
             tint = EncoreColors.TextPrimary,
             size = 48.dp,
@@ -1622,7 +1702,7 @@ private fun EpisodeControlsRow(
 
         EncoreIconButton(
             iconRes = R.drawable.encore_icon_seek_forward_15,
-            contentDescription = "Forward 15 seconds",
+            contentDescription = stringResource(R.string.forward_15_seconds),
             onClick = { onSkipSeek(15_000L) },
             tint = EncoreColors.TextPrimary,
             size = 48.dp,
@@ -1717,7 +1797,7 @@ private fun NowPlayingControlsRow(
 
         EncoreIconButton(
             iconRes = R.drawable.encore_icon_skip_back_24,
-            contentDescription = "Previous",
+            contentDescription = stringResource(R.string.previous),
             onClick = onSkipPreviousClick,
             tint = EncoreColors.TextPrimary,
             size = 48.dp,
@@ -1737,7 +1817,7 @@ private fun NowPlayingControlsRow(
 
         EncoreIconButton(
             iconRes = R.drawable.encore_icon_skip_forward_24,
-            contentDescription = "Next",
+            contentDescription = stringResource(R.string.next),
             onClick = onSkipNextClick,
             tint = EncoreColors.TextPrimary,
             size = 48.dp,
@@ -1781,23 +1861,25 @@ private fun NowPlayingFooterRow(
         ) {
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_devices_24,
-                contentDescription = "Connected devices",
+                contentDescription = stringResource(R.string.connected_devices),
                 onClick = onDeviceClick,
-                tint = EncoreColors.Green,
+                tint = if (connectedDeviceName.isNotBlank()) EncoreColors.Green else EncoreColors.TextPrimary,
                 size = 32.dp,
                 iconSize = 20.dp
             )
-            Text(
-                text = connectedDeviceName,
-                style = EncoreTheme.typography.bodySmallBold.copy(color = EncoreColors.Green),
-                modifier = Modifier.padding(start = 2.dp)
-            )
+            if (connectedDeviceName.isNotBlank()) {
+                Text(
+                    text = connectedDeviceName,
+                    style = EncoreTheme.typography.bodySmallBold.copy(color = EncoreColors.Green),
+                    modifier = Modifier.padding(start = 2.dp)
+                )
+            }
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_share_android_24,
-                contentDescription = "Share",
+                contentDescription = stringResource(R.string.share),
                 onClick = onShareClick,
                 tint = Color.White.copy(alpha = 0.70f),
                 size = 40.dp,
@@ -1805,7 +1887,7 @@ private fun NowPlayingFooterRow(
             )
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_queue_24,
-                contentDescription = "Queue",
+                contentDescription = stringResource(R.string.queue),
                 onClick = onQueueClick,
                 tint = Color.White.copy(alpha = 0.70f),
                 size = 40.dp,
@@ -1822,7 +1904,7 @@ private fun NowPlayingFooterRow(
  * Reference: live dump [42, 2269][1038, 2400]
  */
 @Composable
-private fun NowPlayingLyricsPeekCard(
+private fun NowPlayingLyricsCard(
     visible: Boolean,
     lyrics: List<TimeSyncedLyric>,
     activeIndex: Int,
@@ -1864,13 +1946,13 @@ private fun NowPlayingLyricsPeekCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Lyrics preview",
+                        text = stringResource(R.string.lyrics),
                         style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = ink)
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         EncoreIconButton(
                             iconRes = R.drawable.encore_icon_share_android_24,
-                            contentDescription = "Share lyrics",
+                            contentDescription = stringResource(R.string.share_lyrics),
                             onClick = onShareLyrics,
                             tint = ink,
                             size = 32.dp,
@@ -1878,7 +1960,7 @@ private fun NowPlayingLyricsPeekCard(
                         )
                         EncoreIconButton(
                             iconRes = R.drawable.encore_icon_fullscreen_24,
-                            contentDescription = "Expand lyrics",
+                            contentDescription = stringResource(R.string.expand_lyrics),
                             onClick = onOpenLyrics,
                             tint = ink,
                             size = 32.dp,
@@ -1957,7 +2039,7 @@ private fun NowPlayingAboutArtistCard(
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(
-                    text = "About the artist",
+                    text = stringResource(R.string.about_the_artist),
                     style = EncoreTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -2021,7 +2103,7 @@ private fun NowPlayingAboutArtistCard(
                             Spacer(modifier = Modifier.width(EncoreSpacers.Tighter4))
                             Icon(
                                 painter = painterResource(id = R.drawable.encore_icon_verified_check_active_24),
-                                contentDescription = "Verified Artist",
+                                contentDescription = stringResource(R.string.verified_artist),
                                 tint = EncoreColors.Green,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -2046,7 +2128,7 @@ private fun NowPlayingAboutArtistCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = if (isFollowingArtist) "Following" else "Follow",
+                        text = if (isFollowingArtist) stringResource(R.string.following) else "Follow",
                         style = EncoreTheme.typography.bodySmallBold.copy(
                             color = if (isFollowingArtist) EncoreColors.Green else EncoreColors.TextPrimary
                         )
@@ -2111,7 +2193,7 @@ private fun FullscreenLyricsView(
         ) {
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_chevron_down_24,
-                contentDescription = "Close lyrics",
+                contentDescription = stringResource(R.string.close_lyrics),
                 onClick = onClose,
                 tint = ink
             )
@@ -2133,7 +2215,7 @@ private fun FullscreenLyricsView(
 
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_share_android_24,
-                contentDescription = "Share",
+                contentDescription = stringResource(R.string.share),
                 onClick = onShareClick,
                 tint = ink
             )

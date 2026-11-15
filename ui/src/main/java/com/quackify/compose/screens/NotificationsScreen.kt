@@ -48,6 +48,7 @@ import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.theme.rememberBottomPadding
+import androidx.compose.ui.res.stringResource
 
 data class EncoreNotification(
     val title: String,
@@ -74,7 +75,7 @@ fun NotificationsScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedFilterIndex by remember { mutableIntStateOf(0) }
-    val filters = listOf("All", "Music", "Podcasts & Shows")
+    val filters = listOf(stringResource(R.string.all), "Music", stringResource(R.string.podcasts_and_shows))
     val bottomPadding = rememberBottomPadding()
 
     val filtered = remember(selectedFilterIndex, notifications) {
@@ -99,13 +100,13 @@ fun NotificationsScreen(
         ) {
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_arrow_left_24,
-                contentDescription = "Back",
+                contentDescription = stringResource(R.string.back),
                 onClick = onBackClick,
                 tint = EncoreColors.TextPrimary
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "What's New",
+                text = stringResource(R.string.whats_new),
                 style = EncoreTheme.typography.titleLarge.copy(fontSize = 20.sp)
             )
         }
@@ -149,18 +150,18 @@ fun NotificationsScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "Couldn't load What's New",
+                        text = stringResource(R.string.couldn_t_load_what_s_new),
                         style = EncoreTheme.typography.titleLarge
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Check your internet connection and try again.",
+                        text = stringResource(R.string.check_your_internet_connection_and_try_again),
                         style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextSecondary),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     TextButton(onClick = onRetry) {
-                        Text(text = "Try again", color = EncoreColors.Green)
+                        Text(text = stringResource(R.string.try_again), color = EncoreColors.Green)
                     }
                 }
             }
@@ -174,18 +175,18 @@ fun NotificationsScreen(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "You're all caught up",
+                        text = stringResource(R.string.you_re_all_caught_up),
                         style = EncoreTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "New releases from the artists and podcasts you follow will show up here.",
+                        text = stringResource(R.string.new_releases_from_the_artists_and_podcasts_you_f),
                         style = EncoreTheme.typography.bodyMedium.copy(color = EncoreColors.TextSecondary),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     TextButton(onClick = onRetry) {
-                        Text(text = "Refresh", color = EncoreColors.Green)
+                        Text(text = stringResource(R.string.refresh), color = EncoreColors.Green)
                     }
                 }
             }
@@ -270,6 +271,7 @@ fun NotificationsScreen(
     }
 }
 
+@Composable
 private fun relativeTime(iso: String): String {
     val at = runCatching {
         java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.ROOT)
@@ -278,7 +280,7 @@ private fun relativeTime(iso: String): String {
     }.getOrNull() ?: return ""
     val minutes = (System.currentTimeMillis() - at) / 60000
     return when {
-        minutes < 1 -> "Just now"
+        minutes < 1 -> stringResource(R.string.just_now)
         minutes < 60 -> "${minutes}m ago"
         minutes < 60 * 24 -> "${minutes / 60}h ago"
         else -> "${minutes / (60 * 24)}d ago"

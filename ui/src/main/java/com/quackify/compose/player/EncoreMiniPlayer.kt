@@ -59,6 +59,7 @@ import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
+import androidx.compose.ui.res.stringResource
 
 private val MINI_PLAYER_BASE = Color(0xFF282828)
 private const val MINI_PLAYER_TINT_STRENGTH = 0.22f
@@ -86,6 +87,7 @@ private fun resolveDeviceIcon(kind: DeviceKind?): Int = when (kind) {
     DeviceKind.TABLET -> R.drawable.encore_icon_device_tablet_24
     DeviceKind.CAR -> R.drawable.encore_icon_device_car_24
     DeviceKind.CAST -> R.drawable.encore_icon_chromecast_connected_24
+    DeviceKind.HEADPHONES -> R.drawable.encore_icon_device_headphones_24
     else -> R.drawable.encore_icon_device_computer_24
 }
 
@@ -239,7 +241,7 @@ fun EncoreMiniPlayer(
                                         velocity = 30.dp
                                     )
                             ) {
-                                if (connectedDeviceName != null) {
+                                if (!connectedDeviceName.isNullOrBlank()) {
                                     Icon(
                                         painter = painterResource(id = R.drawable.encore_icon_connect_24),
                                         contentDescription = null,
@@ -248,7 +250,7 @@ fun EncoreMiniPlayer(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "$connectedDeviceName • $artist",
+                                        text = stringResource(R.string.connected_device_artist, connectedDeviceName, artist),
                                         style = EncoreTheme.typography.marginal.copy(
                                             color = EncoreColors.Green
                                         ),
@@ -274,13 +276,13 @@ fun EncoreMiniPlayer(
                 val connectIconRes = if (hasConnectedDevice) {
                     resolveDeviceIcon(connectedDeviceKind)
                 } else {
-                    R.drawable.encore_icon_devices_24
+                    R.drawable.encore_icon_device_mobile_24
                 }
                 val connectIconTint = if (hasConnectedDevice) EncoreColors.Green else Color.White
 
                 EncoreIconButton(
                     iconRes = connectIconRes,
-                    contentDescription = if (hasConnectedDevice) "Connected to $connectedDeviceName" else "Connect to device",
+                    contentDescription = if (hasConnectedDevice) stringResource(R.string.connected_to_device, connectedDeviceName) else stringResource(R.string.connect_to_device),
                     onClick = onDeviceClick,
                     size = EncoreControlSizes.FloatingPlayerButtonSize,
                     iconSize = 20.dp,
@@ -296,7 +298,7 @@ fun EncoreMiniPlayer(
 
                 EncoreIconButton(
                     iconRes = if (isPlaying) R.drawable.encore_icon_pause_24 else R.drawable.encore_icon_play_24,
-                    contentDescription = if (isPlaying) "Pause" else "Play",
+                    contentDescription = if (isPlaying) "Pause" else stringResource(R.string.play),
                     onClick = if (hasTrack) onPlayPauseClick else ({}),
                     size = EncoreControlSizes.FloatingPlayerButtonSize,
                     iconSize = 24.dp,

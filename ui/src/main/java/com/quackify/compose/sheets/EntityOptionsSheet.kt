@@ -32,6 +32,7 @@ import com.quackify.compose.R
 import com.quackify.compose.components.EncoreArtworkImage
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
 
 data class EntityOptions(
     val title: String,
@@ -128,7 +129,7 @@ fun EntityOptionsSheet(
 
             if (canEditPlaylist) {
                 EntityRow(
-                    title = "Edit details",
+                    title = stringResource(R.string.edit_details),
                     iconRes = R.drawable.encore_icon_edit_24,
                     onClick = {
                         onDismiss()
@@ -146,7 +147,7 @@ fun EntityOptionsSheet(
 
             if (canPin) {
                 EntityRow(
-                    title = if (isPinned) "Unpin from top" else "Pin to top",
+                    title = if (isPinned) stringResource(R.string.unpin_from_top) else stringResource(R.string.pin_to_top),
                     iconRes = R.drawable.encore_icon_pin_24,
                     onClick = {
                         onDismiss()
@@ -158,10 +159,10 @@ fun EntityOptionsSheet(
             if (isSaved != null) {
                 EntityRow(
                     title = when {
-                        isEpisode && isSaved -> "Remove from Your Episodes"
-                        isEpisode -> "Add to Your Episodes"
-                        isSaved -> "Remove from Your Library"
-                        else -> "Add to Your Library"
+                        isEpisode && isSaved -> stringResource(R.string.remove_from_your_episodes)
+                        isEpisode -> stringResource(R.string.add_to_your_episodes)
+                        isSaved -> stringResource(R.string.remove_from_your_library)
+                        else -> stringResource(R.string.add_to_your_library)
                     },
                     iconRes = when {
                         isSaved -> R.drawable.encore_icon_trash_24
@@ -176,7 +177,7 @@ fun EntityOptionsSheet(
 
             if (canMoveToFolder) {
                 EntityRow(
-                    title = "Move to folder",
+                    title = stringResource(R.string.move_to_folder),
                     iconRes = R.drawable.encore_icon_folder_24,
                     onClick = {
                         onDismiss()
@@ -187,7 +188,7 @@ fun EntityOptionsSheet(
 
             if (onAddToQueue != null) {
                 EntityRow(
-                    title = "Add to queue",
+                    title = stringResource(R.string.add_to_queue),
                     iconRes = R.drawable.encore_icon_add_to_queue_24,
                     onClick = {
                         onDismiss()
@@ -198,7 +199,7 @@ fun EntityOptionsSheet(
 
             if (canGoToRadio) {
                 EntityRow(
-                    title = if (entity.uri.startsWith("spotify:artist:")) "Go to artist radio" else "Go to playlist radio",
+                    title = if (entity.uri.startsWith("spotify:artist:")) stringResource(R.string.go_to_artist_radio) else stringResource(R.string.go_to_playlist_radio),
                     iconRes = R.drawable.encore_icon_radio_24,
                     onClick = {
                         onDismiss()
@@ -215,7 +216,7 @@ fun EntityOptionsSheet(
             }
 
             EntityRow(
-                title = "Copy link",
+                title = stringResource(R.string.copy_link),
                 iconRes = R.drawable.encore_icon_link_24,
                 onClick = {
                     onDismiss()
@@ -224,7 +225,7 @@ fun EntityOptionsSheet(
             )
 
             EntityRow(
-                title = "Share",
+                title = stringResource(R.string.share),
                 iconRes = R.drawable.encore_icon_share_android_24,
                 onClick = {
                     onDismiss()
@@ -240,7 +241,7 @@ fun EntityOptionsSheet(
                 )
 
                 EntityRow(
-                    title = "Delete playlist",
+                    title = stringResource(R.string.delete_playlist),
                     iconRes = R.drawable.encore_icon_delete_24,
                     onClick = {
                         onDismiss()
@@ -257,7 +258,7 @@ fun EntityOptionsSheet(
 @Composable
 private fun AddToPlaylistRow(onClick: () -> Unit) {
     EntityRow(
-        title = "Add to playlist",
+        title = stringResource(R.string.add_to_playlist),
         iconRes = R.drawable.encore_icon_add_to_playlist_24,
         onClick = onClick
     )

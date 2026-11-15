@@ -29,6 +29,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.quackify.app.search.decorateSearchTracks
 import com.quackify.backend.api.Browse
+import com.quackify.backend.api.ArtistBanStore
+import com.quackify.backend.api.Collection2
 import com.quackify.backend.api.HomeFeed
 import com.quackify.backend.api.Library
 import com.quackify.backend.api.Podcasts
@@ -233,6 +235,7 @@ class MainActivity : ComponentActivity() {
     private var artistReleases by mutableStateOf<List<ArtistRelease>?>(null)
     private var artistListeners by mutableStateOf<String?>(null)
     private var artistFollowed by mutableStateOf<Boolean?>(null)
+    private var artistBanned by mutableStateOf<Boolean?>(null)
     internal var nowPlayingArtist by mutableStateOf<ArtistDetail?>(null)
     internal var nowPlayingArtistFollowed by mutableStateOf<Boolean?>(null)
     internal var nowPlayingLyrics by mutableStateOf<TrackLyrics?>(null)
@@ -653,6 +656,7 @@ class MainActivity : ComponentActivity() {
                                 artistReleases = null
                                 artistListeners = null
                                 artistFollowed = null
+                                artistBanned = null
                                 artistLoading = false
                                 artistFailed = false
                                 return@LaunchedEffect
@@ -663,6 +667,7 @@ class MainActivity : ComponentActivity() {
                             artistReleases = null
                             artistListeners = null
                             artistFollowed = null
+                            artistBanned = null
                             artistFailed = false
                             artistLoading = true
                             try {
@@ -674,6 +679,7 @@ class MainActivity : ComponentActivity() {
                                 artistReleases = load.releases
                                 artistListeners = load.listeners
                                 artistFollowed = load.followed
+                                artistBanned = runCatching { Collection2.artistBanned(context, uri) }.getOrNull()
                             } finally {
                                 artistLoading = false
                             }
@@ -763,7 +769,8 @@ class MainActivity : ComponentActivity() {
                             PlaybackHost.bridge?.listener?.onPlayUri(link.uri)
                         }
 
-                        val bridge = remember { PlaybackHost.ensure(context) }
+                        val hostGeneration by PlaybackHost.generation
+                        val bridge = remember(hostGeneration) { PlaybackHost.ensure(context) }
                         val playback = bridge.state
 
                         LaunchedEffect(playback.videoActive) {
@@ -961,8 +968,8 @@ class MainActivity : ComponentActivity() {
             super.onDestroy()
             return
         }
-        if (sawStop && PlaybackHost.started) {
-            log.i("activity gone, handing the stream back and stopping the service")
+        if (sawStop && PlaybackHost.started && isFinishing) {
+            log.i("activity finished by the user, handing the stream back and stopping the service")
             PlaybackHost.teardown(this)
         }
         super.onDestroy()
@@ -986,8 +993,8 @@ class MainActivity : ComponentActivity() {
         return page.rows.map { it.toTrackItem() } to page.hasMore
     }
 
-    private suspend fun loadMoreAlbumTracks(currentSize: Int): Pair<List<TrackItem>, Boolean>? {
-        val page = Krespot.albums.albumMore(applicationContext, albumUri, currentSize)
+    private suspend fun loadMoreAlbumTracks(currentSize: Int, coverUrl: String): Pair<List<TrackItem>, Boolean>? {
+        val page = Krespot.albums.albumMore(applicationContext, albumUri, currentSize, albumDetail?.imageUrl.orEmpty())
         if (page == null) return null
         val rows = page.rows.map { it.toTrackItem() }
         log.i("album more '$albumUri' -> ${rows.size} rows hasMore=${page.hasMore}")
@@ -1418,7 +1425,7 @@ class MainActivity : ComponentActivity() {
             if (!albumLoadingMore && albumHasMore && current != null) {
                 scope.launch {
                     albumLoadingMore = true
-                    val page = loadMoreAlbumTracks(current.size)
+                    val page = loadMoreAlbumTracks(current.size, albumDetail?.imageUrl.orEmpty())
                     if (page != null) {
                         albumTracks = current + page.first
                         albumHasMore = page.second
@@ -1464,7 +1471,17 @@ class MainActivity : ComponentActivity() {
         addTracksLoading = addTracksLoading,
         onAddTracksOpen = { addTracksFetch++ },
         onAddTrack = { trackUri ->
-            val ok = Krespot.playlists.addTrack(context, playlistUri, trackUri)
+            val ok = if (playlistUri == "spotify:collection:tracks") {
+                val host = PlaybackHost.bridge
+                if (trackUri == host?.state?.trackUri && !host.state.isLiked) {
+                    host.listener.onLikeToggle()
+                    true
+                } else {
+                    Library.setSaved(context, listOf(trackUri), true)
+                }
+            } else {
+                Krespot.playlists.addTrack(context, playlistUri, trackUri)
+            }
             log.i("add '$trackUri' -> '$playlistUri' ok=$ok")
             ok
         },
@@ -1592,6 +1609,20 @@ class MainActivity : ComponentActivity() {
         artistReleases = artistReleases,
         artistMonthlyListeners = artistListeners,
         artistFollowed = artistFollowed,
+        artistBanned = artistBanned,
+        onArtistUnban = { uri ->
+            scope.launch {
+                val ok = Collection2.setArtistBanned(context, uri, false)
+                if (ok && uri == artistUri) artistBanned = false
+                if (ok) {
+                    ArtistBanStore.invalidate()
+                    com.quackify.compose.bans.ArtistBans.setBanned(uri, false)
+                }
+            }
+        },
+        onArtistBanChanged = { uri, banned ->
+            if (uri == artistUri) artistBanned = banned
+        },
         onArtistFollowToggle = { uri, follow ->
             scope.launch {
                 val ok = setArtistFollow(uri, follow)

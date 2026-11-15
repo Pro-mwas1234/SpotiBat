@@ -32,6 +32,7 @@ enum class DeviceKind {
     STICK,
     DONGLE,
     CAST,
+    HEADPHONES,
     UNKNOWN,
 }
 

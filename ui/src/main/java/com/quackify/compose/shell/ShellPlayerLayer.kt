@@ -86,8 +86,7 @@ internal fun BoxScope.ShellPlayerLayer(env: ShellPlayerEnv) {
         defaultColor = Color(0xFF432371)
     )
 
-    val remoteConnected = playbackState?.controllingRemote == true && !playbackState.activeDeviceName.isNullOrBlank()
-    val effectiveConnectedDevice = if (remoteConnected) playbackState?.activeDeviceName else null
+    val effectiveConnectedDevice = playbackState?.connectedDevice?.takeIf { it.isNotBlank() }
     val activeDevice = playbackState?.devices?.firstOrNull { it.active || it.id == playbackState.activeDeviceId }
         ?: playbackState?.devices?.firstOrNull { it.name == effectiveConnectedDevice }
     val activeDeviceKind = activeDevice?.kind
@@ -258,6 +257,13 @@ internal fun BoxScope.ShellPlayerLayer(env: ShellPlayerEnv) {
         onArtistClick = {
             env.setIsPlayerExpanded(false)
             env.openArtist(env.currentArtist, env.resolvedArtistUri)
+        },
+        onArtistLongClick = {
+            env.local.artistOptionsName = env.currentArtist
+            env.local.artistOptionsUri = env.resolvedArtistUri
+            env.local.artistOptionsAvatarUrl = null
+            env.flags.isArtistOptionsFromPlayer = true
+            env.flags.isArtistOptionsOpen = true
         }
     )
 }

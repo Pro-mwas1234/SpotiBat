@@ -22,7 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalContext
 import com.quackify.backend.api.Collection2
-import com.quackify.backend.api.Library
+import com.quackify.backend.core.auth.EncoreAuth
+import com.quackify.backend.core.net.Pathfinder
 import com.quackify.backend.model.AlbumDetail
 import com.quackify.backend.model.ArtistDetail
 import com.quackify.backend.model.BrowseCard
@@ -65,6 +66,7 @@ import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.rememberBottomPadding
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
 
 @Composable
 internal fun ShellScreenSlot(
@@ -270,6 +272,9 @@ fun EncoreAppShell(
     artistReleases: List<ArtistRelease>? = null,
     artistMonthlyListeners: String? = null,
     artistFollowed: Boolean? = null,
+    artistBanned: Boolean? = null,
+    onArtistUnban: ((String) -> Unit)? = null,
+    onArtistBanChanged: ((String, Boolean) -> Unit)? = null,
     onArtistFollowToggle: ((artistUri: String, follow: Boolean) -> Unit)? = null,
     onArtistTrackLikeToggle: ((TrackItem) -> Unit)? = null,
     onAlbumTrackLikeToggle: ((TrackItem) -> Unit)? = null,
@@ -345,6 +350,19 @@ fun EncoreAppShell(
     var selectedNavIndex by navController.nav::selectedNavIndex
     var isPlayerExpanded by navController.nav::isPlayerExpanded
 
+    val banContext = LocalContext.current
+    LaunchedEffect(banContext) { com.quackify.compose.bans.ArtistBans.ensureLoaded(banContext) }
+    val banLifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(banLifecycleOwner) {
+        val banObserver = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_START) {
+                com.quackify.compose.bans.ArtistBans.refresh(banContext)
+            }
+        }
+        banLifecycleOwner.lifecycle.addObserver(banObserver)
+        onDispose { banLifecycleOwner.lifecycle.removeObserver(banObserver) }
+    }
+
     LaunchedEffect(currentScreen) {
         if (currentScreen == ShellScreen.HOME) onHomeEntered()
     }
@@ -354,7 +372,7 @@ fun EncoreAppShell(
     }
 
     var trackTasteExcluded by local::trackTasteExcluded
-    var trackOptionsSaved by local::trackOptionsSaved
+    var trackOptionsPlays by local::trackOptionsPlays
     val tasteExclusionCache = remember { mutableMapOf<String, Boolean>() }
     var currentSortOption by local::sortOption
     var currentSortDirection by local::sortDirection
@@ -408,24 +426,27 @@ fun EncoreAppShell(
         val uri = selectedTrackForOptions?.uri.orEmpty()
         if (!flags.isTrackOptionsOpen || !uri.startsWith("spotify:track:")) {
             trackTasteExcluded = null
-            trackOptionsSaved = null
+            trackOptionsPlays = null
             return@LaunchedEffect
         }
         trackTasteExcluded = tasteExclusionCache[uri]
-        trackOptionsSaved = null
+        trackOptionsPlays = selectedTrackForOptions?.plays?.takeIf { it > 0L }
+        if (trackOptionsPlays == null) {
+            val variables = org.json.JSONObject()
+                .put("uri", uri)
+                .put("includeVideoAssociationItems", true)
+                .put("includeMusicVideoPreviews", false)
+                .toString()
+            val plays = Pathfinder.queryPost(context, EncoreAuth.token(context), "getTrack", variables)
+                ?.optJSONObject("data")?.optJSONObject("trackUnion")
+                ?.optString("playcount")?.toLongOrNull()
+            if (uri == selectedTrackForOptions?.uri) trackOptionsPlays = plays
+        }
         if (trackTasteExcluded == null) {
             val excluded = Collection2.excludedFromTasteProfile(context, uri)
             if (uri == selectedTrackForOptions?.uri) {
                 tasteExclusionCache[uri] = excluded
                 trackTasteExcluded = excluded
-            }
-        }
-        if (uri == playbackState?.trackUri) {
-            trackOptionsSaved = playbackState?.isLiked
-        } else {
-            val saved = Library.saved(context, listOf(uri))
-            if (uri == selectedTrackForOptions?.uri) {
-                trackOptionsSaved = uri in saved
             }
         }
     }
@@ -457,7 +478,7 @@ fun EncoreAppShell(
     val isLiked = playbackState?.isLiked ?: localIsLiked
     val currentShuffleMode = playbackState?.shuffleMode ?: localShuffleMode
     val currentRepeatMode = playbackState?.repeatMode ?: localRepeatMode
-    val connectedDevice = playbackState?.connectedDevice ?: localDevice
+    val connectedDevice = playbackState?.connectedDevice.orEmpty()
     val currentCoverUrl = playbackState?.coverUrl ?: ""
 
     val playerIdentity = playerIdentityOf(
@@ -498,9 +519,11 @@ fun EncoreAppShell(
     /** Single funnel for every "add to queue" action so they all fire the
      * Spotify-style confirmation toast from one place. */
     val toast = remember { SpotifyToastState() }
+    val addedToQueueLabel = stringResource(R.string.add_to_queue)
+    val queueToastLabel = stringResource(R.string.queue)
     val handleQueueAdd: (String) -> Unit = { uri ->
         playerListener?.onQueueAdd(uri)
-        toast.show("Added to queue", "Queue") {
+        toast.show(addedToQueueLabel, queueToastLabel) {
             isPlayerExpanded = true
             shellScope.launch {
                 // Let the player's reveal animation finish before the queue
@@ -533,19 +556,14 @@ fun EncoreAppShell(
 
     val handleSkipPrevious: () -> Unit = { actions.skipPrevious() }
 
-    val navItems = remember {
+    val homeLabel = stringResource(R.string.home)
+    val searchLabel = stringResource(R.string.search)
+    val yourLibraryLabel = stringResource(R.string.your_library)
+    val navItems = remember(homeLabel, searchLabel, yourLibraryLabel) {
         listOf(
-            NavItem("Home", R.drawable.encore_icon_home_24, R.drawable.encore_icon_home_active_24),
-            NavItem(
-                "Search",
-                R.drawable.encore_icon_search_24,
-                R.drawable.encore_icon_search_active_24
-            ),
-            NavItem(
-                "Your Library",
-                R.drawable.encore_icon_your_library_24,
-                R.drawable.encore_icon_your_library_active_24
-            )
+            NavItem(homeLabel, R.drawable.encore_icon_home_24, R.drawable.encore_icon_home_active_24),
+            NavItem(searchLabel, R.drawable.encore_icon_search_24, R.drawable.encore_icon_search_active_24),
+            NavItem(yourLibraryLabel, R.drawable.encore_icon_your_library_24, R.drawable.encore_icon_your_library_active_24)
         )
     }
 
@@ -705,6 +723,8 @@ fun EncoreAppShell(
             albumDetail = albumDetail,
             artistDetail = artistDetail,
             artistFollowed = artistFollowed,
+            artistBanned = artistBanned,
+            onArtistBanChanged = onArtistBanChanged,
             trackTasteExcluded = trackTasteExcluded,
             setTrackTasteExcluded = { trackTasteExcluded = it },
             tasteExclusionCache = tasteExclusionCache,
@@ -857,6 +877,8 @@ fun EncoreAppShell(
                     artistFailed = artistFailed,
                     onRetryArtist = onRetryArtist,
                     artistFollowed = artistFollowed,
+                    artistBanned = artistBanned,
+                    onArtistUnban = onArtistUnban,
                     onArtistFollowToggle = onArtistFollowToggle,
                     onArtistTrackLikeToggle = onArtistTrackLikeToggle,
                 )

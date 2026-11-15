@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.quackify.backend.api.ArtistBanStore
 import com.quackify.app.bridge.QueueNavigatorState
 import com.quackify.app.bridge.QueueTarget
 import com.quackify.app.bridge.UriSources
@@ -26,6 +27,11 @@ import com.quackify.backend.connect.cluster.ClusterState
 import com.quackify.backend.connect.cluster.ClusterTrack
 import com.quackify.backend.model.ConnectDevice
 import com.quackify.backend.model.DeviceKind
+import android.media.AudioDeviceCallback
+import android.os.Handler
+import android.os.Looper
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import com.quackify.backend.connect.command.CommandClient
 import com.quackify.backend.connect.command.CommandTrack
 import com.quackify.backend.connect.command.ContentType
@@ -74,6 +80,7 @@ const val CLIENT_PREFS = "quackify.client"
 
 /** Settings toggle: start playback as soon as the session's track loads. */
 const val AUTOPLAY_ON_STARTUP_PREF = "autoplayOnStartup"
+const val LAST_TRACK_ARTIST_PREF = "lastTrackArtist"
 
 /** Settings toggle: keep playing from a station when the context runs out. */
 const val AUTOPLAY_ON_END_PREF = "autoplayOnEnd"
@@ -144,11 +151,11 @@ class PlaybackBridge(private val context: Context) {
         if (repeatTrackOn(server)) return commandFor(ended, context)
         val upcoming = enhancedUpcoming(context, ended)
         if (upcoming.isNotEmpty()) {
-            val pick = upcoming.firstOrNull()?.uri.orEmpty()
-            if (pick.isNotBlank() && pick != ended) return commandFor(pick, context)
+            val pick = upcoming.map { it.uri }.firstOrNull { it != ended && !bannedCachedUri(it) }
+            if (!pick.isNullOrBlank() && pick != ended) return commandFor(pick, context)
         }
-        queuedTail.firstOrNull()?.let { queued ->
-            if (queued.uri != ended) return CommandTrack(
+        queuedTail.firstOrNull { it.uri != ended && !bannedCachedUri(it.uri) }?.let { queued ->
+            return CommandTrack(
                 uri = queued.uri,
                 name = queued.title,
                 artists = queued.artist,
@@ -166,11 +173,15 @@ class PlaybackBridge(private val context: Context) {
         }
         if (sessionQueueContext == context && sessionQueue.isNotEmpty()) {
             val rest = if (sessionQueue.firstOrNull() == ended) sessionQueue.drop(1) else sessionQueue
-            rest.firstOrNull()?.takeIf { it != ended }?.let { return commandFor(it, context) }
+            rest.firstOrNull { it != ended && !bannedCachedUri(it) }?.let { return commandFor(it, context) }
         }
         if (shuffleOn(server) && !smartOn(server)) return null
         val at = rowOf(rows, ended)
-        if (at >= 0 && at + 1 in rows.indices) return commandFor(rows[at + 1], context)
+        if (at >= 0) {
+            var next = at + 1
+            while (next in rows.indices && bannedCachedUri(rows[next])) next++
+            if (next in rows.indices) return commandFor(rows[next], context)
+        }
         return null
     }
 
@@ -576,7 +587,7 @@ class PlaybackBridge(private val context: Context) {
                         controllingRemote = false,
                         activeDeviceName = "Quackify",
                         activeDeviceId = deviceId,
-                        connectedDevice = "Quackify",
+                        connectedDevice = localOutputLabel(),
                         devices = state.devices.map { it.copy(active = it.id == deviceId) }
                     )
                     takeBackHere()
@@ -595,24 +606,6 @@ class PlaybackBridge(private val context: Context) {
                     connectedDevice = target.name,
                     devices = state.devices.map { it.copy(active = it.id == target.id) }
                 )
-            }
-        }
-
-        override fun onVolumeChange(deviceId: String, level: Int) {
-            scope.launch {
-                val target = connect.cluster.value?.devices?.firstOrNull { it.id == deviceId }
-                if (target == null) return@launch
-                if (target.local) {
-                    player.setVolume(level / 65535f)
-                    log.i("volume: local sink -> ${level.coerceIn(0, 65535)}/65535")
-                    connect.setVolumeOn(target.id, level)
-                    return@launch
-                }
-                if (!target.canControlVolume) {
-                    log.w("volume: '" + target.name + "' does not take a volume command")
-                    return@launch
-                }
-                connect.setVolumeOn(target.id, level)
             }
         }
 
@@ -642,9 +635,17 @@ class PlaybackBridge(private val context: Context) {
                     log.w("queue set ignored, no cluster yet")
                     return@launch
                 }
-                if (!writeQueue(uris, cluster)) return@launch
+                val allowed = uris.filter { uri ->
+                    val artist = artistUriOf(uri)
+                    artist.isBlank() || !ArtistBanStore.banned(context, artist)
+                }
+                if (allowed.size < uris.size) {
+                    log.i("queue set: dropped ${uris.size - allowed.size} banned row(s)")
+                }
+                if (allowed.isEmpty()) return@launch
+                if (!writeQueue(allowed, cluster)) return@launch
                 val local = queuedTail.associateBy { it.uri }
-                queuedTail = uris.map { local[it] ?: TrackItem(title = "", artist = "", uri = it) }
+                queuedTail = allowed.map { local[it] ?: TrackItem(title = "", artist = "", uri = it) }
                 publishQueue(cluster)
                 connect.refreshCluster()
             }
@@ -709,6 +710,8 @@ class PlaybackBridge(private val context: Context) {
     fun start() {
         if (dealer != null) return
         log.i("start device=" + deviceId)
+        (context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager)
+            ?.registerAudioDeviceCallback(localOutputWatcher, Handler(Looper.getMainLooper()))
         autoplayOnStartup = com.quackify.backend.core.store.AppPrefs.prefs(context, CLIENT_PREFS)
             .getBoolean(AUTOPLAY_ON_STARTUP_PREF, false)
         autoplayPending = true
@@ -721,7 +724,18 @@ class PlaybackBridge(private val context: Context) {
                 log.i("the other app is done, the volume is back")
         }
         player.warm()
-        if (autoplayOnStartup) player.resumeLast(connect.spclientHost)
+        if (autoplayOnStartup) {
+            scope.launch {
+                ArtistBanStore.warm(context)
+                val savedArtist = com.quackify.backend.core.store.AppPrefs.prefs(context, CLIENT_PREFS)
+                    .getString(LAST_TRACK_ARTIST_PREF, "").orEmpty()
+                if (savedArtist.isNotBlank() && ArtistBanStore.bannedCached(savedArtist)) {
+                    log.i("resume: the saved track's artist '$savedArtist' is banned, not warming it")
+                } else {
+                    player.resumeLast(connect.spclientHost)
+                }
+            }
+        }
         connect.holdsStream = false
         deviceWatch = scope.launch {
             while (true) {
@@ -839,6 +853,11 @@ class PlaybackBridge(private val context: Context) {
                         return@collect
                     }
                     state = next
+                    if (next.trackUri.startsWith("spotify:track:") && next.artistUri.isNotBlank()) {
+                        com.quackify.backend.core.store.AppPrefs.prefs(context, CLIENT_PREFS).edit()
+                            .putString(LAST_TRACK_ARTIST_PREF, next.artistUri)
+                            .apply()
+                    }
                     if (local && waiting != null) {
                         held = null
                         log.i("held '${waiting.name}' took the engine")
@@ -1119,7 +1138,7 @@ class PlaybackBridge(private val context: Context) {
         if (uris.isEmpty()) return
         var wanted = 0
         uris.forEach { uri ->
-            if (uri.startsWith("spotify:track:") || uri.startsWith("spotify:episode:")) {
+            if ((uri.startsWith("spotify:track:") || uri.startsWith("spotify:episode:")) && !bannedCachedUri(uri)) {
                 wanted++
                 player.prefetch(uri, connect.spclientHost)
             }
@@ -1140,6 +1159,11 @@ class PlaybackBridge(private val context: Context) {
                 "ctxIdx=$index '${track.title}' uid=${track.uid.take(12)} context='${cluster.contextUri}'"
         )
         if (track.uri.startsWith("spotify:track:") || track.uri.startsWith("spotify:episode:")) {
+            val artist = track.artistUri.ifBlank { artistUriOf(track.uri) }
+            if (artist.isNotBlank() && ArtistBanStore.bannedCached(artist)) {
+                log.i("play: '${track.uri.takeLast(12)}' blocked, artist '$artist' is banned")
+                return false
+            }
             player.prefetch(track.uri, connect.spclientHost)
         }
         markPending(track.uri, index, cluster.contextUri)
@@ -1615,6 +1639,11 @@ class PlaybackBridge(private val context: Context) {
     private fun queueAdd(uri: String) {
         scope.launch {
             if (uri.isBlank()) return@launch
+            val bannedArtist = artistUriOf(uri).takeIf { it.isNotBlank() }
+            if (bannedArtist != null && ArtistBanStore.banned(context, bannedArtist)) {
+                log.i("queue: '$uri' refused, artist '$bannedArtist' is banned")
+                return@launch
+            }
             if (queuedTail.none { it.uri == uri }) {
                 queuedTail = queuedTail + TrackItem(title = "", artist = "", uri = uri)
             }
@@ -1833,6 +1862,13 @@ class PlaybackBridge(private val context: Context) {
                 player.pause()
                 publishLocalFromEngine(playing = false)
             } else {
+                val loadedUri = player.state.value.trackUri
+                val loadedArtist = artistUriOf(loadedUri)
+                if (loadedArtist.isNotBlank() && ArtistBanStore.banned(context, loadedArtist)) {
+                    log.i("toggle: resume of '$loadedUri' blocked, artist '$loadedArtist' is banned")
+                    player.stop()
+                    return
+                }
                 log.i("toggle: resuming the engine here")
                 player.resume()
                 publishLocalFromEngine(playing = true)
@@ -1847,6 +1883,11 @@ class PlaybackBridge(private val context: Context) {
         val track = cluster.track
         if (track.uri.isBlank()) {
             log.w("toggle: the cluster has no track, nothing to play")
+            return
+        }
+        val clusterArtist = track.artistUri.ifBlank { artistUriOf(track.uri) }
+        if (clusterArtist.isNotBlank() && ArtistBanStore.banned(context, clusterArtist)) {
+            log.i("toggle: '${track.uri}' blocked, artist '$clusterArtist' is banned")
             return
         }
         val at = cluster.positionNow()
@@ -1909,7 +1950,7 @@ class PlaybackBridge(private val context: Context) {
             controllingRemote = false,
             activeDeviceName = "Quackify",
             activeDeviceId = deviceId,
-            connectedDevice = "Quackify",
+            connectedDevice = localOutputLabel(),
             devices = state.devices.map { it.copy(active = it.id == deviceId) },
         )
         progress.set(positionMs, duration)
@@ -2209,7 +2250,7 @@ class PlaybackBridge(private val context: Context) {
             controllingRemote = false,
             activeDeviceName = "Quackify",
             activeDeviceId = deviceId,
-            connectedDevice = "Quackify",
+            connectedDevice = localOutputLabel(),
             devices = state.devices.map { it.copy(active = it.id == deviceId) },
         )
         progress.set(position, progress.durationMs)
@@ -2268,17 +2309,23 @@ class PlaybackBridge(private val context: Context) {
         }
         val here = playingUri(cluster)
         if (forward) {
-            val queuedUri = queuedTail.firstOrNull()?.uri ?: cluster.queued.firstOrNull()?.uri
-            if (!queuedUri.isNullOrBlank() && queuedUri != here) {
+            val queuedUris = queuedTail.map { it.uri } + cluster.queued.map { it.uri }
+            val queuedIdx = queuedUris.indexOfFirst { it != here && !bannedTrack(it).also { banned ->
+                if (banned) log.i("skip: bypassing banned queued '${it.takeLast(12)}'")
+            } }
+            if (queuedIdx >= 0) {
+                val queuedUri = queuedUris[queuedIdx]
                 log.i("skip next to the queued '${queuedUri.takeLast(12)}' of " +
                     "${queuedTail.size + cluster.queued.size} queued"
                 )
-                queuedTail = queuedTail.drop(1)
+                queuedTail = queuedTail.drop((queuedIdx + 1).coerceAtMost(queuedTail.size))
                 playTrack(queuedUri, chainContext.ifBlank { cluster.contextUri }, -1)
                 return
             }
             val upcoming = enhancedUpcoming(chainContext.ifBlank { cluster.contextUri }, here)
-            val pick = upcoming.firstOrNull()?.uri
+            val pick = upcoming.map { it.uri }.firstOrNull { it != here && !bannedTrack(it).also { banned ->
+                if (banned) log.i("skip: bypassing banned upcoming '${it.takeLast(12)}'")
+            } }
             if (!pick.isNullOrBlank() && pick != here) {
                 log.i("skip next from the enhanced queue: '${pick.takeLast(12)}' " +
                     "of ${upcoming.size} upcoming"
@@ -2289,8 +2336,22 @@ class PlaybackBridge(private val context: Context) {
         }
         if (sessionQueueContext == chainContext.ifBlank { cluster.contextUri } && sessionQueue.isNotEmpty()) {
             if (sessionQueue.firstOrNull() == here) sessionQueue = sessionQueue.drop(1)
-            val pick = sessionQueue.firstOrNull()
-            if (!pick.isNullOrBlank()) {
+            var pick: String? = null
+            while (sessionQueue.isNotEmpty()) {
+                val candidate = sessionQueue.first()
+                if (candidate == here) {
+                    sessionQueue = sessionQueue.drop(1)
+                    continue
+                }
+                if (bannedTrack(candidate)) {
+                    log.i("skip: bypassing banned play-order '${candidate.takeLast(12)}'")
+                    sessionQueue = sessionQueue.drop(1)
+                    continue
+                }
+                pick = candidate
+                break
+            }
+            if (pick != null) {
                 log.i("skip next from the play order: '${pick.takeLast(12)}' of ${sessionQueue.size} ahead")
                 playTrack(pick, chainContext.ifBlank { cluster.contextUri }, -1)
                 return
@@ -2299,11 +2360,18 @@ class PlaybackBridge(private val context: Context) {
         val chain = chainFor()
         val chainAt = rowOf(chain, here)
         if (chainAt >= 0 && chainAt + 1 < chain.size) {
-            val row = chain[chainAt + 1]
-            log.i("skip next from the chain: row ${chainAt + 1} of ${chain.size} '${row.takeLast(12)}'")
-            resumeRow = chainAt + 1
-            playTrack(row, chainContext, chainAt + 1)
-            return
+            var row = chainAt + 1
+            while (row < chain.size && bannedTrack(chain[row]).also { banned ->
+                if (banned) log.i("skip: bypassing banned chain row $row '${chain[row].takeLast(12)}'")
+            }) {
+                row++
+            }
+            if (row < chain.size) {
+                log.i("skip next from the chain: row $row of ${chain.size} '${chain[row].takeLast(12)}'")
+                resumeRow = row
+                playTrack(chain[row], chainContext, row)
+                return
+            }
         }
         val window = cluster.window()
         val at = window.indexOfFirst { it.uri == here }
@@ -2313,7 +2381,7 @@ class PlaybackBridge(private val context: Context) {
         }
         val step = if (forward) 1 else -1
         var cursor = at + step
-        while (cursor in window.indices && (!window[cursor].isVisible || untitled(window[cursor]))) cursor += step
+        while (cursor in window.indices && (!window[cursor].isVisible || untitled(window[cursor]) || bannedRow(window[cursor]))) cursor += step
         if (cursor !in window.indices) {
             if (repeatContextOn(cluster)) {
                 cursor = if (forward) {
@@ -2329,7 +2397,7 @@ class PlaybackBridge(private val context: Context) {
         }
         if (forward && shuffleOn(cluster) && !smartOn(cluster)) {
             val pool = window.indices.filter { i ->
-                window[i].isVisible && window[i].uri != here && !untitled(window[i])
+                window[i].isVisible && window[i].uri != here && !untitled(window[i]) && !bannedRow(window[i])
             }
             if (pool.isNotEmpty()) cursor = pool.random()
         }
@@ -2371,7 +2439,7 @@ class PlaybackBridge(private val context: Context) {
                     controllingRemote = false,
                     activeDeviceName = "Quackify",
                     activeDeviceId = deviceId,
-                    connectedDevice = "Quackify",
+                    connectedDevice = localOutputLabel(),
                     devices = state.devices.map { it.copy(active = it.id == deviceId) }
                 )
             } else {
@@ -2398,7 +2466,7 @@ class PlaybackBridge(private val context: Context) {
                 controllingRemote = false,
                 activeDeviceName = "Quackify",
                 activeDeviceId = deviceId,
-                connectedDevice = "Quackify",
+                connectedDevice = localOutputLabel(),
                 devices = state.devices.map { it.copy(active = it.id == deviceId) }
             )
             return
@@ -2460,7 +2528,40 @@ class PlaybackBridge(private val context: Context) {
         playTrack(track.uri, cluster.contextUri, cluster.indexOf(back))
     }
 
+    private suspend fun bannedTrack(uri: String): Boolean {
+        val artist = artistUriOf(uri)
+        return artist.isNotBlank() && ArtistBanStore.banned(context, artist)
+    }
+
+    private fun bannedCachedUri(uri: String): Boolean {
+        val artist = artistUriOf(uri)
+        return artist.isNotBlank() && ArtistBanStore.bannedCached(artist)
+    }
+
+    private fun bannedRow(track: ClusterTrack): Boolean {
+        val artist = track.artistUri.ifBlank { artistUriOf(track.uri) }
+        val banned = artist.isNotBlank() && ArtistBanStore.bannedCached(artist)
+        if (banned) log.i("skip: bypassing banned window row '${track.uri.takeLast(12)}'")
+        return banned
+    }
+
+    private fun bannedAheadTrack(track: ClusterTrack): Boolean {
+        val artist = track.artistUri.ifBlank { artistUriOf(track.uri) }
+        val banned = artist.isNotBlank() && ArtistBanStore.bannedCached(artist)
+        if (banned) log.i("prefetch: skipping banned lookahead '${track.uri.takeLast(12)}'")
+        return banned
+    }
+
     private suspend fun playTrack(uri: String, contextUri: String, hint: Int) {
+        val banCandidates = buildList {
+            if (contextUri.startsWith("spotify:artist:")) add(contextUri)
+            artistUriOf(uri).takeIf { it.isNotBlank() }?.let(::add)
+        }.distinct()
+        val bannedArtist = banCandidates.firstOrNull { ArtistBanStore.banned(context, it) }
+        if (bannedArtist != null) {
+            log.i("playTrack '$uri' blocked, artist '$bannedArtist' is banned")
+            return
+        }
         val cluster = connect.cluster.value
         if (cluster != null && contextUri.isNotBlank()) {
             val window = cluster.window()
@@ -2856,7 +2957,11 @@ class PlaybackBridge(private val context: Context) {
         if (cluster.activeDevice?.id != deviceId) {
             log.v("prefetch skipped, another device owns the stream")
         } else {
-            player.prefetchAhead(cluster.nextTracks.take(KEY_LOOKAHEAD), connect.spclientHost, cluster.track.uri)
+            player.prefetchAhead(
+                cluster.nextTracks.filter { !bannedAheadTrack(it) }.take(KEY_LOOKAHEAD),
+                connect.spclientHost,
+                cluster.track.uri
+            )
         }
         if (cluster.activeDeviceId.isNotBlank() && cluster.activeDeviceId != activeSeen) {
             activeSeen = cluster.activeDeviceId
@@ -3046,16 +3151,17 @@ class PlaybackBridge(private val context: Context) {
         } else {
             rawDevices
         }
+        val noneActive = active == null && !player.hasSource && !localPlaybackActive
+        val remoteActive = !mine && !noneActive && !player.hasSource && !localPlaybackActive
+        val connectedLabel = if (mine) localOutputLabel() else label
         if (state.devices != devices || state.activeDeviceName != label ||
-            state.controllingRemote != !mine
+            state.controllingRemote != remoteActive
         ) {
             log.i("devices=${devices.size} active='$label' ours=$mine " +
                     "injected=${cluster.devices.none { it.id == deviceId }} " +
                     "inferred=${cluster.activeInferred} remote=${remote.joinToString("|")}"
             )
         }
-        val noneActive = active == null && !player.hasSource && !localPlaybackActive
-        val remoteActive = (!mine || noneActive) && !player.hasSource && !localPlaybackActive
         state = state.copy(
             devices = devices,
             activeDeviceName = label,
@@ -3065,9 +3171,7 @@ class PlaybackBridge(private val context: Context) {
             remoteCanSkipPrev = !remoteActive || cluster.canSkipPrev,
             remoteCanShuffle = !remoteActive || cluster.canShuffle,
             remoteCanRepeat = !remoteActive || (cluster.canRepeatContext || cluster.canRepeatTrack),
-            connectedDevice = label.ifBlank {
-                if (mine || player.hasSource || noneActive) "Quackify" else ""
-            },
+            connectedDevice = connectedLabel,
         )
         if (active != null && !mine && player.hasSource && held == null) {
             log.i("the stream moved to '$label', releasing this device's engine")
@@ -3089,7 +3193,7 @@ class PlaybackBridge(private val context: Context) {
         if (fromServer.any { it.id == deviceId }) {
             return fromServer.map { dev ->
                 if (dev.id == deviceId) {
-                    dev.copy(kind = DeviceKind.PHONE, local = true, active = isMineActive)
+                    dev.copy(kind = localOutputKind(), local = true, active = isMineActive)
                 } else {
                     if (isMineActive) dev.copy(active = false) else dev
                 }
@@ -3098,10 +3202,50 @@ class PlaybackBridge(private val context: Context) {
         return fromServer + localDeviceRow(active = isMineActive)
     }
 
+    private fun localOutputLabel(): String = LocalOutput.label(context)
+
+    private fun localOutputKind(): DeviceKind =
+        if (localOutputLabel().isBlank()) DeviceKind.PHONE else DeviceKind.HEADPHONES
+
+    private val localOutputWatcher = object : AudioDeviceCallback() {
+        override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
+            refreshLocalOutput()
+        }
+
+        override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) {
+            refreshLocalOutput()
+        }
+    }
+
+    private fun refreshLocalOutput() {
+        if (state.controllingRemote) return
+        val wasExternal = state.connectedDevice.isNotBlank()
+        val label = localOutputLabel()
+        val kind = localOutputKind()
+        if (state.connectedDevice == label &&
+            state.devices.firstOrNull { it.local }?.kind == kind
+        ) return
+        state = state.copy(
+            connectedDevice = label,
+            devices = state.devices.map {
+                if (it.local) it.copy(kind = kind) else it
+            }
+        )
+        if (wasExternal && label.isBlank()) scope.launch { pauseOnOutputLost() }
+    }
+
+    private suspend fun pauseOnOutputLost() {
+        if (!player.hasSource || !player.isPlaying) return
+        log.i("output lost: the bluetooth or wired device is gone, pausing locally")
+        player.pause()
+        state = state.copy(isPlaying = false, isBuffering = false)
+        reportPaused()
+    }
+
     private fun localDeviceRow(active: Boolean): ConnectDevice = ConnectDevice(
         id = deviceId,
         name = "Quackify",
-        kind = DeviceKind.PHONE,
+        kind = localOutputKind(),
         canPlay = true,
         volume = 0,
         volumeSteps = 64,
@@ -3143,12 +3287,15 @@ class PlaybackBridge(private val context: Context) {
                 (clusterContext == context || (single && context.isBlank()))
         val smartActive = smartOn(cluster)
         val serverTracks = if (server && follows) {
-            if (smartActive) cluster!!.fromContext else cluster!!.fromContext.filterNot { it.isEnhanced }
+            if (smartActive) cluster!!.fromContext else cluster!!.fromContext
+                .filterNot { it.isEnhanced }
+                .filterNot { bannedCachedUri(it.uri) }
         } else emptyList()
         val serverRows = serverTracks.map { it.asTrackItem() }
         val localRows = sessionQueue
             .takeIf { sessionQueueContext == context && it.isNotEmpty() }
             ?.map { uri -> decorated[uri] ?: TrackItem(title = "", artist = "", uri = uri) }
+            ?.filterNot { bannedCachedUri(it.uri) }
             .orEmpty()
         val contextRows = localRows.ifEmpty { serverRows }
         val radio = server && follows &&
@@ -3159,12 +3306,13 @@ class PlaybackBridge(private val context: Context) {
             }.ifBlank { playlistLabelOf(context) }
         } else ""
         val queued = if (server) {
-            val onServer = cluster!!.queued.map { it.asTrackItem() }
+            val onServer = cluster!!.queued.map { it.asTrackItem() }.filterNot { bannedCachedUri(it.uri) }
             val known = onServer.mapTo(HashSet()) { it.uri }
             (onServer + queuedTail.filterNot { it.uri in known })
+                .filterNot { bannedCachedUri(it.uri) }
                 .map { if (it.title.isBlank()) decorated[it.uri] ?: it else it }
         } else {
-            queuedTail
+            queuedTail.filterNot { bannedCachedUri(it.uri) }
         }
         val queuedUris = buildSet {
             if (server) cluster!!.queued.forEach { add(it.uri) }
@@ -3179,7 +3327,7 @@ class PlaybackBridge(private val context: Context) {
                 else -> -1
             }
             if (from >= 0) {
-                chain.drop(from).filterNot { it in queuedUris }.take(20)
+                chain.drop(from).filterNot { it in queuedUris }.filterNot { bannedCachedUri(it) }.take(20)
             } else {
                 emptyList()
             }
@@ -3192,6 +3340,7 @@ class PlaybackBridge(private val context: Context) {
             enhancedUpcoming(context, anchor)
                 .asSequence()
                 .filterNot { it.uri in queuedUris }
+                .filterNot { bannedCachedUri(it.uri) }
                 .map { it.uri }
                 .distinct()
                 .take(20)

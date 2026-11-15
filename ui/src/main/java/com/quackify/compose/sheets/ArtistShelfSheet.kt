@@ -2,6 +2,7 @@ package com.quackify.compose.sheets
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,6 +46,8 @@ import com.quackify.backend.model.ShelfKind
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.backend.library.Krespot
+import androidx.compose.ui.res.stringResource
+import com.quackify.compose.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,7 +62,8 @@ fun ArtistShelfSheet(
 ) {
     if (!isOpen) return
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val context = LocalContext.current
     val listState = rememberLazyListState()
 
@@ -98,7 +102,7 @@ fun ArtistShelfSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DarkSystemBarsSheet,
+        properties = BackNotDismissSheet,
         sheetState = sheetState,
         containerColor = EncoreColors.Card,
         dragHandle = {
@@ -112,6 +116,7 @@ fun ArtistShelfSheet(
         },
         modifier = modifier
     ) {
+        BackHandler { onDismiss() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -133,7 +138,7 @@ fun ArtistShelfSheet(
                     )
                     if (total > 0) {
                         Text(
-                            text = "$total items",
+                            text = stringResource(R.string.item_count, total),
                             style = EncoreTheme.typography.bodySmall.copy(
                                 color = EncoreColors.TextSecondary
                             )
@@ -197,7 +202,7 @@ fun ArtistShelfSheet(
                         ) {
                             if (failed) {
                                 Text(
-                                    text = "Could not load this list",
+                                    text = stringResource(R.string.could_not_load_this_list),
                                     style = EncoreTheme.typography.bodySmall.copy(
                                         color = EncoreColors.TextSecondary
                                     )

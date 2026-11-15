@@ -59,6 +59,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import kotlin.math.min
+import androidx.compose.ui.res.stringResource
 
 private const val NAME_LIMIT = 100
 private const val DESCRIPTION_LIMIT = 300
@@ -78,8 +79,8 @@ fun EditPlaylistSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     onDeletePlaylist: (() -> Unit)? = null,
-    title: String = "Name & details",
-    saveLabel: String = "Save" 
+    title: String = stringResource(R.string.name_and_details),
+    saveLabel: String = stringResource(R.string.save) 
 ) {
     if (!isOpen) return
 
@@ -144,7 +145,7 @@ fun EditPlaylistSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Cancel",
+                    text = stringResource(R.string.cancel),
                     style = TextStyle(
                         color = Color.White,
                         fontSize = 14.5.sp,
@@ -210,13 +211,13 @@ fun EditPlaylistSheet(
                             )
                             previewBitmap != null -> Image(
                                 bitmap = previewBitmap,
-                                contentDescription = "New cover",
+                                contentDescription = stringResource(R.string.new_cover),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
                             )
                             hasCover && !coverUrl.isNullOrBlank() -> EncoreArtworkImage(
                                 imageUrl = coverUrl,
-                                contentDescription = "Current cover",
+                                contentDescription = stringResource(R.string.current_cover),
                                 modifier = Modifier.fillMaxSize(),
                                 cornerRadius = 8.dp
                             )
@@ -241,7 +242,7 @@ fun EditPlaylistSheet(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.encore_icon_edit_24),
-                            contentDescription = "Edit photo",
+                            contentDescription = stringResource(R.string.edit_photo),
                             tint = Color.White,
                             modifier = Modifier.size(16.dp)
                         )
@@ -275,7 +276,7 @@ fun EditPlaylistSheet(
                             decorationBox = { innerTextField ->
                                 if (name.isEmpty()) {
                                     Text(
-                                        text = "Add playlist name",
+                                        text = stringResource(R.string.add_playlist_name),
                                         color = EncoreColors.TextSecondary,
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.Normal
@@ -309,7 +310,7 @@ fun EditPlaylistSheet(
                             decorationBox = { innerTextField ->
                                 if (description.isEmpty()) {
                                     Text(
-                                        text = "Add description",
+                                        text = stringResource(R.string.add_description),
                                         color = EncoreColors.TextSecondary,
                                         fontSize = 13.5.sp,
                                         fontWeight = FontWeight.Normal
@@ -344,7 +345,7 @@ fun EditPlaylistSheet(
                 Spacer(modifier = Modifier.width(16.dp))
 
                 Text(
-                    text = "Delete playlist",
+                    text = stringResource(R.string.delete_playlist),
                     style = TextStyle(
                         color = Color.White,
                         fontSize = 15.sp,

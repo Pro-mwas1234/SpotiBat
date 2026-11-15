@@ -35,6 +35,7 @@ import com.quackify.compose.components.EncoreProfileAvatar
 import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
+import androidx.compose.ui.res.stringResource
 
 /**
  */
@@ -115,7 +116,7 @@ fun ProfileDrawerSheet(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Switch account",
+                        text = stringResource(R.string.switch_account),
                         style = EncoreTheme.typography.bodySmall.copy(
                             color = EncoreColors.TextSecondary
                         )
@@ -137,7 +138,7 @@ fun ProfileDrawerSheet(
 
             if (onNotificationsClick != null) {
                 ProfileDrawerItem(
-                    title = "Notification",
+                    title = stringResource(R.string.notification),
                     iconRes = R.drawable.encore_icon_notifications_active_24,
                     onClick = {
                         onDismiss()
@@ -148,7 +149,7 @@ fun ProfileDrawerSheet(
             }
 
             ProfileDrawerItem(
-                title = "My profile",
+                title = stringResource(R.string.my_profile),
                 iconRes = R.drawable.encore_icon_user_24,
                 onClick = {
                     onDismiss()
@@ -157,7 +158,7 @@ fun ProfileDrawerSheet(
             )
 
             ProfileDrawerItem(
-                title = "What's new",
+                title = stringResource(R.string.whats_new_lowercase),
                 iconRes = R.drawable.encore_icon_notification_new_24,
                 onClick = {
                     onDismiss()
@@ -166,7 +167,7 @@ fun ProfileDrawerSheet(
             )
 
             ProfileDrawerItem(
-                title = "Listening history",
+                title = stringResource(R.string.listening_history_lowercase),
                 iconRes = R.drawable.encore_icon_recently_played_24,
                 onClick = {
                     onDismiss()
@@ -175,7 +176,7 @@ fun ProfileDrawerSheet(
             )
 
             ProfileDrawerItem(
-                title = "Settings and privacy",
+                title = stringResource(R.string.settings_and_privacy),
                 iconRes = R.drawable.encore_icon_tune_24,
                 onClick = {
                     onDismiss()
@@ -185,8 +186,9 @@ fun ProfileDrawerSheet(
 
             if (onLogoutClick != null) {
                 ProfileDrawerItem(
-                    title = "Log out",
+                    title = stringResource(R.string.log_out),
                     iconRes = R.drawable.encore_icon_arrow_left_24,
+                    destructive = true,
                     onClick = {
                         onDismiss()
                         onLogoutClick()
@@ -205,7 +207,8 @@ private fun ProfileDrawerItem(
     iconRes: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    showUnreadDot: Boolean = false
+    showUnreadDot: Boolean = false,
+    destructive: Boolean = false
 ) {
     Row(
         modifier = modifier
@@ -217,7 +220,7 @@ private fun ProfileDrawerItem(
         Icon(
             painter = painterResource(id = iconRes),
             contentDescription = title,
-            tint = EncoreColors.TextPrimary,
+            tint = if (destructive) EncoreColors.Error else EncoreColors.TextPrimary,
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
@@ -225,7 +228,8 @@ private fun ProfileDrawerItem(
             text = title,
             style = EncoreTheme.typography.bodyMedium.copy(
                 fontWeight = FontWeight.Medium,
-                fontSize = 16.sp
+                fontSize = 16.sp,
+                color = if (destructive) EncoreColors.Error else EncoreColors.TextPrimary
             ),
             modifier = Modifier.weight(1f)
         )

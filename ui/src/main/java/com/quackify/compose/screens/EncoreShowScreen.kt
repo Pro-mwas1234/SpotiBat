@@ -63,6 +63,7 @@ import com.quackify.compose.theme.EncoreColors
 import com.quackify.compose.theme.EncoreAppTheme
 import com.quackify.compose.theme.EncoreTheme
 import com.quackify.compose.theme.rememberBottomPadding
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun EncoreShowScreen(
@@ -148,14 +149,14 @@ fun EncoreShowScreen(
                     ) {
                         EncoreIconButton(
                             iconRes = R.drawable.encore_icon_arrow_left_24,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.back),
                             onClick = onBackClick,
                             tint = EncoreColors.TextPrimary,
                         )
                         if (onMoreClick != null) {
                             EncoreIconButton(
                                 iconRes = R.drawable.encore_icon_more_android_24,
-                                contentDescription = "More options",
+                                contentDescription = stringResource(R.string.more_options),
                                 onClick = onMoreClick,
                                 tint = EncoreColors.TextPrimary,
                             )
@@ -206,7 +207,7 @@ fun EncoreShowScreen(
                     }
 
                     val ratingLabel = if (ratingCount > 0) {
-                        "%.1f ★ • %s ratings".format(rating, formatCount(ratingCount.toLong()))
+                        stringResource(R.string.show_rating, "%.1f".format(rating), formatCount(ratingCount.toLong()))
                     } else {
                         ""
                     }
@@ -229,7 +230,7 @@ fun EncoreShowScreen(
                         )
                         if (descriptionOverflows || descriptionExpanded) {
                             Text(
-                                text = if (descriptionExpanded) "Show less" else "Show more",
+                                text = if (descriptionExpanded) stringResource(R.string.show_less) else stringResource(R.string.show_more),
                                 style = EncoreTheme.typography.bodySmallBold.copy(color = EncoreColors.TextPrimary),
                                 modifier = Modifier
                                     .padding(top = 6.dp)
@@ -253,7 +254,7 @@ fun EncoreShowScreen(
                                     .padding(horizontal = 16.dp, vertical = 6.dp),
                             ) {
                                 Text(
-                                    text = if (isFollowing) "Following" else "Follow",
+                                    text = if (isFollowing) stringResource(R.string.following) else "Follow",
                                     style = EncoreTheme.typography.bodySmallBold.copy(color = followTextColor),
                                 )
                             }
@@ -286,7 +287,7 @@ fun EncoreShowScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = "All Episodes",
+                        text = stringResource(R.string.all_episodes),
                         style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = EncoreColors.TextPrimary,
                     )
@@ -328,7 +329,7 @@ fun EncoreShowScreen(
                 item {
                     Column(modifier = Modifier.padding(top = 12.dp)) {
                         Text(
-                            text = "More podcasts like this",
+                            text = stringResource(R.string.more_podcasts_like_this),
                             style = EncoreTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = EncoreColors.TextPrimary,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -362,7 +363,7 @@ fun EncoreShowScreen(
             ) {
                 EncoreIconButton(
                     iconRes = R.drawable.encore_icon_arrow_left_24,
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.back),
                     onClick = onBackClick,
                     tint = EncoreColors.TextPrimary,
                 )
@@ -429,7 +430,7 @@ private fun EpisodeListRow(
                             if (isCurrent && isPlaying) R.drawable.encore_icon_pause_24
                             else R.drawable.encore_icon_play_24
                         ),
-                        contentDescription = if (isCurrent && isPlaying) "Pause episode" else "Play episode",
+                        contentDescription = if (isCurrent && isPlaying) stringResource(R.string.pause_episode) else stringResource(R.string.play_episode),
                         tint = Color.White,
                         modifier = Modifier
                             .size(20.dp)
@@ -464,7 +465,7 @@ private fun EpisodeListRow(
         if (onMoreClick != null) {
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_more_android_24,
-                contentDescription = "Episode options",
+                contentDescription = stringResource(R.string.episode_options),
                 onClick = onMoreClick,
                 tint = EncoreColors.TextSecondary,
             )
@@ -512,16 +513,17 @@ private fun RelatedShowCard(card: ShowCard, onClick: () -> Unit) {
     }
 }
 
+@Composable
 private fun episodeSubtitle(episode: EpisodeRow): String {
     val parts = ArrayList<String>(4)
     if (episode.played) {
-        parts += "Played"
+        parts += stringResource(R.string.played)
     } else if (episode.positionMs > 0L) {
         parts += "${formatDuration(episode.positionMs)} in"
     }
     if (episode.releaseDate.isNotBlank()) parts += episode.releaseDate
     formatDuration(episode.durationMs).takeIf { it.isNotBlank() }?.let(parts::add)
-    if (episode.video) parts += "Video"
+    if (episode.video) parts += stringResource(R.string.video)
     return parts.joinToString(" • ")
 }
 
