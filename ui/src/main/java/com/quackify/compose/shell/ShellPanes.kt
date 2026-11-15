@@ -965,6 +965,7 @@ internal fun ShellShowPane(
             headerColor = parseHexColor(show.colorHex) ?: EncoreColors.Card,
             rating = show.rating,
             ratingCount = show.ratingCount,
+            topics = show.topics,
             isFollowing = show.saved,
             episodes = show.episodes,
             total = show.total,
