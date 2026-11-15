@@ -116,6 +116,18 @@
         </receiver>
 
         <receiver
+            android:name=".widget.SquareArtWidget"
+            android:exported="true"
+            android:label="@string/square_art_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_square_art_info" />
+        </receiver>
+
+        <receiver
             android:name=".widget.QuackifyWidget4x1Receiver"
             android:exported="false"
             android:label="@string/widget_4x1_label">

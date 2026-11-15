@@ -8,6 +8,7 @@
     <string name="widget_3x3_desc">Large playback card with big cover and controls</string>
     <string name="slim_player">Slim Player</string>
     <string name="music_card_label">Music Card</string>
+    <string name="square_art_label">Album Art</string>
     <string name="txt_not_playing">Not playing</string>
     <string name="txt_notrack">No Track</string>
     <string name="txt_noartist">No Artist</string>

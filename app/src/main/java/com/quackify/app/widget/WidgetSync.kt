@@ -137,6 +137,11 @@ object WidgetSync {
         } catch (t: Throwable) {
             log.w("MusicCardWidget update failed: ${t.message}", t)
         }
+        try {
+            SquareArtWidget.updateAllWidgets(context)
+        } catch (t: Throwable) {
+            log.w("SquareArtWidget update failed: ${t.message}", t)
+        }
     }
 
     private suspend fun updateAllSafely(widget: GlanceAppWidget, context: Context) {
