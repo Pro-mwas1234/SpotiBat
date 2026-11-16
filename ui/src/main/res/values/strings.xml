@@ -499,4 +499,37 @@
         <item quantity="one">1 play</item>
         <item quantity="other">%1$s plays</item>
     </plurals>
+    <string name="debug">Debug</string>
+    <string name="developer_tools_and_diagnostics">Developer tools and diagnostics</string>
+    <string name="debug_unlocked">Debug unlocked</string>
+    <string name="debug_disabled">Debug disabled</string>
+    <string name="logging">Logging</string>
+    <string name="log_debug_infos">Log debug infos</string>
+    <string name="log_debug_infos_subtitle">Enable verbose app logging and dump device info to logcat</string>
+    <string name="tools">Tools</string>
+    <string name="open_logcat">Open Logcat</string>
+    <string name="open_logcat_subtitle">Live logcat viewer for this app</string>
+    <string name="logcat">Logcat</string>
+    <string name="logcat_line_count">%1$d lines</string>
+    <string name="logcat_filter_hint">Filter logs…</string>
+    <string name="logcat_clear_filters">Reset</string>
+    <string name="logcat_waiting">Waiting for logs…</string>
+    <string name="logcat_restart">Restart</string>
+    <string name="logcat_export">Export</string>
+    <string name="logcat_actions">Actions</string>
+    <string name="logcat_reset_filters">Filter options</string>
+    <string name="lyrics_show">Lyrics</string>
+    <string name="lyrics_show_desc">Show the synced lyrics of the playing track</string>
+    <string name="lyrics_preview">Line above the title</string>
+    <string name="lyrics_preview_desc">Show the current lyric line above the track title</string>
+    <string name="turn_off_lyrics_under_cover">Turn off lyrics under cover</string>
+    <string name="turn_on_lyrics_under_cover">Turn on lyrics under cover</string>
+    <string name="quackify">Quackify</string>
+    <string name="quackify_is_a_native_android_music_client_built">Quackify is a native Android music client built with Jetpack Compose, continuing the SpotiDuck project.</string>
+    <string name="name_your_folder">Give your folder a name</string>
+    <string name="sorted_ascending">Sorted ascending</string>
+    <string name="sorted_descending">Sorted descending</string>
+    <string name="no_internet_connection">No internet connection</string>
+    <string name="something_went_wrong">Something went wrong</string>
+    <string name="page_failed_to_load">The page couldn\'t be loaded. Check your connection or try again in a moment.</string>
 </resources>
