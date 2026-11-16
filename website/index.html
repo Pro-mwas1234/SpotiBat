@@ -287,11 +287,12 @@
         return /^SpotiBat-latest\.apk$/i.test(a.name);
       });
       if (!assets.length) return;
-      var tag = release.tag_name || "latest";
+      var rawTag = release.tag_name || "latest";
+      var tag = rawTag.replace(/^v/i, "");
       document.getElementById("btnLabel").textContent =
         "Download v" + tag + " · " + (assets[0].size / 1048576).toFixed(1) + " MB";
       document.getElementById("meta").textContent =
-        "Latest release: " + tag;
+        "Latest release: v" + tag;
     })
     .catch(function () { /* silent — the plain link already works */ });
 })();
