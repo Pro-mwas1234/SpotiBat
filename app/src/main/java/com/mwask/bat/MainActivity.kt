@@ -126,6 +126,7 @@ class MainActivity : ComponentActivity() {
         com.mwask.bat.backend.core.store.AppPrefs.prefs(applicationContext, CLIENT_PREFS)
     }
     private var resumeSignal by mutableStateOf(0)
+    private var themeTickState by mutableStateOf(0)
     private var pendingLink by mutableStateOf<SpotLink?>(null)
     private var videoFullscreen by mutableStateOf(false)
 
@@ -292,8 +293,22 @@ class MainActivity : ComponentActivity() {
         }
         Library.onLibraryChanged = { Krespot.library.invalidate() }
         setContent {
-            EncoreAppTheme {
-                val context = LocalContext.current
+            val context = LocalContext.current
+            val themeTick = themeTickState
+            val clientPrefs = remember { com.mwask.bat.backend.core.store.AppPrefs.prefs(context, "quackify.client") }
+            val themeMode = remember(themeTick) {
+                clientPrefs.getString("themeMode", "system").orEmpty().ifBlank { "system" }
+            }
+            val themeAccentId = remember(themeTick) {
+                clientPrefs.getString("themeAccent", "green").orEmpty().ifBlank { "green" }
+            }
+            val themeAccent = com.mwask.bat.compose.theme.accentById(themeAccentId)
+            val darkTheme = when (themeMode) {
+                "dark" -> true
+                "light" -> false
+                else -> androidx.compose.foundation.isSystemInDarkTheme()
+            }
+            EncoreAppTheme(darkTheme = darkTheme, accent = themeAccent) {
                 var loggedIn by remember { mutableStateOf(EncoreAuth.isLoggedIn(context)) }
 
 
@@ -1377,6 +1392,14 @@ class MainActivity : ComponentActivity() {
             }
         }
         val selectedStorageId = remember(storageTick) { OfflineStorage.selectedId(context) }
+        val themeMode = remember(themeTickState) {
+            com.mwask.bat.backend.core.store.AppPrefs.prefs(context, "quackify.client")
+                .getString("themeMode", "system").orEmpty().ifBlank { "system" }
+        }
+        val themeAccent = remember(themeTickState) {
+            com.mwask.bat.backend.core.store.AppPrefs.prefs(context, "quackify.client")
+                .getString("themeAccent", "green").orEmpty().ifBlank { "green" }
+        }
         EncoreAppShell(
             deeplink = pendingLink?.let { ShellDeepLink(it.kind, it.uri, it.query) },
             onDeeplinkConsumed = { pendingLink = null },
@@ -1418,6 +1441,16 @@ class MainActivity : ComponentActivity() {
         selectedStorageId = selectedStorageId,
         onSelectStorage = { option ->
             if (OfflineStorage.setRoot(context, option.path)) storageTick++
+        },
+        themeMode = themeMode,
+        themeAccent = themeAccent,
+        onSelectThemeMode = { mode ->
+            com.mwask.bat.backend.core.store.AppPrefs.prefs(context, "quackify.client").edit().putString("themeMode", mode).apply()
+            themeTickState++
+        },
+        onSelectThemeAccent = { id ->
+            com.mwask.bat.backend.core.store.AppPrefs.prefs(context, "quackify.client").edit().putString("themeAccent", id).apply()
+            themeTickState++
         },
         onDownloadedPlay = { track -> bridge.listener.onPlayUri(track.uri) },
         onDownloadedRemove = { track -> OfflineAudio.remove(context, track.uri) },

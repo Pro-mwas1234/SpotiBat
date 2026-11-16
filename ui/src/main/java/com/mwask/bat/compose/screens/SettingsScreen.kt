@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
@@ -67,6 +68,7 @@ import com.mwask.bat.compose.R
 import com.mwask.bat.backend.core.auth.EncoreAuth
 import com.mwask.bat.compose.components.EncoreIconButton
 import com.mwask.bat.compose.theme.EncoreAnimation
+import com.mwask.bat.compose.theme.AccentPresets
 import com.mwask.bat.compose.theme.EncoreColors
 import com.mwask.bat.compose.theme.EncoreAppTheme
 import com.mwask.bat.compose.theme.EncoreTheme
@@ -126,6 +128,10 @@ fun SettingsScreen(
     storageOptions: List<StorageOption> = emptyList(),
     selectedStorageId: String = "",
     onSelectStorage: ((StorageOption) -> Unit)? = null,
+    themeMode: String = "system",
+    themeAccent: String = "green",
+    onSelectThemeMode: ((String) -> Unit)? = null,
+    onSelectThemeAccent: ((String) -> Unit)? = null,
 ) {
     val bottomPadding = rememberBottomPadding()
     val context = LocalContext.current
@@ -155,6 +161,8 @@ fun SettingsScreen(
     var widgetOptions by remember { mutableStateOf(WidgetOptionsStore.load(context)) }
     var category by remember { mutableStateOf<Int?>(null) }
     var storagePicker by remember { mutableStateOf(false) }
+    var themeModePicker by remember { mutableStateOf(false) }
+    var themeAccentPicker by remember { mutableStateOf(false) }
     val selectedStorage = storageOptions.firstOrNull { it.id == selectedStorageId }
         ?: storageOptions.firstOrNull()
 
@@ -166,7 +174,7 @@ fun SettingsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(EncoreColors.Background)
+            .background(EncoreTheme.colors.background)
             .statusBarsPadding()
     ) {
         Row(
@@ -389,6 +397,154 @@ fun SettingsScreen(
                     }
 
                 }
+                if (target == 2) {
+                    item {
+                        SettingsSectionHeader(title = stringResource(R.string.appearance))
+                        // Theme mode row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { themeModePicker = true }
+                                .padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                                Text(
+                                    text = stringResource(R.string.theme),
+                                    style = EncoreTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
+                                )
+                                Text(
+                                    text = when (themeMode) {
+                                        "dark" -> stringResource(R.string.dark)
+                                        "light" -> stringResource(R.string.light)
+                                        else -> stringResource(R.string.system)
+                                    },
+                                    style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary)
+                                )
+                            }
+                            Icon(
+                                painter = painterResource(R.drawable.encore_icon_chevron_right_24),
+                                contentDescription = null,
+                                tint = EncoreColors.TextSecondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        // Accent row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { themeAccentPicker = true }
+                                .padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                                Text(
+                                    text = stringResource(R.string.accent_color),
+                                    style = EncoreTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
+                                )
+                                Text(
+                                    text = AccentPresets.firstOrNull { it.id == themeAccent }?.label.orEmpty(),
+                                    style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary)
+                                )
+                            }
+                            Icon(
+                                painter = painterResource(R.drawable.encore_icon_chevron_right_24),
+                                contentDescription = null,
+                                tint = EncoreColors.TextSecondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+
+                if (themeModePicker) {
+                    item {
+                        // simple inline picker
+                    }
+                }
+
+                if (themeModePicker) {
+                    item {
+                        AlertDialog(
+                            onDismissRequest = { themeModePicker = false },
+                            title = { Text(stringResource(R.string.theme)) },
+                            text = {
+                                Column {
+                                    listOf("system" to R.string.system, "dark" to R.string.dark, "light" to R.string.light).forEach { (id, res) ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    onSelectThemeMode?.invoke(id)
+                                                    themeModePicker = false
+                                                }
+                                                .padding(vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            RadioButton(
+                                                selected = themeMode == id,
+                                                onClick = {
+                                                    onSelectThemeMode?.invoke(id)
+                                                    themeModePicker = false
+                                                }
+                                            )
+                                            Spacer(Modifier.width(8.dp))
+                                            Text(stringResource(res))
+                                        }
+                                    }
+                                }
+                            },
+                            confirmButton = {}
+                        )
+                    }
+                }
+
+                if (themeAccentPicker) {
+                    item {
+                        AlertDialog(
+                            onDismissRequest = { themeAccentPicker = false },
+                            title = { Text(stringResource(R.string.accent_color)) },
+                            text = {
+                                Column {
+                                    AccentPresets.forEach { preset ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    onSelectThemeAccent?.invoke(preset.id)
+                                                    themeAccentPicker = false
+                                                }
+                                                .padding(vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            RadioButton(
+                                                selected = themeAccent == preset.id,
+                                                onClick = {
+                                                    onSelectThemeAccent?.invoke(preset.id)
+                                                    themeAccentPicker = false
+                                                }
+                                            )
+                                            Spacer(Modifier.width(8.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(20.dp)
+                                                    .background(preset.color, RoundedCornerShape(10.dp))
+                                            )
+                                            Spacer(Modifier.width(8.dp))
+                                            Text(preset.label)
+                                        }
+                                    }
+                                }
+                            },
+                            confirmButton = {}
+                        )
+                    }
+                }
+
                 if (target == 2 && storageOptions.isNotEmpty()) {
                     item {
                         SettingsSectionHeader(title = stringResource(R.string.storage))

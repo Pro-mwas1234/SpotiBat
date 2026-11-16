@@ -77,6 +77,8 @@
     <string name="current_device">Current Device</string>
     <string name="custom_order">Custom order</string>
     <string name="dark">Dark</string>
+    <string name="light">Light</string>
+    <string name="system">System</string>
     <string name="default_option">Default</string>
     <string name="delete_folder">Delete folder</string>
     <string name="delete_folder_title">Delete folder?</string>
@@ -94,6 +96,9 @@
     <string name="downloaded">Downloaded</string>
     <string name="downloads">Downloads</string>
     <string name="storage">Storage</string>
+    <string name="appearance">Appearance</string>
+    <string name="theme">Theme</string>
+    <string name="accent_color">Accent color</string>
     <string name="download_location">Download location</string>
     <string name="choose_download_location">Downloaded songs are kept here. Changing it moves the songs you already have.</string>
     <string name="free_space">%1$s free</string>

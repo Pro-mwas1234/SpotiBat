@@ -523,6 +523,10 @@ internal fun ShellSettingsRoute(
     storageOptions: List<StorageOption> = emptyList(),
     selectedStorageId: String = "",
     onSelectStorage: ((StorageOption) -> Unit)? = null,
+    themeMode: String = "system",
+    themeAccent: String = "green",
+    onSelectThemeMode: ((String) -> Unit)? = null,
+    onSelectThemeAccent: ((String) -> Unit)? = null,
 ) {
     ShellSettingsPane(
         onBackClick = env.handleBack,
@@ -540,7 +544,11 @@ internal fun ShellSettingsRoute(
         onCheckUpdates = { onCheckUpdates?.invoke() },
         storageOptions = storageOptions,
         selectedStorageId = selectedStorageId,
-        onSelectStorage = onSelectStorage
+        onSelectStorage = onSelectStorage,
+        themeMode = themeMode,
+        themeAccent = themeAccent,
+        onSelectThemeMode = onSelectThemeMode,
+        onSelectThemeAccent = onSelectThemeAccent
     )
 }
 

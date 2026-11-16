@@ -29,6 +29,20 @@ object EncoreColors {
     val ScrubberThumb = Color(0xFFFFFFFF)
 }
 
+/** User-selectable accent presets for the "Appearance" theme. */
+data class AccentPreset(val id: String, val label: String, val color: Color)
+
+val AccentPresets: List<AccentPreset> = listOf(
+    AccentPreset("green", "SpotiBat Green", Color(0xFF1DB954)),
+    AccentPreset("blue", "Ocean Blue", Color(0xFF2D7FF9)),
+    AccentPreset("purple", "Violet", Color(0xFF9B59B6)),
+    AccentPreset("rose", "Rose", Color(0xFFE91E63)),
+    AccentPreset("orange", "Sunset", Color(0xFFFF9800)),
+)
+
+fun accentById(id: String): Color =
+    AccentPresets.firstOrNull { it.id == id }?.color ?: EncoreColors.Green
+
 @Immutable
 data class EncoreColorScheme(
     val background: Color = EncoreColors.Background,
@@ -40,5 +54,36 @@ data class EncoreColorScheme(
     val textPrimary: Color = EncoreColors.TextPrimary,
     val textSecondary: Color = EncoreColors.TextSecondary,
     val divider: Color = EncoreColors.Divider,
-    val error: Color = EncoreColors.Error
-)
+    val error: Color = EncoreColors.Error,
+    val isDark: Boolean = true
+) {
+    companion object {
+        fun dark(accent: Color = EncoreColors.Green): EncoreColorScheme = EncoreColorScheme(
+            background = EncoreColors.Background,
+            surface = EncoreColors.Surface,
+            card = EncoreColors.Card,
+            cardElevated = EncoreColors.CardElevated,
+            primary = accent,
+            onPrimary = EncoreColors.PureBlack,
+            textPrimary = EncoreColors.TextPrimary,
+            textSecondary = EncoreColors.TextSecondary,
+            divider = EncoreColors.Divider,
+            error = EncoreColors.Error,
+            isDark = true
+        )
+
+        fun light(accent: Color = EncoreColors.Green): EncoreColorScheme = EncoreColorScheme(
+            background = Color(0xFFFFFFFF),
+            surface = Color(0xFFF5F5F5),
+            card = Color(0xFFEDEDED),
+            cardElevated = Color(0xFFFFFFFF),
+            primary = accent,
+            onPrimary = Color(0xFFFFFFFF),
+            textPrimary = Color(0xFF121212),
+            textSecondary = Color(0xFF535353),
+            divider = Color(0xFFD9D9D9),
+            error = EncoreColors.Error,
+            isDark = false
+        )
+    }
+}

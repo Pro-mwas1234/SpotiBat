@@ -75,7 +75,7 @@ fun EncoreBrowseScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(EncoreColors.Background)
+            .background(EncoreTheme.colors.background)
     ) {
         Row(
             modifier = Modifier

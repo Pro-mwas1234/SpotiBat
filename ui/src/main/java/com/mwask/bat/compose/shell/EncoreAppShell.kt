@@ -169,6 +169,10 @@ fun EncoreAppShell(
     storageOptions: List<StorageOption> = emptyList(),
     selectedStorageId: String = "",
     onSelectStorage: ((StorageOption) -> Unit)? = null,
+    themeMode: String = "system",
+    themeAccent: String = "green",
+    onSelectThemeMode: ((String) -> Unit)? = null,
+    onSelectThemeAccent: ((String) -> Unit)? = null,
     browsePage: BrowsePage? = null,
     categoryShelves: List<CategoryShelf>? = null,
     onOpenCategory: ((String) -> Unit)? = null,
@@ -943,6 +947,10 @@ fun EncoreAppShell(
                     storageOptions = storageOptions,
                     selectedStorageId = selectedStorageId,
                     onSelectStorage = onSelectStorage,
+                    themeMode = themeMode,
+                    themeAccent = themeAccent,
+                    onSelectThemeMode = onSelectThemeMode,
+                    onSelectThemeAccent = onSelectThemeAccent,
                 )
 
                 ShellScreen.NOTIFICATIONS -> ShellNotificationsRoute(
