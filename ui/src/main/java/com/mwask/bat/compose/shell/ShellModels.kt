@@ -232,6 +232,9 @@ internal class ShellUiFlags {
     var isRenamePlaylistDialogOpen by mutableStateOf(false)
     var isCreatePlaylistOpen by mutableStateOf(false)
     var isContributorsOpen by mutableStateOf(false)
+
+    /** Bumped by the profile drawer's Downloads shortcut so the library jumps to that filter. */
+    var libraryDownloadsSignal by mutableStateOf(0)
 }
 
 internal class ShellActiveEntity {

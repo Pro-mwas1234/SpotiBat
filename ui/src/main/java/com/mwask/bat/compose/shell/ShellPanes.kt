@@ -105,6 +105,7 @@ import com.mwask.bat.compose.screens.PopularTrack
 import com.mwask.bat.compose.screens.SettingsLocks
 import com.mwask.bat.compose.screens.SettingsScreen
 import com.mwask.bat.compose.screens.SettingsSwitches
+import com.mwask.bat.compose.screens.StorageOption
 import com.mwask.bat.compose.screens.EncoreAlbumScreen
 import com.mwask.bat.compose.screens.EncoreArtistScreen
 import com.mwask.bat.compose.screens.EncoreBrowseScreen
@@ -234,6 +235,9 @@ internal fun ShellSettingsPane(
     updateChecking: Boolean = false,
     updateChecked: Boolean = false,
     onCheckUpdates: () -> Unit = {},
+    storageOptions: List<StorageOption> = emptyList(),
+    selectedStorageId: String = "",
+    onSelectStorage: ((StorageOption) -> Unit)? = null,
 ) {
     SettingsScreen(
         onBackClick = onBackClick,
@@ -252,7 +256,10 @@ internal fun ShellSettingsPane(
         update = update,
         updateChecking = updateChecking,
         updateChecked = updateChecked,
-        onCheckUpdates = onCheckUpdates
+        onCheckUpdates = onCheckUpdates,
+        storageOptions = storageOptions,
+        selectedStorageId = selectedStorageId,
+        onSelectStorage = onSelectStorage
     )
 }
 

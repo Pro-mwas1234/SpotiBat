@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.quackify.backend.player"
+    namespace = "com.mwask.bat.backend.player"
     compileSdk {
         version = release(37)
     }
@@ -15,6 +15,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
 }
 
@@ -24,4 +25,6 @@ dependencies {
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.dash)
     implementation(libs.okhttp)
+    implementation(libs.newpipeextractor)
+    coreLibraryDesugaring(libs.desugaring)
 }

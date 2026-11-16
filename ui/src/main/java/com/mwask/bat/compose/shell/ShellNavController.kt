@@ -242,6 +242,13 @@ internal class ShellNavController(
         currentScreen = ShellScreen.PROFILE
     }
 
+    /** Jumps straight to the library with the Downloads filter already applied. */
+    fun openDownloads() {
+        currentScreen = ShellScreen.LIBRARY
+        selectedNavIndex = 2
+        flags.libraryDownloadsSignal += 1
+    }
+
     fun openUserProfile(context: Context, uri: String, name: String) {
         if (!uri.startsWith("spotify:user:")) {
             Toast.makeText(context, context.getString(R.string.couldnt_open, name), Toast.LENGTH_SHORT).show()

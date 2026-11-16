@@ -30,7 +30,7 @@
     a native Android music client — stream your Spotify library, keep the songs you love on the device, and play them with no connection.
   </p>
   <p>
-    SpotiBat 2.0 is the continuation of the SpotiDuck project, rebuilt as a native Jetpack Compose app (no WebView). it keeps the familiar Spotify-style experience and adds true offline playback.
+    SpotiBat is a native Jetpack Compose app (no WebView). it keeps the familiar Spotify-style experience and adds true offline playback.
   </p>
 </div>
 

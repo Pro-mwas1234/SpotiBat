@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import com.mwask.bat.backend.model.ConnectDevice
 import com.mwask.bat.compose.playlist.TrackItem
 import com.mwask.bat.backend.core.auth.EncoreAuth
+import com.mwask.bat.backend.core.offline.DownloadStatus
 import com.mwask.bat.compose.sheets.AccountsSheet
 import com.mwask.bat.compose.sheets.AlbumOptionsSheet
 import com.mwask.bat.compose.sheets.ArtistOptionsSheet
@@ -52,7 +53,7 @@ internal fun ShellSheets(
     trackTasteExcluded: Boolean? = null,
     trackPlaysOverride: Long? = null,
     downloadedUris: Set<String> = emptySet(),
-    downloadProgress: Map<String, Float> = emptyMap(),
+    downloadProgress: Map<String, DownloadStatus> = emptyMap(),
     onDownloadTrack: ((String) -> Unit)? = null,
     onRemoveDownload: ((String) -> Unit)? = null,
     onToggleTasteExclusion: (Boolean) -> Unit = {},
@@ -127,6 +128,7 @@ internal fun ShellSheets(
     notificationsUnread: Boolean = false,
     onProfile: () -> Unit,
     onHistory: () -> Unit,
+    onDownloads: (() -> Unit)? = null,
     onSettings: () -> Unit,
     onLogout: () -> Unit,
     onOpenAccounts: () -> Unit,
@@ -167,6 +169,7 @@ internal fun ShellSheets(
         onNotifications = onNotifications,
         onProfile = onProfile,
         onHistory = onHistory,
+        onDownloads = onDownloads,
         onSettings = onSettings,
         onLogout = onLogout,
     )
@@ -291,6 +294,7 @@ private fun ShellProfileSheets(
     onNotifications: (() -> Unit)?,
     onProfile: () -> Unit,
     onHistory: () -> Unit,
+    onDownloads: (() -> Unit)? = null,
     onSettings: () -> Unit,
     onLogout: () -> Unit,
 ) {
@@ -301,6 +305,7 @@ private fun ShellProfileSheets(
         onProfileClick = onProfile,
         onWhatsNewClick = onWhatsNew,
         onListeningHistoryClick = onHistory,
+        onDownloadsClick = onDownloads,
         onSettingsClick = onSettings,
         onNotificationsClick = onNotifications,
         notificationsUnread = notificationsUnread,
@@ -381,7 +386,7 @@ private fun ShellEntityOptionsSheets(
     onAlbumRadio: (() -> Unit)?,
     onAddToPlaylistFromAlbum: (() -> Unit)?,
     downloadedUris: Set<String> = emptySet(),
-    downloadProgress: Map<String, Float> = emptyMap(),
+    downloadProgress: Map<String, DownloadStatus> = emptyMap(),
     onDownloadTrack: ((String) -> Unit)? = null,
     onRemoveDownload: ((String) -> Unit)? = null,
     albumTrackUris: List<String> = emptyList(),
@@ -407,7 +412,7 @@ private fun ShellEntityOptionsSheets(
         onRemoveFromPlaylist = onRemoveTrackFromPlaylist,
         onSongRadio = onSongRadio,
         isDownloaded = selectedTrack?.uri?.let { it.isNotBlank() && it in downloadedUris } == true,
-        downloadProgress = selectedTrack?.uri?.let { downloadProgress[it] } ?: 0f,
+        downloadStatus = selectedTrack?.uri?.takeIf { it.isNotBlank() }?.let { downloadProgress[it] },
         onDownload = { selectedTrack?.uri?.takeIf { it.isNotBlank() }?.let { onDownloadTrack?.invoke(it) } },
         onRemoveDownload = { selectedTrack?.uri?.takeIf { it.isNotBlank() }?.let { onRemoveDownload?.invoke(it) } }
     )

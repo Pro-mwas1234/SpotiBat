@@ -1,5 +1,5 @@
 /*
- * SpotiDuck-Compose — playlist contributors state holder.
+ * SpotiBat — playlist contributors state holder.
  *
  * Owns the member list of the open playlist: loads it on demand when the
  * contributors sheet opens and applies add/remove mutations, refreshing the

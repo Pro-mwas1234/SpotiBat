@@ -1,7 +1,7 @@
 {
   "repo_notes": [
     {
-      "content": "Quackify is a native Android Spotify-protocol client (Kotlin, Jetpack Compose + Material 3). Priority for documentation: the backend modules (krespot-core, krespot-connect, krespot-player, krespot-library, krespot-api, krespot-model) are the strong, critical layer — document them thoroughly, including protocol details (auth/token flow, connect cluster state machine, dealer websocket, playback engines, pathfinder GraphQL). The krespot-api module is the complete API contract; document every endpoint wrapper it exposes. The ui/ module is partial and mirrors a reference design; document it more briefly (structure and theming, not every screen).",
+      "content": "SpotiBat is a native Android Spotify-protocol client (Kotlin, Jetpack Compose + Material 3). Priority for documentation: the backend modules (krespot-core, krespot-connect, krespot-player, krespot-library, krespot-api, krespot-model) are the strong, critical layer — document them thoroughly, including protocol details (auth/token flow, connect cluster state machine, dealer websocket, playback engines, pathfinder GraphQL). The krespot-api module is the complete API contract; document every endpoint wrapper it exposes. The ui/ module is partial and mirrors a reference design; document it more briefly (structure and theming, not every screen).",
       "author": "23fpsz"
     },
     {
@@ -9,14 +9,14 @@
       "author": "23fpsz"
     },
     {
-      "content": "Key glue code: app/src/main/java/com/quackify/app/PlaybackBridge.kt connects the connect cluster state machine to the player engines (audio/video), handles queue/chain building (rowsOf, captureChain, learnMachineQueue), episode playback (video ids, chapters, speed) and hydration. Episodes need no DRM; episode video file id is media.<uri>.item.video_id; chapter titles come from the transcript endpoint matched to chapter spans by time window.",
+      "content": "Key glue code: app/src/main/java/com/spotibat/app/PlaybackBridge.kt connects the connect cluster state machine to the player engines (audio/video), handles queue/chain building (rowsOf, captureChain, learnMachineQueue), episode playback (video ids, chapters, speed) and hydration. Episodes need no DRM; episode video file id is media.<uri>.item.video_id; chapter titles come from the transcript endpoint matched to chapter spans by time window.",
       "author": "23fpsz"
     }
   ],
   "pages": [
     {
       "title": "Overview",
-      "purpose": "What Quackify is, high-level architecture diagram (app + ui + krespot-* modules), how data flows from the Spotify protocol to the UI.",
+      "purpose": "What SpotiBat is, high-level architecture diagram (app + ui + krespot-* modules), how data flows from the Spotify protocol to the UI.",
       "parent": null
     },
     {

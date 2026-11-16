@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import com.mwask.bat.backend.api.ArtistBanStore
 import com.mwask.bat.backend.api.Collection2
 import com.mwask.bat.backend.core.auth.EncoreAuth
+import com.mwask.bat.backend.core.offline.DownloadStatus
 import com.mwask.bat.backend.model.AlbumDetail
 import com.mwask.bat.backend.model.ArtistDetail
 import com.mwask.bat.backend.model.CollectionDetail
@@ -68,7 +69,7 @@ internal class ShellSheetsEnv(
     val onArtistBanChanged: ((String, Boolean) -> Unit)?,
     val trackTasteExcluded: Boolean?,
     val downloadedUris: Set<String>,
-    val downloadProgress: Map<String, Float>,
+    val downloadProgress: Map<String, DownloadStatus>,
     val onDownloadTrack: (String) -> Unit,
     val onRemoveDownload: (String) -> Unit,
     val setTrackTasteExcluded: (Boolean?) -> Unit,
@@ -331,6 +332,7 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
             env.setCurrentScreen(ShellScreen.HISTORY)
             env.onOpenHistory?.invoke()
         },
+        onDownloads = { env.navController.openDownloads() },
         onSettings = env.handleOpenSettings,
         onLogout = { env.onLogout?.invoke() },
         onAddToQueue = { track -> env.handleQueueAdd(track.uri) },

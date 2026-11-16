@@ -19,6 +19,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -79,6 +80,7 @@ import com.mwask.bat.compose.home.toRecentlyPlayedShelf
 import com.mwask.bat.compose.home.toShelves
 import com.mwask.bat.compose.home.toTrackItem
 import com.mwask.bat.backend.player.OfflineAudio
+import com.mwask.bat.backend.player.OfflineStorage
 import com.mwask.bat.compose.library.DownloadedTrack
 import com.mwask.bat.compose.library.LibraryItem
 import com.mwask.bat.compose.library.LibraryItemType
@@ -135,7 +137,7 @@ class MainActivity : ComponentActivity() {
     private var sawStop = false
 
     private var homeGreeting by mutableStateOf("")
-    private var homeFacet by mutableStateOf("")
+    internal var homeFacet by mutableStateOf("")
     internal var loading by mutableStateOf(true)
     internal var playHistory by mutableStateOf<List<PlayedTrack>>(emptyList())
     internal var playStats by mutableStateOf(PlayStatsSnapshot())
@@ -694,7 +696,6 @@ class MainActivity : ComponentActivity() {
 
         val libraryRevision by Krespot.library.revision.collectAsState()
         val offlineTracks by OfflineAudio.library.collectAsState()
-        val offlineProgress by OfflineAudio.progressFlow.collectAsState()
 
         LaunchedEffect(libraryRevision) {
             val page = Krespot.library.page(context)
@@ -1363,7 +1364,19 @@ class MainActivity : ComponentActivity() {
         val home = rememberHomeFeedData()
         val nowPlaying = rememberNowPlayingData(canvasAllowed = settingsSwitches.canvas)
         val offlineTracks by OfflineAudio.library.collectAsState()
-        val offlineProgress by OfflineAudio.progressFlow.collectAsState()
+        val offlineStatuses by OfflineAudio.statuses.collectAsState()
+        var storageTick by remember { mutableIntStateOf(0) }
+        val storageOptions = remember(storageTick) {
+            OfflineStorage.options(context).map { option ->
+                com.mwask.bat.compose.screens.StorageOption(
+                    id = option.id,
+                    label = option.label,
+                    path = option.path,
+                    availableBytes = option.availableBytes,
+                )
+            }
+        }
+        val selectedStorageId = remember(storageTick) { OfflineStorage.selectedId(context) }
         EncoreAppShell(
             deeplink = pendingLink?.let { ShellDeepLink(it.kind, it.uri, it.query) },
             onDeeplinkConsumed = { pendingLink = null },
@@ -1398,17 +1411,28 @@ class MainActivity : ComponentActivity() {
                 durationMs = track.durationMs,
                 bytes = track.bytes,
                 offlineReady = track.offlineReady,
-                progress = offlineProgress[track.uri] ?: 0f,
+                status = offlineStatuses[track.uri],
             )
+        },
+        storageOptions = storageOptions,
+        selectedStorageId = selectedStorageId,
+        onSelectStorage = { option ->
+            if (OfflineStorage.setRoot(context, option.path)) storageTick++
         },
         onDownloadedPlay = { track -> bridge.listener.onPlayUri(track.uri) },
         onDownloadedRemove = { track -> OfflineAudio.remove(context, track.uri) },
+        onDownloadedDeleteAll = {
+            OfflineAudio.removeAll(context)
+            storageTick++
+        },
         downloadedUris = offlineTracks.map { it.uri }.toSet(),
-        downloadProgress = offlineProgress,
+        downloadProgress = offlineStatuses,
         onRemoveDownload = { uri -> OfflineAudio.remove(context, uri) },
         onDownloadTrack = { uri ->
+            // Bring the foreground service up so the transfer survives leaving the app; the
+            // queue starts the actual download and the service stops itself when it drains.
+            OfflineDownloadService.start(context)
             bridge.download(uri)
-            runCatching { androidx.media3.exoplayer.offline.DownloadService.start(context, OfflineDownloadService::class.java) }
         },
         playlistTracks = playlistTracks,
         playlistDetail = playlistDetail,

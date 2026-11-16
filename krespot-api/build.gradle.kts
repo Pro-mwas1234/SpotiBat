@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.quackify.backend.api"
+    namespace = "com.mwask.bat.backend.api"
     compileSdk {
         version = release(37)
     }

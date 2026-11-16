@@ -253,41 +253,24 @@ class KrespotPlayer(private val context: Context) {
     fun hasSourceFor(trackUri: String): Boolean = sourceFor(trackUri) != null
 
     /**
-     * Resolves the audio for a track and hands it to [OfflineAudio], which keeps the bytes and
-     * the licence on the device. The work stays off the caller's thread because resolving can
-     * hit the network.
+     * Hands the track to [OfflineAudio]. Nothing is resolved here: the downloader mints a fresh
+     * stream url when it starts, the way Yuma does, so a song queued minutes ago still lands.
      */
     fun download(track: CommandTrack, spclient: String) {
         if (track.isDirect || track.isAd || track.uri.isBlank()) return
         this.spclient = spclient
-        scope.launch {
-            val source = sourceFor(track.uri)
-                ?: SourceResolver.resolve(
-                    context,
-                    spclient,
-                    track.uri,
-                    "",
-                    0,
-                    prefetched = manifestFor(track.uri),
-                )?.also { rememberSource(track.uri, it) }
-            if (source == null) {
-                log.w("download '${track.uri}' found no playable source")
-                return@launch
-            }
-            OfflineAudio.enqueue(
-                context,
-                OfflineRequest(
-                    uri = track.uri,
-                    source = source,
-                    title = track.name,
-                    artists = track.artists,
-                    album = track.album,
-                    imageUrl = track.imageUrl,
-                    durationMs = track.durationMs,
-                    spclient = spclient,
-                ),
-            )
-        }
+        OfflineAudio.enqueue(
+            context,
+            OfflineRequest(
+                uri = track.uri,
+                spclient = spclient,
+                title = track.name,
+                artists = track.artists,
+                album = track.album,
+                imageUrl = track.imageUrl,
+                durationMs = track.durationMs,
+            ),
+        )
     }
 
     fun removeDownload(trackUri: String) {
@@ -551,20 +534,41 @@ class KrespotPlayer(private val context: Context) {
         job = scope.launch {
             var player: AudioEngine? = null
             try {
-                val source = sourceFor(track.uri)
-                    ?: SourceResolver.resolve(
-                        context,
-                        spclient,
-                        track.uri,
-                        "",
-                        0,
-                        prefetched = manifestFor(track.uri),
-                    )?.also { rememberSource(track.uri, it) }
+                // A downloaded song is a plain file on disk: play it directly, with no Spotify
+                // source resolve and no DRM, so it works offline.
+                val offlineFile = OfflineAudio.localFile(context, track.uri)
+                val source = if (offlineFile != null) {
+                    log.i("play '${track.name}' from the downloaded file")
+                    AudioSource(
+                        fileId = track.uri,
+                        format = 0,
+                        bitrate = 0,
+                        quality = "yt",
+                        url = android.net.Uri.fromFile(offlineFile).toString(),
+                        seektable = Seektable(
+                            offset = 0,
+                            sizes = emptyList(),
+                            durations = listOf(track.durationMs.coerceAtLeast(1L)),
+                            timescale = 1000,
+                            pssh = "",
+                        ),
+                    )
+                } else {
+                    sourceFor(track.uri)
+                        ?: SourceResolver.resolve(
+                            context,
+                            spclient,
+                            track.uri,
+                            "",
+                            0,
+                            prefetched = manifestFor(track.uri),
+                        )?.also { rememberSource(track.uri, it) }
+                }
                 if (source == null) {
                     _events.emit(PlayerEvent.Failed("no source"))
                     return@launch
                 }
-                rememberFile(track.uri, source.fileId)
+                if (offlineFile == null) rememberFile(track.uri, source.fileId)
                 if (id != generation) {
                     log.i("play was skipped while its source resolved")
                     return@launch

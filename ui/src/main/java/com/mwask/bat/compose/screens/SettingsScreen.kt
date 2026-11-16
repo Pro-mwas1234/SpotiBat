@@ -1,4 +1,4 @@
-package com.quackify.compose.screens
+package com.mwask.bat.compose.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -30,11 +30,13 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -61,16 +63,16 @@ import androidx.core.content.pm.PackageInfoCompat
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import kotlinx.coroutines.delay
-import com.quackify.compose.R
-import com.quackify.backend.core.auth.EncoreAuth
-import com.quackify.compose.components.EncoreIconButton
-import com.quackify.compose.theme.EncoreAnimation
-import com.quackify.compose.theme.EncoreColors
-import com.quackify.compose.theme.EncoreAppTheme
-import com.quackify.compose.theme.EncoreTheme
-import com.quackify.compose.theme.rememberBottomPadding
-import com.quackify.compose.widget.WidgetBackgroundStyle
-import com.quackify.compose.widget.WidgetOptionsStore
+import com.mwask.bat.compose.R
+import com.mwask.bat.backend.core.auth.EncoreAuth
+import com.mwask.bat.compose.components.EncoreIconButton
+import com.mwask.bat.compose.theme.EncoreAnimation
+import com.mwask.bat.compose.theme.EncoreColors
+import com.mwask.bat.compose.theme.EncoreAppTheme
+import com.mwask.bat.compose.theme.EncoreTheme
+import com.mwask.bat.compose.theme.rememberBottomPadding
+import com.mwask.bat.compose.widget.WidgetBackgroundStyle
+import com.mwask.bat.compose.widget.WidgetOptionsStore
 import androidx.compose.ui.res.stringResource
 
 data class AppUpdate(
@@ -93,6 +95,14 @@ data class SettingsLocks(
     val otherVideos: Boolean = false,
 )
 
+/** A folder downloaded songs can be kept in, as offered by the settings picker. */
+data class StorageOption(
+    val id: String,
+    val label: String,
+    val path: String,
+    val availableBytes: Long,
+)
+
 @Composable
 fun SettingsScreen(
     onBackClick: () -> Unit,
@@ -113,6 +123,9 @@ fun SettingsScreen(
     updateChecked: Boolean = false,
     onCheckUpdates: () -> Unit = {},
     onAppIconChange: (String) -> Unit = {},
+    storageOptions: List<StorageOption> = emptyList(),
+    selectedStorageId: String = "",
+    onSelectStorage: ((StorageOption) -> Unit)? = null,
 ) {
     val bottomPadding = rememberBottomPadding()
     val context = LocalContext.current
@@ -125,7 +138,7 @@ fun SettingsScreen(
     }
 
     val clientPrefs = remember {
-        com.quackify.backend.core.store.AppPrefs.prefs(context, "quackify.client")
+        com.mwask.bat.backend.core.store.AppPrefs.prefs(context, "quackify.client")
     }
     var autoplayOnStartup by remember {
         mutableStateOf(clientPrefs.getBoolean("autoplayOnStartup", false))
@@ -141,6 +154,9 @@ fun SettingsScreen(
     }
     var widgetOptions by remember { mutableStateOf(WidgetOptionsStore.load(context)) }
     var category by remember { mutableStateOf<Int?>(null) }
+    var storagePicker by remember { mutableStateOf(false) }
+    val selectedStorage = storageOptions.firstOrNull { it.id == selectedStorageId }
+        ?: storageOptions.firstOrNull()
 
     BackHandler(enabled = category != null) {
         category = null
@@ -373,6 +389,56 @@ fun SettingsScreen(
                     }
 
                 }
+                if (target == 2 && storageOptions.isNotEmpty()) {
+                    item {
+                        SettingsSectionHeader(title = stringResource(R.string.storage))
+                        val selected = selectedStorage ?: StorageOption("", "", "", 0L)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { storagePicker = true }
+                                .padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                                Text(
+                                    text = stringResource(R.string.download_location),
+                                    style = EncoreTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
+                                )
+                                Text(
+                                    text = selected.label + " · " + stringResource(
+                                        R.string.free_space,
+                                        formatStorageSize(selected.availableBytes)
+                                    ),
+                                    style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary)
+                                )
+                            }
+                            Icon(
+                                painter = painterResource(R.drawable.encore_icon_chevron_right_24),
+                                contentDescription = null,
+                                tint = EncoreColors.TextSecondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
+                    item {
+                        if (storagePicker) {
+                            StorageLocationDialog(
+                                options = storageOptions,
+                                selectedId = selectedStorage?.id.orEmpty(),
+                                onDismiss = { storagePicker = false },
+                                onSelect = { option ->
+                                    storagePicker = false
+                                    onSelectStorage?.invoke(option)
+                                }
+                            )
+                        }
+                    }
+                }
+
                 if (target == 2) {
                     item {
                         SettingsSectionHeader(title = stringResource(R.string.playback))
@@ -413,7 +479,7 @@ fun SettingsScreen(
                     item {
                         SettingsSectionHeader(title = stringResource(R.string.about))
                         Text(
-                            text = stringResource(R.string.quackify_is_a_native_android_music_client_built),
+                            text = stringResource(R.string.spotibat_is_a_native_android_music_client_built),
                             style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
@@ -503,7 +569,7 @@ fun SettingsScreen(
     }
 }
 
-private const val GITHUB_URL = "https://github.com/23fpsz/Quackify"
+private const val GITHUB_URL = "https://github.com/Pro-mwas1234/SpotiBat"
 @Composable
 private fun AboutLinkButton(label: String, iconRes: Int, url: String) {
     val context = LocalContext.current
@@ -834,6 +900,75 @@ private fun SettingsInfoRow(
             style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary)
         )
     }
+}
+
+/** Picks the folder downloaded songs are kept in. */
+@Composable
+private fun StorageLocationDialog(
+    options: List<StorageOption>,
+    selectedId: String,
+    onDismiss: () -> Unit,
+    onSelect: (StorageOption) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = EncoreColors.CardElevated,
+        title = { Text(stringResource(R.string.download_location), color = EncoreColors.TextPrimary) },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(R.string.choose_download_location),
+                    style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                options.forEach { option ->
+                    val selected = option.id == selectedId
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onSelect(option) }
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(
+                                if (selected) R.drawable.encore_icon_check_24 else R.drawable.encore_icon_folder_24
+                            ),
+                            contentDescription = null,
+                            tint = if (selected) EncoreColors.Green else EncoreColors.TextSecondary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = option.label,
+                                style = EncoreTheme.typography.bodyMedium.copy(
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (selected) EncoreColors.Green else EncoreColors.TextPrimary
+                                )
+                            )
+                            Text(
+                                text = stringResource(R.string.free_space, formatStorageSize(option.availableBytes)),
+                                style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary)
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel), color = EncoreColors.TextPrimary)
+            }
+        }
+    )
+}
+
+private fun formatStorageSize(bytes: Long): String = when {
+    bytes >= 1024L * 1024L * 1024L -> "%.1f GB".format(bytes / (1024.0 * 1024.0 * 1024.0))
+    bytes >= 1024L * 1024L -> "%.0f MB".format(bytes / (1024.0 * 1024.0))
+    else -> "%.0f KB".format(bytes / 1024.0)
 }
 
 @Preview

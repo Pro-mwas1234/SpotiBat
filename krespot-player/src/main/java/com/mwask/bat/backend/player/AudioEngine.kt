@@ -194,15 +194,17 @@ internal class AudioEngine(
         withContext(Dispatchers.Main) {
             release()
             val totalMs = source.seektable.totalDuration * 1000L / source.seektable.timescale
-            val encrypted = source.seektable.pssh.isNotBlank()
             val offline = OfflineAudio.isDownloaded(uri)
-            val keySet = if (offline) OfflineAudio.licenceKeySet(context, uri) else null
-            val dataSource = if (offline) {
-                OfflineAudio.playbackDataSource(context)
+            val encrypted = if (offline) {
+                OfflineAudio.track(uri)?.encrypted ?: source.seektable.pssh.isNotBlank()
             } else {
-                DefaultDataSource.Factory(context)
+                source.seektable.pssh.isNotBlank()
             }
-            val factory = DefaultMediaSourceFactory(dataSource)
+            val keySet = if (offline) OfflineAudio.licenceKeySet(context, uri) else null
+            if (offline) log.i("audio playing from the downloaded file '${source.fileId.take(12)}'")
+            // A downloaded song is a plain file on disk, so the default source (file:// plus
+            // http for the streamed case) covers both.
+            val factory = DefaultMediaSourceFactory(DefaultDataSource.Factory(context))
             if (encrypted) {
                 val callback = AudioDrmCallback(context) { LicenseEndpoint.of(context, spclient()) }
                 var cachedManager: DrmSessionManager? = null
@@ -273,10 +275,11 @@ internal class AudioEngine(
 
     private fun itemFor(uri: String, source: AudioSource): MediaItem {
         val encrypted = source.seektable.pssh.isNotBlank()
+        // Prefer the downloaded copy: it plays with no network and no expired stream url.
+        val offlineFile = OfflineAudio.localFile(context, uri)
         return MediaItem.Builder()
             .setMediaId(uri)
-            .setUri(Uri.parse(source.url))
-            .setCustomCacheKey(uri)
+            .setUri(offlineFile?.let { Uri.fromFile(it) } ?: Uri.parse(source.url))
             .apply {
                 if (encrypted) {
                     setDrmConfiguration(

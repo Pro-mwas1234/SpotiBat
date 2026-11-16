@@ -1,8 +1,8 @@
 <resources>
-    <string name="app_name">Quackify</string>
-    <string name="widget_4x1_label">Quackify 4x1</string>
-    <string name="widget_3x2_label">Quackify 3x2</string>
-    <string name="widget_3x3_label">Quackify 3x3</string>
+    <string name="app_name">SpotiBat</string>
+    <string name="widget_4x1_label">SpotiBat 4x1</string>
+    <string name="widget_3x2_label">SpotiBat 3x2</string>
+    <string name="widget_3x3_label">SpotiBat 3x3</string>
     <string name="widget_4x1_desc">Playback bar with cover, like and controls</string>
     <string name="widget_3x2_desc">Playback card with cover, progress and controls</string>
     <string name="widget_3x3_desc">Large playback card with big cover and controls</string>
@@ -12,4 +12,8 @@
     <string name="txt_not_playing">Not playing</string>
     <string name="txt_notrack">No Track</string>
     <string name="txt_noartist">No Artist</string>
+    <string name="download_channel_name">Downloads</string>
+    <string name="download_channel_description">Songs being kept on this device</string>
+    <string name="downloading">Downloading</string>
+    <string name="download_queue">%1$d songs in the queue</string>
 </resources>

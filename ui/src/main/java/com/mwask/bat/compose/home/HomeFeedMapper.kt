@@ -34,8 +34,18 @@ private fun tagOf(kind: String): String = when {
     kind.contains("Album", true) -> "ALBUM"
     kind.contains("Artist", true) -> "ARTIST"
     kind.contains("Episode", true) -> "EPISODE"
+    kind.contains("Podcast", true) -> "PODCAST"
     kind.contains("Show", true) -> "SHOW"
     else -> kind.uppercase().take(12)
+}
+
+/**
+ * Podcasts (shows and their episodes) are kept out of the default home feed. Spotify names the
+ * card type a few different ways, so the tag and the uri both get a say.
+ */
+private fun HomeItem.isPodcast(): Boolean = when (tagOf(kind)) {
+    "EPISODE", "SHOW", "PODCAST" -> true
+    else -> uri.startsWith("spotify:show:") || uri.startsWith("spotify:episode:")
 }
 
 data class HomeShelf(
@@ -56,7 +66,7 @@ private fun labelOf(kinds: List<String>): String {
         "PLAYLIST" -> "Playlists"
         "ALBUM" -> "Albums"
         "ARTIST" -> "Artists"
-        "EPISODE", "SHOW" -> "Podcasts"
+        "EPISODE", "SHOW", "PODCAST" -> "Podcasts"
         else -> ""
     }
 }
@@ -73,17 +83,23 @@ private fun HomeItem.toCard() = RecommendationCard(
 
 private fun List<HomeItem>.toCards(): List<RecommendationCard> = map { it.toCard() }
 
-fun List<HomeSection>.toShelves(): List<HomeShelf> {
+/**
+ * Turns the feed into shelves. Podcast episodes and shows are dropped unless the user is on a
+ * podcast facet, so the default home is songs, playlists and artists only.
+ */
+fun List<HomeSection>.toShelves(includePodcasts: Boolean = false): List<HomeShelf> {
+    fun keep(item: HomeItem) = includePodcasts || !item.isPodcast()
     val out = ArrayList<HomeShelf>()
     var run: MutableList<HomeItem>? = null
     var runIndex = -1
     for (section in this) {
         if (section.kind == HomeFeed.SHORTS || section.kind == HomeFeed.RECENT) continue
         if (section.kind == HomeFeed.BASELINE) {
-            if (section.items.isEmpty()) continue
+            val music = section.items.filter { keep(it) }
+            if (music.isEmpty()) continue
             val open = run
             if (open == null) {
-                val started = ArrayList(section.items)
+                val started = ArrayList(music)
                 run = started
                 runIndex = out.size
                 out += HomeShelf(
@@ -93,22 +109,23 @@ fun List<HomeSection>.toShelves(): List<HomeShelf> {
                     cards = started.toCards(),
                 )
             } else {
-                open += section.items
+                open += music
                 out[runIndex] = out[runIndex].copy(cards = open.toCards())
             }
             continue
         }
         run = null
-        val cards = section.items.toCards()
+        val items = section.items.filter { keep(it) }
+        val cards = items.toCards()
         if (cards.isEmpty()) continue
-        val artistsOnly = section.items.all { tagOf(it.kind) == "ARTIST" }
+        val artistsOnly = items.all { tagOf(it.kind) == "ARTIST" }
         out += HomeShelf(
             id = section.id.ifBlank { "${section.title}:${section.kind}" },
             title = section.title,
-            label = labelOf(section.items.map { it.kind }),
+            label = labelOf(items.map { it.kind }),
             cards = if (artistsOnly) emptyList() else cards,
             artists = if (artistsOnly) {
-                section.items.map { item ->
+                items.map { item ->
                     ArtistCardItem(
                         name = item.title,
                         color = colorOf(item),
@@ -125,7 +142,7 @@ fun List<HomeSection>.toShelves(): List<HomeShelf> {
 }
 
 fun List<HomeSection>.toQuickAccess(): List<QuickAccessItem> =
-    firstOrNull { it.kind == HomeFeed.SHORTS }?.items?.map { item ->
+    firstOrNull { it.kind == HomeFeed.SHORTS }?.items?.filterNot { it.isPodcast() }?.map { item ->
         QuickAccessItem(
             title = item.title,
             coverColor = colorOf(item),

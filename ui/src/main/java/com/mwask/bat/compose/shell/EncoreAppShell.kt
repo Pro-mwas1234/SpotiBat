@@ -41,6 +41,7 @@ import com.mwask.bat.backend.model.SearchKind
 import com.mwask.bat.backend.model.SearchResults
 import com.mwask.bat.backend.model.ShowDetail
 import com.mwask.bat.backend.model.UserProfile
+import com.mwask.bat.backend.core.offline.DownloadStatus
 import com.mwask.bat.compose.R
 import com.mwask.bat.compose.components.SpotifyToastHost
 import com.mwask.bat.compose.components.SpotifyToastState
@@ -61,6 +62,7 @@ import com.mwask.bat.compose.screens.PopularTrack
 import com.mwask.bat.compose.screens.ProfileContextCard
 import com.mwask.bat.compose.screens.SettingsLocks
 import com.mwask.bat.compose.screens.SettingsSwitches
+import com.mwask.bat.compose.screens.StorageOption
 import com.mwask.bat.compose.search.SearchHistoryItem
 import com.mwask.bat.compose.theme.EncoreAnimation
 import com.mwask.bat.compose.theme.EncoreColors
@@ -125,10 +127,11 @@ fun EncoreAppShell(
     downloadedTracks: List<DownloadedTrack> = emptyList(),
     onDownloadedPlay: (DownloadedTrack) -> Unit = {},
     onDownloadedRemove: (DownloadedTrack) -> Unit = {},
+    onDownloadedDeleteAll: (() -> Unit)? = null,
     onDownloadTrack: ((String) -> Unit)? = null,
     onRemoveDownload: ((String) -> Unit)? = null,
     downloadedUris: Set<String> = emptySet(),
-    downloadProgress: Map<String, Float> = emptyMap(),
+    downloadProgress: Map<String, DownloadStatus> = emptyMap(),
     searchResults: List<TrackItem>? = null,
     onSearchQueryChange: ((String) -> Unit)? = null,
     onSearchSubmit: ((String) -> Unit)? = null,
@@ -163,6 +166,9 @@ fun EncoreAppShell(
     updateChecked: Boolean = false,
     onCheckUpdates: (() -> Unit)? = null,
     onHomeEntered: () -> Unit = {},
+    storageOptions: List<StorageOption> = emptyList(),
+    selectedStorageId: String = "",
+    onSelectStorage: ((StorageOption) -> Unit)? = null,
     browsePage: BrowsePage? = null,
     categoryShelves: List<CategoryShelf>? = null,
     onOpenCategory: ((String) -> Unit)? = null,
@@ -697,6 +703,7 @@ fun EncoreAppShell(
             downloadProgress = downloadProgress,
             handleDownloadedPlay = onDownloadedPlay,
             handleDownloadedRemove = onDownloadedRemove,
+            handleDownloadedDeleteAll = { onDownloadedDeleteAll?.invoke() },
             handleFolderClick = handleFolderClick,
             shareEntity = shareEntity,
             progressState = progressState,
@@ -852,6 +859,7 @@ fun EncoreAppShell(
                     env = hosts.route(),
                     libraryItems = libraryItems,
                     libraryLoading = libraryLoading,
+                    downloadsSignal = flags.libraryDownloadsSignal,
                 )
 
                 ShellScreen.PLAYLIST -> ShellPlaylistRoute(
@@ -932,6 +940,9 @@ fun EncoreAppShell(
                     updateChecked = updateChecked,
                     onCheckUpdates = onCheckUpdates,
                     onLogout = onLogout,
+                    storageOptions = storageOptions,
+                    selectedStorageId = selectedStorageId,
+                    onSelectStorage = onSelectStorage,
                 )
 
                 ShellScreen.NOTIFICATIONS -> ShellNotificationsRoute(

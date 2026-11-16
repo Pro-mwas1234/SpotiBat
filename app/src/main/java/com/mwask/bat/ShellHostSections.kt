@@ -60,7 +60,9 @@ internal fun MainActivity.rememberHomeFeedData(): ShellHomeData {
     LaunchedEffect(quick) {
         log.i("home quick access tiles=${quick.size}")
     }
-    val shelves = remember(feed) { feed.toShelves() }
+    val shelves = remember(feed, homeFacet) {
+        feed.toShelves(includePodcasts = homeFacet.contains("podcast", ignoreCase = true))
+    }
     val historyShelves = remember(playHistory, homeArtistImages.size) {
         listOfNotNull(
             playHistory.map { it.item }.toRecentlyPlayedShelf(),

@@ -198,8 +198,8 @@
     <string name="profiles">Profili</string>
     <string name="public_playlist">Playlist pubblica</string>
     <string name="public_playlists">Playlist pubbliche</string>
-    <string name="quackify">Quackify</string>
-    <string name="quackify_is_a_native_android_music_client_built">Quackify è un client musicale Android nativo sviluppato con Jetpack Compose, continuazione del progetto SpotiDuck.</string>
+    <string name="spotibat">SpotiBat</string>
+    <string name="spotibat_is_a_native_android_music_client_built">SpotiBat è un client musicale Android nativo sviluppato con Jetpack Compose.</string>
     <string name="queue">Coda</string>
     <string name="ratings_and_reviews">Valutazioni e recensioni</string>
     <string name="recent_searches">Ricerche recenti</string>
@@ -383,7 +383,7 @@
     <string name="checking">Verifica…</string>
     <string name="up_to_date">Aggiornato</string>
     <string name="not_signed_in">Accesso non effettuato</string>
-    <string name="copyright">© 2026 Quackify Team</string>
+    <string name="copyright">© 2026 SpotiBat Team</string>
     <string name="link_copied">Link copiato</string>
     <string name="track_link">Link del brano</string>
     <string name="will_be_deleted_from_library"> verrà eliminato dalla tua libreria.</string>

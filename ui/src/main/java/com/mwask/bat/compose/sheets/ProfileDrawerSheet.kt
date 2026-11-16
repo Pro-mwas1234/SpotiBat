@@ -48,6 +48,7 @@ fun ProfileDrawerSheet(
     onProfileClick: () -> Unit,
     onWhatsNewClick: () -> Unit,
     onListeningHistoryClick: () -> Unit,
+    onDownloadsClick: (() -> Unit)? = null,
     onSettingsClick: () -> Unit,
     onNotificationsClick: (() -> Unit)? = null,
     notificationsUnread: Boolean = false,
@@ -174,6 +175,17 @@ fun ProfileDrawerSheet(
                     onListeningHistoryClick()
                 }
             )
+
+            if (onDownloadsClick != null) {
+                ProfileDrawerItem(
+                    title = stringResource(R.string.downloads),
+                    iconRes = R.drawable.encore_icon_download_24,
+                    onClick = {
+                        onDismiss()
+                        onDownloadsClick()
+                    }
+                )
+            }
 
             ProfileDrawerItem(
                 title = stringResource(R.string.settings_and_privacy),

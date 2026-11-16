@@ -6,7 +6,9 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="true"
@@ -17,12 +19,12 @@
         android:label="${appName}"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Quackify">
+        android:theme="@style/Theme.SpotiBat">
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="${appName}"
-            android:theme="@style/Theme.Quackify"
+            android:theme="@style/Theme.SpotiBat"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
@@ -80,18 +82,23 @@
             android:stopWithTask="true"
             android:foregroundServiceType="mediaPlayback" />
 
+        <service
+            android:name=".OfflineDownloadService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
         <receiver
             android:name=".widget.HomeWidget"
             android:exported="true"
             android:label="@string/slim_player">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.quackify.app.widget.WIDGET_PLAYPAUSE" />
-                <action android:name="com.quackify.app.widget.WIDGET_PREV" />
-                <action android:name="com.quackify.app.widget.WIDGET_NEXT" />
-                <action android:name="com.quackify.app.widget.REPEAT_ACTION" />
-                <action android:name="com.quackify.app.widget.SHUFFLE_ACTION" />
-                <action android:name="com.quackify.app.widget.ADDTOFAV_ACTION" />
+                <action android:name="com.mwask.bat.widget.WIDGET_PLAYPAUSE" />
+                <action android:name="com.mwask.bat.widget.WIDGET_PREV" />
+                <action android:name="com.mwask.bat.widget.WIDGET_NEXT" />
+                <action android:name="com.mwask.bat.widget.REPEAT_ACTION" />
+                <action android:name="com.mwask.bat.widget.SHUFFLE_ACTION" />
+                <action android:name="com.mwask.bat.widget.ADDTOFAV_ACTION" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
@@ -104,11 +111,11 @@
             android:label="@string/music_card_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.quackify.app.widget.CARD_PLAYPAUSE" />
-                <action android:name="com.quackify.app.widget.CARD_PREV" />
-                <action android:name="com.quackify.app.widget.CARD_NEXT" />
-                <action android:name="com.quackify.app.widget.CARD_REPEAT" />
-                <action android:name="com.quackify.app.widget.CARD_SHUFFLE" />
+                <action android:name="com.mwask.bat.widget.CARD_PLAYPAUSE" />
+                <action android:name="com.mwask.bat.widget.CARD_PREV" />
+                <action android:name="com.mwask.bat.widget.CARD_NEXT" />
+                <action android:name="com.mwask.bat.widget.CARD_REPEAT" />
+                <action android:name="com.mwask.bat.widget.CARD_SHUFFLE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
@@ -128,7 +135,7 @@
         </receiver>
 
         <receiver
-            android:name=".widget.QuackifyWidget4x1Receiver"
+            android:name=".widget.SpotiBatWidget4x1Receiver"
             android:exported="false"
             android:label="@string/widget_4x1_label">
             <intent-filter>
@@ -140,7 +147,7 @@
         </receiver>
 
         <receiver
-            android:name=".widget.QuackifyWidget3x2Receiver"
+            android:name=".widget.SpotiBatWidget3x2Receiver"
             android:exported="false"
             android:label="@string/widget_3x2_label">
             <intent-filter>
@@ -152,7 +159,7 @@
         </receiver>
 
         <receiver
-            android:name=".widget.QuackifyWidget3x3Receiver"
+            android:name=".widget.SpotiBatWidget3x3Receiver"
             android:exported="false"
             android:label="@string/widget_3x3_label">
             <intent-filter>

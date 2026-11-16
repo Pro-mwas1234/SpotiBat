@@ -1,4 +1,4 @@
-// Top-level build file for the Quackify Compose repository
+// Top-level build file for the SpotiBat Compose repository
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false

@@ -31,6 +31,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -118,6 +119,12 @@ fun EncoreLibraryScreen(
     downloadedTracks: List<DownloadedTrack> = emptyList(),
     onDownloadedPlay: (DownloadedTrack) -> Unit = {},
     onDownloadedRemove: (DownloadedTrack) -> Unit = {},
+    onDownloadedDeleteAll: (() -> Unit)? = null,
+    /** Uri and playback state of the song in the player, for the downloads list highlight. */
+    currentTrackUri: String = "",
+    isPlaying: Boolean = false,
+    /** Incremented by the Downloads shortcut, which opens this screen already filtered. */
+    downloadsSignal: Int = 0,
     modifier: Modifier = Modifier
 ) {
     var selectedFilter by remember { mutableStateOf<String?>(null) }
@@ -128,6 +135,10 @@ fun EncoreLibraryScreen(
 
     val filters = listOf(stringResource(R.string.playlists), "Podcasts", stringResource(R.string.albums), stringResource(R.string.artists), stringResource(R.string.downloaded))
     val downloadedLabel = stringResource(R.string.downloaded)
+
+    LaunchedEffect(downloadsSignal) {
+        if (downloadsSignal > 0) selectedFilter = downloadedLabel
+    }
 
     val allLibraryItems = items.orEmpty()
     val filteredItems = remember(allLibraryItems, selectedFilter, searchFilterText, currentSort, sortDirection) {
@@ -441,6 +452,9 @@ fun EncoreLibraryScreen(
                 tracks = downloadedTracks,
                 onPlay = onDownloadedPlay,
                 onRemove = onDownloadedRemove,
+                onDeleteAll = onDownloadedDeleteAll,
+                currentUri = currentTrackUri,
+                isPlaying = isPlaying,
                 bottomPadding = bottomPadding,
             )
         } else if (loading && filteredItems.isEmpty()) {

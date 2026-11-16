@@ -43,6 +43,8 @@ import com.mwask.bat.compose.playlist.TrackItem
 import com.mwask.bat.compose.theme.EncoreColors
 import com.mwask.bat.compose.theme.EncoreAppTheme
 import com.mwask.bat.compose.format.formatExactCount
+import com.mwask.bat.backend.core.offline.DownloadPhase
+import com.mwask.bat.backend.core.offline.DownloadStatus
 import com.mwask.bat.compose.theme.EncoreTheme
 import androidx.compose.ui.res.stringResource
 
@@ -78,7 +80,7 @@ fun TrackOptionsSheet(
     onRemoveFromPlaylist: (() -> Unit)? = null,
     onSongRadio: (() -> Unit)? = null,
     isDownloaded: Boolean = false,
-    downloadProgress: Float = 0f,
+    downloadStatus: DownloadStatus? = null,
     onDownload: () -> Unit = {},
     onRemoveDownload: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -208,10 +210,22 @@ fun TrackOptionsSheet(
                         onRemoveDownload()
                     }
                 )
-                downloadProgress > 0f && downloadProgress < 1f -> ContextMenuRowItem(
-                    title = stringResource(R.string.downloading_percent, (downloadProgress * 100).toInt()),
+                downloadStatus?.working == true -> ContextMenuRowItem(
+                    title = if (downloadStatus.barValue != null) {
+                        stringResource(R.string.downloading_percent, (downloadStatus.barValue!! * 100).toInt())
+                    } else {
+                        stringResource(R.string.downloading)
+                    },
                     iconRes = R.drawable.encore_icon_downloaded_24,
                     onClick = {}
+                )
+                downloadStatus?.phase == DownloadPhase.FAILED -> ContextMenuRowItem(
+                    title = stringResource(R.string.download_failed),
+                    iconRes = R.drawable.encore_icon_download_24,
+                    onClick = {
+                        onDismiss()
+                        onDownload()
+                    }
                 )
                 else -> ContextMenuRowItem(
                     title = stringResource(R.string.download),

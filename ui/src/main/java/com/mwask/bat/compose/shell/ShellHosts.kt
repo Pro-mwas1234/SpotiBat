@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.focus.FocusRequester
 import com.mwask.bat.backend.core.auth.EncoreAuth
+import com.mwask.bat.backend.core.offline.DownloadStatus
 import com.mwask.bat.backend.model.AlbumDetail
 import com.mwask.bat.backend.model.ArtistDetail
 import com.mwask.bat.backend.model.CollectionDetail
@@ -63,9 +64,10 @@ internal class ShellHosts(
     val handleLibraryLongPress: (LibraryItem) -> Unit,
     val downloadedTracks: List<DownloadedTrack>,
     val downloadedUris: Set<String>,
-    val downloadProgress: Map<String, Float>,
+    val downloadProgress: Map<String, DownloadStatus>,
     val handleDownloadedPlay: (DownloadedTrack) -> Unit,
     val handleDownloadedRemove: (DownloadedTrack) -> Unit,
+    val handleDownloadedDeleteAll: () -> Unit,
     val handleFolderClick: (LibraryItem) -> Unit,
     val shareEntity: (String) -> Unit,
     val progressState: PlaybackProgress?,
@@ -213,6 +215,7 @@ internal class ShellHosts(
         downloadedUris = downloadedUris,
         handleDownloadedPlay = handleDownloadedPlay,
         handleDownloadedRemove = handleDownloadedRemove,
+        handleDownloadedDeleteAll = handleDownloadedDeleteAll,
         handleFolderClick = handleFolderClick,
         shareEntity = shareEntity,
     )

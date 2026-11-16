@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.quackify.app"
+    namespace = "com.mwask.bat"
     compileSdk {
         version = release(37)
     }
@@ -22,11 +22,13 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.quackify.app"
+        applicationId = "com.mwask.bat"
         minSdk = 24
         targetSdk = 37
-        versionCode = 26111201
-        versionName = "0.9.26.11.12"
+        // SpotiBat 1.2.4 shipped with applicationId com.mwask.bat and versionCode 25,
+        // so new builds must keep climbing from there to upgrade in place.
+        versionCode = 26
+        versionName = "2.0.0"
         multiDexEnabled = true
 
         ndk {
@@ -38,7 +40,7 @@ android {
     productFlavors {
         create("standard") {
             dimension = "islandId"
-            applicationId = "com.quackify.app"
+            applicationId = "com.mwask.bat"
         }
         create("spotify") {
             dimension = "islandId"
@@ -51,22 +53,29 @@ android {
     }
 
     signingConfigs {
-        create("quackify") {
+        create("spotibat") {
             val envStoreFile = System.getenv("RELEASE_STORE_FILE")
             val propsStoreFile = keystoreProperties["signing.storeFile"] as String?
+            // Legacy SpotiBat keystore.properties: storeFile is relative to keystore/.
+            val legacyStoreFile = (keystoreProperties["storeFile"] as String?)
+                ?.let { "keystore/$it" }
             val storePath = when {
                 envStoreFile != null && rootProject.file(envStoreFile).exists() -> envStoreFile
                 propsStoreFile != null && rootProject.file(propsStoreFile).exists() -> propsStoreFile
+                legacyStoreFile != null && rootProject.file(legacyStoreFile).exists() -> legacyStoreFile
                 else -> null
             }
             if (storePath != null) {
                 storeFile = rootProject.file(storePath)
                 storePassword = System.getenv("RELEASE_STORE_PASSWORD")
                     ?: keystoreProperties["signing.storePassword"] as String?
+                    ?: keystoreProperties["storePassword"] as String?
                 keyAlias = System.getenv("RELEASE_KEY_ALIAS")
                     ?: keystoreProperties["signing.keyAlias"] as String?
+                    ?: keystoreProperties["keyAlias"] as String?
                 keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
                     ?: keystoreProperties["signing.keyPassword"] as String?
+                    ?: keystoreProperties["keyPassword"] as String?
             } else {
                 storeFile = null
                 storePassword = null
@@ -76,18 +85,18 @@ android {
         }
     }
 
-    val releaseSigning = signingConfigs.getByName("quackify")
+    val releaseSigning = signingConfigs.getByName("spotibat")
         .takeIf { it.storeFile != null }
         ?: signingConfigs.getByName("debug")
 
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
-            manifestPlaceholders["appName"] = "Quackify β"
+            manifestPlaceholders["appName"] = "SpotiBat β"
             signingConfig = releaseSigning
         }
         release {
-            manifestPlaceholders["appName"] = "Quackify"
+            manifestPlaceholders["appName"] = "SpotiBat"
             signingConfig = releaseSigning
             isMinifyEnabled = true
             isShrinkResources = true
@@ -106,6 +115,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
     buildFeatures {
         compose = true
@@ -124,7 +134,7 @@ androidComponents {
         }
         variant.outputs.forEach { output ->
             if (output is com.android.build.api.variant.impl.VariantOutputImpl) {
-                val appName = "Quackify"
+                val appName = "SpotiBat"
                 val versionName = android.defaultConfig.versionName ?: "1.0.0"
                 val flavor = variant.flavorName ?: "standard"
                 val type = variant.buildType ?: "debug"
@@ -135,6 +145,7 @@ androidComponents {
 }
 
 dependencies {
+    coreLibraryDesugaring(libs.desugaring)
     implementation(project(":ui"))
     implementation(project(":krespot-connect"))
     implementation(project(":krespot-player"))
@@ -148,6 +159,8 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.media)
+    // The download service and its queue live on media3's offline stack.
+    implementation(libs.media3.exoplayer)
     implementation(libs.androidx.palette.ktx)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.kotlinx.coroutines.android)

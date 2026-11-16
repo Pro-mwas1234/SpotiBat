@@ -36,6 +36,7 @@ import com.mwask.bat.compose.screens.PopularTrack
 import com.mwask.bat.compose.screens.ProfileContextCard
 import com.mwask.bat.compose.screens.SettingsLocks
 import com.mwask.bat.compose.screens.SettingsSwitches
+import com.mwask.bat.compose.screens.StorageOption
 import com.mwask.bat.compose.screens.getCategoryColor
 import com.mwask.bat.compose.screens.toTrackItem
 import com.mwask.bat.compose.search.SearchHistoryItem
@@ -83,6 +84,7 @@ internal class ShellRouteEnv(
     val downloadedUris: Set<String>,
     val handleDownloadedPlay: (DownloadedTrack) -> Unit,
     val handleDownloadedRemove: (DownloadedTrack) -> Unit,
+    val handleDownloadedDeleteAll: () -> Unit,
     val handleFolderClick: (LibraryItem) -> Unit,
     val shareEntity: (String) -> Unit,
 )
@@ -222,6 +224,7 @@ internal fun ShellLibraryRoute(
     env: ShellRouteEnv,
     libraryItems: List<LibraryItem>?,
     libraryLoading: Boolean,
+    downloadsSignal: Int = 0,
 ) {
     EncoreLibraryScreen(
         onItemClick = { itemTitle, itemUri ->
@@ -246,7 +249,11 @@ internal fun ShellLibraryRoute(
         sortDirection = env.currentSortDirection,
         downloadedTracks = env.downloadedTracks,
         onDownloadedPlay = env.handleDownloadedPlay,
-        onDownloadedRemove = env.handleDownloadedRemove
+        onDownloadedRemove = env.handleDownloadedRemove,
+        onDownloadedDeleteAll = env.handleDownloadedDeleteAll,
+        currentTrackUri = env.playbackState?.trackUri.orEmpty(),
+        isPlaying = env.isPlaying,
+        downloadsSignal = downloadsSignal
     )
 }
 
@@ -513,6 +520,9 @@ internal fun ShellSettingsRoute(
     updateChecked: Boolean,
     onCheckUpdates: (() -> Unit)?,
     onLogout: (() -> Unit)?,
+    storageOptions: List<StorageOption> = emptyList(),
+    selectedStorageId: String = "",
+    onSelectStorage: ((StorageOption) -> Unit)? = null,
 ) {
     ShellSettingsPane(
         onBackClick = env.handleBack,
@@ -527,7 +537,10 @@ internal fun ShellSettingsRoute(
         update = update,
         updateChecking = updateChecking,
         updateChecked = updateChecked,
-        onCheckUpdates = { onCheckUpdates?.invoke() }
+        onCheckUpdates = { onCheckUpdates?.invoke() },
+        storageOptions = storageOptions,
+        selectedStorageId = selectedStorageId,
+        onSelectStorage = onSelectStorage
     )
 }
 
