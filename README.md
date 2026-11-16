@@ -1,5 +1,4 @@
-<div align="center">
-  <img src="art/spotibatart.png" alt="SpotiBat" width="480" />
+
   <h1>SpotiBat</h1>
   <p>
     <a href="https://github.com/Pro-mwas1234/SpotiBat/stargazers">
