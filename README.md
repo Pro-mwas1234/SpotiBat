@@ -24,7 +24,7 @@
     </a>
     &nbsp;
     <a href="https://deepwiki.com/Pro-mwas1234/SpotiBat">
-      <img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki" style="height: 28px;"/>
+      <img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki" height="28" style="vertical-align: middle;"/>
     </a>
   </p>
   <p>
