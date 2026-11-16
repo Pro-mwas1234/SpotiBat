@@ -1,4 +1,4 @@
-name: Build Quackify
+name: Build SpotiBat
 
 on:
   push:
@@ -74,16 +74,22 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      # The same signing key as the old SpotiBat releases is required, otherwise
+      # Android refuses to install this build over an existing com.mwask.bat app.
+      # Both secret namings are accepted: RELEASE_KEYSTORE (this repo) and
+      # KEYSTORE_BASE64 (old SpotiBat repo).
       - name: Decode Keystore
         env:
-          RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE }}
+          NEW_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE }}
+          LEGACY_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          if [ -n "$RELEASE_KEYSTORE" ]; then
-            printf "%s" "$RELEASE_KEYSTORE" | base64 -di > release.keystore
+          KEYSTORE="${NEW_KEYSTORE:-$LEGACY_KEYSTORE}"
+          if [ -n "$KEYSTORE" ]; then
+            printf "%s" "$KEYSTORE" | base64 -di > release.keystore
             echo "RELEASE_STORE_FILE=${GITHUB_WORKSPACE}/release.keystore" >> "$GITHUB_ENV"
             echo "Keystore decoded from secrets"
           else
-            echo "Keystore secret is empty, the build falls back to debug signing"
+            echo "::warning::No keystore secret (RELEASE_KEYSTORE / KEYSTORE_BASE64); this build will be debug-signed and will NOT install over an existing SpotiBat release"
           fi
 
       - name: Grant execute permission for gradlew
@@ -132,9 +138,9 @@ jobs:
 
       - name: Build APKs with Gradle
         env:
-          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD || secrets.KEYSTORE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS || secrets.KEYSTORE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD || secrets.KEYSTORE_KEY_PASSWORD }}
         run: ./gradlew ${{ steps.gradle_tasks.outputs.tasks }} --stacktrace
 
       - name: Collect Generated APKs & Checksums
@@ -149,6 +155,16 @@ jobs:
             exit 1
           fi
 
+          # Stable-name copy of the standard build: the SpotiBat 1.x in-app
+          # updater looks for an asset called SpotiBat-latest.apk and would
+          # otherwise grab the first APK, which may be an island flavor that
+          # cannot install over com.mwask.bat.
+          STANDARD=$(find app/build/outputs/apk -type f -name '*standard*release*.apk' ! -name '*-unsigned.apk' | head -n 1)
+          if [ -n "$STANDARD" ]; then
+            cp "$STANDARD" apk_output/SpotiBat-latest.apk
+            echo "Aliased $(basename "$STANDARD") as SpotiBat-latest.apk"
+          fi
+
           # Generate SHA-256 Checksums for artifacts
           cd apk_output
           sha256sum *.apk > sha256_checksums.txt
@@ -159,7 +175,7 @@ jobs:
       - name: Upload Standard Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: Quackify-Standard-Release
+          name: SpotiBat-Standard-Release
           path: apk_output/*standard*release*.apk
           if-no-files-found: ignore
           retention-days: 14
@@ -167,7 +183,7 @@ jobs:
       - name: Upload Spotify Island Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: Quackify-Spotify-Release
+          name: SpotiBat-Spotify-Release
           path: apk_output/*spotify*release*.apk
           if-no-files-found: ignore
           retention-days: 14
@@ -175,7 +191,7 @@ jobs:
       - name: Upload Apple Island Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: Quackify-Apple-Release
+          name: SpotiBat-Apple-Release
           path: apk_output/*apple*release*.apk
           if-no-files-found: ignore
           retention-days: 14
@@ -183,7 +199,7 @@ jobs:
       - name: Upload Standard Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: Quackify-Standard-Debug
+          name: SpotiBat-Standard-Debug
           path: apk_output/*standard*debug*.apk
           if-no-files-found: ignore
           retention-days: 14
@@ -191,7 +207,7 @@ jobs:
       - name: Upload Spotify Island Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: Quackify-Spotify-Debug
+          name: SpotiBat-Spotify-Debug
           path: apk_output/*spotify*debug*.apk
           if-no-files-found: ignore
           retention-days: 14
@@ -199,7 +215,7 @@ jobs:
       - name: Upload Apple Island Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: Quackify-Apple-Debug
+          name: SpotiBat-Apple-Debug
           path: apk_output/*apple*debug*.apk
           if-no-files-found: ignore
           retention-days: 14
@@ -207,7 +223,7 @@ jobs:
       - name: Upload Checksums
         uses: actions/upload-artifact@v4
         with:
-          name: Quackify-Checksums
+          name: SpotiBat-Checksums
           path: apk_output/sha256_checksums.txt
           if-no-files-found: ignore
           retention-days: 14
@@ -222,7 +238,7 @@ jobs:
           fi
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           TAG="v${VERSION_NAME}-b${{ github.run_number }}-${SHORT_SHA}"
-          TITLE="Quackify v${VERSION_NAME} (Draft #${{ github.run_number }})"
+          TITLE="SpotiBat v${VERSION_NAME} (Draft #${{ github.run_number }})"
 
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "title=$TITLE" >> "$GITHUB_OUTPUT"
@@ -245,7 +261,7 @@ jobs:
             ---
             > [!NOTE]
             > All app variants are functionally identical in features and code. The only difference is the package name (Application ID) to allow side-by-side installations on your device:
-            > - **Standard**: `com.quackify.app`
+            > - **Standard**: `com.mwask.bat`
             > - **Spotify Island**: `com.spotify.music`
             > - **Apple Island**: `com.apple.android.music`
 
