@@ -1,3 +1,5 @@
+<div align="center">
+  <img src="website/icon.png" alt="SpotiBat" width="120" style="margin-bottom: 8px;"/>
 
   <h1>SpotiBat</h1>
   <p>
