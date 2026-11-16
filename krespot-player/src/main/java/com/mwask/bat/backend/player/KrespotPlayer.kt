@@ -25,6 +25,7 @@ import android.os.SystemClock
 import android.view.Surface
 import java.io.File
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Deferred
@@ -48,6 +49,10 @@ private const val MANIFEST_CACHE = 8
 private const val FILE_ID_CACHE = 64
 
 private const val SOURCE_CACHE = 8
+
+private const val LICENCE_SETTLE_MS = 2_000L
+
+private const val LICENCE_SKIP_WINDOW_MS = 4_000L
 
 private const val DEEP_LOOKAHEAD = 1
 
@@ -126,6 +131,15 @@ class KrespotPlayer(private val context: Context) {
 
     @Volatile
     private var refusedFrom: Long = 0L
+
+    @Volatile
+    private var lastPlayAt = 0L
+
+    @Volatile
+    private var licenceSettling = false
+
+    @Volatile
+    private var engineIdle = true
 
     private val focus = AudioFocus(context)
 
@@ -495,12 +509,12 @@ class KrespotPlayer(private val context: Context) {
 
     val quality: String get() = _state.value.quality
 
-    val hasSource: Boolean get() = videoActive || engine != null || mp3 != null || job?.isActive == true
+    val hasSource: Boolean get() = videoActive || (engine?.hasMedia == true && !engineIdle) || mp3 != null || job?.isActive == true
 
     val hasQueuedNext: Boolean get() = !videoActive && mp3 == null && (engine?.hasQueuedNext ?: false)
 
     val currentUri: String
-        get() = engine?.currentUri ?: _state.value.trackUri
+        get() = engine?.takeIf { it.hasMedia }?.currentUri ?: _state.value.trackUri
 
     fun play(
         track: CommandTrack,
@@ -513,6 +527,9 @@ class KrespotPlayer(private val context: Context) {
         }
         val file = track.best() ?: track.files.firstOrNull()
         this.spclient = spclient
+        val sinceLast = System.currentTimeMillis() - lastPlayAt
+        licenceSettling = lastPlayAt > 0L && sinceLast < LICENCE_SKIP_WINDOW_MS
+        lastPlayAt = System.currentTimeMillis()
         stop()
         if (!focus.acquire()) {
             log.w("play refused, another app holds the audio focus")
@@ -573,8 +590,16 @@ class KrespotPlayer(private val context: Context) {
                     log.i("play was skipped while its source resolved")
                     return@launch
                 }
+                if (licenceSettling) {
+                    log.i("licence deferred, the user is still skipping")
+                    delay(LICENCE_SETTLE_MS)
+                    if (id != generation) {
+                        log.i("licence skipped, playback moved on before settling")
+                        return@launch
+                    }
+                }
                 val totalMs = source.seektable.totalDuration * 1000L / source.seektable.timescale
-                player = AudioEngine(context, { spclient }, scope) { event ->
+                val sink: (PlayerEvent) -> Unit = { event ->
                     if (id == generation) {
                         val refusedSource = (event as? PlayerEvent.Failed)?.message
                             ?.takeIf { it.contains("DRM_LICENSE_ACQUISITION_FAILED") }
@@ -592,6 +617,7 @@ class KrespotPlayer(private val context: Context) {
                         }
                     }
                 }
+                player = engine?.also { it.onEvent = sink } ?: AudioEngine(context, { spclient }, scope, sink).also { engine = it }
                 val startAt = if (pendingSeekMs >= 0L) pendingSeekMs.also { pendingSeekMs = -1L } else fromMs
                 val ready = player.prepare(source, track.uri, startAt, autoplay = !pendingPause, file?.gainDb ?: 0.0)
                 if (!ready || id != generation) {
@@ -599,6 +625,7 @@ class KrespotPlayer(private val context: Context) {
                     return@launch
                 }
                 engine = player
+                engineIdle = false
                 _state.value = PlayerState(
                     playing = !pendingPause,
                     paused = pendingPause,
@@ -624,7 +651,7 @@ class KrespotPlayer(private val context: Context) {
                 log.e("play failed ${failure.javaClass.simpleName}: ${failure.message}")
                 if (player != null && engine === player) {
                     player.stop()
-                    engine = null
+                    engineIdle = true
                 }
                 val refusedSource = sourceFor(track.uri)
                 if (refusedSource != null &&
@@ -767,7 +794,7 @@ class KrespotPlayer(private val context: Context) {
         deepJob?.cancel()
         deepTarget = ""
         engine?.stop()
-        engine = null
+        engineIdle = true
         mp3?.stop()
         mp3 = null
         job?.cancel()
@@ -778,6 +805,8 @@ class KrespotPlayer(private val context: Context) {
 
     fun release() {
         stop()
+        engine?.release()
+        engine = null
         LicenseEndpoint.reset()
     }
 
@@ -875,7 +904,7 @@ class KrespotPlayer(private val context: Context) {
     private fun stopAudio() {
         generation++
         engine?.stop()
-        engine = null
+        engineIdle = true
         mp3?.stop()
         mp3 = null
         job?.cancel()

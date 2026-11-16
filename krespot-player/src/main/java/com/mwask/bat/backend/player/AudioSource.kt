@@ -74,13 +74,19 @@ internal object PlayerHeaders {
     )
 
     suspend fun license(context: Context, force: Boolean = false): Map<String, String> = mapOf(
+        "Accept" to "*/*",
+        "Accept-Language" to "en-US,en;q=0.9,id;q=0.8",
         "Authorization" to "Bearer ${EncoreAuth.token(context)}",
         "client-token" to ClientToken.get(context, force),
+        "Cache-Control" to "no-cache",
+        "Pragma" to "no-cache",
+        "Priority" to "u=1, i",
         "Origin" to WEB_ORIGIN,
         "Referer" to "$WEB_ORIGIN/",
-        "User-Agent" to Net.DESKTOP_UA,
-        "Accept" to "*/*",
-        "Accept-Language" to WEB_LANGUAGES,
+        "Sec-Fetch-Dest" to "empty",
+        "Sec-Fetch-Mode" to "cors",
+        "Sec-Fetch-Site" to "same-site",
+        "User-Agent" to Net.DESKTOP_UA
     )
 }
 

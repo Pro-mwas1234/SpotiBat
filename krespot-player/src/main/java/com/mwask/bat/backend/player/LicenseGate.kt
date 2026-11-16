@@ -30,11 +30,13 @@ import com.mwask.bat.backend.core.log.Logs
 
 private val log = Logs.of(Logs.Module.DRM)
 
-private const val GATE_BASE_MS = 600_000L
+private const val GATE_BASE_MS = 2_000L
 
-private const val GATE_MAX_MS = 1_200_000L
+private const val GATE_MAX_MS = 60_000L
 
-private const val GATE_STEPS = 1
+private const val GATE_STEPS = 5
+
+private const val GATE_MAX_STRIKES = 4
 
 internal object LicenseGate {
 
@@ -51,10 +53,19 @@ internal object LicenseGate {
     @Volatile
     var onOpen: (() -> Unit)? = null
 
+    @Volatile
+    var rateLimited = false
+
+    @Volatile
+    var lastStatus = 0
+
     fun remainingMs(): Long = (until - System.currentTimeMillis()).coerceAtLeast(0L)
 
-    fun hold(millis: Long) {
+    fun hold(status: Int = 429, millis: Long = 0L) {
         strikes++
+        lastStatus = status
+        rateLimited = status == 429
+        log.w("licence refused $status, strike $strikes")
         val escalated = (GATE_BASE_MS shl (strikes - 1).coerceAtMost(GATE_STEPS))
             .coerceAtMost(GATE_MAX_MS)
         val wait = if (millis > 0L) maxOf(millis, escalated).coerceAtMost(GATE_MAX_MS) else escalated
@@ -62,6 +73,10 @@ internal object LicenseGate {
         if (target > until) until = target
         log.w("licence gate closed for ${wait / 1000}s (strike $strikes)")
         timer?.cancel()
+        if (strikes >= GATE_MAX_STRIKES) {
+            log.w("licence keeps being refused, the user has to ask again")
+            return
+        }
         timer = scope.launch {
             delay(wait + 250L)
             if (remainingMs() > 0L) return@launch
@@ -70,9 +85,16 @@ internal object LicenseGate {
         }
     }
 
+    fun resetStrikes() {
+        if (strikes == 0) return
+        strikes = 0
+        rateLimited = false
+    }
+
     fun clear() {
         timer?.cancel()
         timer = null
+        rateLimited = false
         if (until == 0L && strikes == 0) return
         until = 0L
         strikes = 0
