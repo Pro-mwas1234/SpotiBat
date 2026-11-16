@@ -1,23 +1,3 @@
-/*
- *  _   __                          _   
- * | | / /                         | |  
- * | |/ / _ __ ___  ___ _ __   ___ | |_ 
- * |    \| '__/ _ \/ __| '_ \ / _ \| __|
- * | |\  \ | |  __/\__ \ |_) | (_) | |_ 
- * \_| \_/_|  \___||___/ .__/ \___/ \__|
- *                     | |              
- *                     |_|              
- *
- * Copyright (c) 2026 23fpsz (SpotiBat). All Rights Reserved.
- * Original repository: https://github.com/Pro-mwas1234/SpotiBat
- *
- * PROPRIETARY / SOURCE-AVAILABLE MODULE:
- * You may view and audit this source code for personal or educational inspection.
- * Copying, modifying, distributing, or integrating this module (in whole or in part)
- * into any other software or project is strictly prohibited without prior written
- * permission from the author (23fpsz).
- */
-
 package com.mwask.bat.backend.player
 
 import android.content.Context
@@ -25,8 +5,8 @@ import android.os.SystemClock
 import android.view.Surface
 import java.io.File
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
@@ -44,15 +24,15 @@ import com.mwask.bat.backend.core.log.Logs
 
 private val log = Logs.of(Logs.Module.PLAYER)
 
+private const val LICENCE_SETTLE_MS = 2_000L
+
+private const val LICENCE_SKIP_WINDOW_MS = 4_000L
+
 private const val MANIFEST_CACHE = 8
 
 private const val FILE_ID_CACHE = 64
 
-private const val SOURCE_CACHE = 8
-
-private const val LICENCE_SETTLE_MS = 2_000L
-
-private const val LICENCE_SKIP_WINDOW_MS = 4_000L
+private const val SOURCE_CACHE = 16
 
 private const val DEEP_LOOKAHEAD = 1
 
@@ -114,6 +94,21 @@ class KrespotPlayer(private val context: Context) {
     private var generation = 0
 
     @Volatile
+    private var lastPlayAt = 0L
+
+    @Volatile
+    private var licenceSettling = false
+
+    @Volatile
+    private var engineIdle = true
+
+    @Volatile
+    private var licencePending: CommandTrack? = null
+
+    @Volatile
+    private var licenceFrom = 0L
+
+    @Volatile
     private var pausedByFocus = false
 
     @Volatile
@@ -131,15 +126,6 @@ class KrespotPlayer(private val context: Context) {
 
     @Volatile
     private var refusedFrom: Long = 0L
-
-    @Volatile
-    private var lastPlayAt = 0L
-
-    @Volatile
-    private var licenceSettling = false
-
-    @Volatile
-    private var engineIdle = true
 
     private val focus = AudioFocus(context)
 
@@ -164,18 +150,24 @@ class KrespotPlayer(private val context: Context) {
 
     var onFocusDuck: ((Boolean) -> Unit)? = null
 
+    @Volatile
+    private var licenceRetrying = false
+
     init {
-        OfflineAudio.load(context)
         LicenseGate.onOpen = {
-            val track = refused
+            val track = licencePending ?: refused
             if (track != null) {
                 refused = null
+                licencePending = null
+                licenceRetrying = true
                 log.i("licence is back, retrying '${track.name.ifBlank { track.uri }}' " +
                         "from ${refusedFrom}ms"
                 )
-                play(track, spclient, refusedFrom)
+                play(track, spclient, if (licenceFrom > 0L) licenceFrom else refusedFrom)
+                licenceRetrying = false
             }
         }
+        OfflineAudio.load(context)
     }
 
     private val manifests = java.util.concurrent.ConcurrentHashMap<String, Deferred<List<AudioFile>>>()
@@ -185,6 +177,8 @@ class KrespotPlayer(private val context: Context) {
     private val fileIdOrder = java.util.ArrayDeque<String>()
 
     private val sources = java.util.LinkedHashMap<String, AudioSource>()
+
+    private val resolving = java.util.concurrent.ConcurrentHashMap<String, Deferred<AudioSource?>>()
 
     @Volatile
     private var deepJob: Job? = null
@@ -198,7 +192,8 @@ class KrespotPlayer(private val context: Context) {
 
     private var resumeWrittenMs = -1L
 
-    fun rememberFile(trackUri: String, fileId: String) {        if (trackUri.isBlank() || fileId.length < 32) return
+    fun rememberFile(trackUri: String, fileId: String) {
+        if (trackUri.isBlank() || fileId.length < 32) return
         synchronized(fileIdOrder) {
             if (fileIds.put(trackUri, fileId) == null) fileIdOrder.addLast(trackUri)
             while (fileIdOrder.size > FILE_ID_CACHE) {
@@ -207,9 +202,17 @@ class KrespotPlayer(private val context: Context) {
         }
     }
 
+    /** Counts a played or warmed track against the offline song cache limit. */
+    fun cacheTouched(trackUri: String) {
+        SongCache.touch(trackUri, context)
+    }
+
     @Volatile
     var queuedNextUri: String = ""
         private set
+
+    @Volatile
+    private var queuedNextTrack: CommandTrack? = null
 
     @Volatile
     private var queuedGainDb = 0.0
@@ -225,7 +228,7 @@ class KrespotPlayer(private val context: Context) {
     fun queueNext(track: CommandTrack, spclient: String) {
         if (track.isDirect) return
         this.spclient = spclient
-        val live = engine ?: return
+        val live = engine?.takeIf { it.hasMedia } ?: return
         val askedFor = _state.value.trackUri
         if (askedFor.isBlank() || live.currentUri != askedFor) return
         if (queuedNextUri == track.uri) return
@@ -233,28 +236,22 @@ class KrespotPlayer(private val context: Context) {
         val cached = sourceFor(track.uri)
         if (cached != null) {
             live.queueNext(track.uri, cached)
+            SongCache.touch(track.uri, context)
             queuedNextUri = track.uri
+            queuedNextTrack = track
             queuedGainDb = file?.gainDb ?: 0.0
             log.i("queued next '${track.name}' from the warm source")
             return
         }
         scope.launch {
-            val source = SourceResolver.resolve(
-                context,
-                spclient,
-                track.uri,
-                "",
-                0,
-                prefetched = manifestFor(track.uri),
-            ) ?: return@launch
-            rememberSource(track.uri, source)
-            rememberFile(track.uri, source.fileId)
+            val source = warmSource(track.uri, spclient) ?: return@launch
             val still = engine
             if (still !== live || still.currentUri != askedFor || _state.value.trackUri != askedFor) {
                 return@launch
             }
             still.queueNext(track.uri, source)
             queuedNextUri = track.uri
+            queuedNextTrack = track
             queuedGainDb = file?.gainDb ?: 0.0
             log.i("queued next '${track.name}' after resolving")
         }
@@ -262,35 +259,10 @@ class KrespotPlayer(private val context: Context) {
 
     fun clearQueuedNext() {
         queuedNextUri = ""
+        queuedNextTrack = null
     }
 
     fun hasSourceFor(trackUri: String): Boolean = sourceFor(trackUri) != null
-
-    /**
-     * Hands the track to [OfflineAudio]. Nothing is resolved here: the downloader mints a fresh
-     * stream url when it starts, the way Yuma does, so a song queued minutes ago still lands.
-     */
-    fun download(track: CommandTrack, spclient: String) {
-        if (track.isDirect || track.isAd || track.uri.isBlank()) return
-        this.spclient = spclient
-        OfflineAudio.enqueue(
-            context,
-            OfflineRequest(
-                uri = track.uri,
-                spclient = spclient,
-                title = track.name,
-                artists = track.artists,
-                album = track.album,
-                imageUrl = track.imageUrl,
-                durationMs = track.durationMs,
-            ),
-        )
-    }
-
-    fun removeDownload(trackUri: String) {
-        OfflineAudio.remove(context, trackUri)
-    }
-
     fun prefetch(trackUri: String, spclient: String) {
         if (trackUri.isBlank() || spclient.isBlank()) return
         if (manifests.containsKey(trackUri)) return
@@ -301,6 +273,14 @@ class KrespotPlayer(private val context: Context) {
             }
         }
         manifests[trackUri] = scope.async { SourceResolver.manifest(context, spclient, trackUri) }
+    }
+
+    /** Fire-and-forget full source warm for a visible row: manifest, seektable and CDN url. */
+    fun warmTrack(trackUri: String, spclient: String) {
+        if (trackUri.isBlank() || spclient.isBlank()) return
+        if (!trackUri.startsWith("spotify:track:")) return
+        if (sourceFor(trackUri) != null) return
+        warmDeferred(trackUri, spclient)
     }
 
     fun prefetchAhead(
@@ -381,20 +361,8 @@ class KrespotPlayer(private val context: Context) {
             .take(DEEP_LOOKAHEAD)
             .forEach { track ->
                 if (sourceFor(track.uri) != null) return@forEach
-                val known = fileIds[track.uri]
-                val files = manifestFor(track.uri)
-                val file = files.firstOrNull()
-                if (known == null && file == null) return@forEach
-                if (file != null) rememberFile(track.uri, file.fileId)
-                val source = SourceResolver.resolve(
-                    context,
-                    spclient,
-                    track.uri,
-                    fileId = known ?: file?.fileId.orEmpty(),
-                    format = file?.format ?: 0,
-                    prefetched = files,
-                ) ?: return@forEach
-                rememberSource(track.uri, source)
+                val source = warmSource(track.uri, spclient) ?: return@forEach
+                SongCache.touch(track.uri, context)
                 synchronized(deepWarmed) { deepWarmed.add(track.uri) }
                 log.i("deep warm '${track.title}' file=${source.fileId.take(8)}")
             }
@@ -413,6 +381,42 @@ class KrespotPlayer(private val context: Context) {
     }
 
     private fun sourceFor(trackUri: String): AudioSource? = synchronized(sources) { sources[trackUri] }
+
+    private suspend fun warmSource(
+        trackUri: String,
+        spclient: String,
+        hintFile: String = "",
+        hintFormat: Int = 0,
+    ): AudioSource? =
+        runCatching { warmDeferred(trackUri, spclient, hintFile, hintFormat).await() }.getOrNull()
+
+    private fun warmDeferred(
+        trackUri: String,
+        spclient: String,
+        hintFile: String = "",
+        hintFormat: Int = 0,
+    ): Deferred<AudioSource?> {
+        resolving[trackUri]?.let { return it }
+        val deferred = scope.async {
+            runCatching {
+                val known = hintFile.ifBlank { fileIds[trackUri].orEmpty() }
+                val fromKnown = known.takeIf { it.isNotBlank() }
+                    ?.let { SourceResolver.resolve(context, spclient, trackUri, it, hintFormat) }
+                fromKnown
+                    ?: SourceResolver.resolve(context, spclient, trackUri, "", 0, manifestFor(trackUri))
+            }.getOrNull()?.also { source ->
+                rememberSource(trackUri, source)
+                rememberFile(trackUri, source.fileId)
+            }
+        }
+        deferred.invokeOnCompletion { resolving.remove(trackUri, deferred) }
+        val racing = resolving.putIfAbsent(trackUri, deferred)
+        if (racing != null) {
+            deferred.cancel()
+            return racing
+        }
+        return deferred
+    }
 
     private suspend fun manifestFor(trackUri: String): List<AudioFile> {
         val pending = manifests[trackUri] ?: return emptyList()
@@ -464,14 +468,11 @@ class KrespotPlayer(private val context: Context) {
                 return@launch
             }
             if (sourceFor(uri) != null) return@launch
-            val source = runCatching {
-                SourceResolver.resolve(context, spclient, uri, fileId = file, format = format)
-            }.getOrNull()
+            val source = warmSource(uri, spclient, hintFile = file, hintFormat = format)
             if (source == null) {
                 log.i("resume: '${uri.takeLast(12)}' did not resolve, autoplay takes the cold path")
                 return@launch
             }
-            rememberSource(uri, source)
             log.i("resume: '${uri.takeLast(12)}' file=${source.fileId.take(8)} source warmed at ${at}ms")
         }
     }
@@ -494,7 +495,7 @@ class KrespotPlayer(private val context: Context) {
     }
 
     val positionMs: Long
-        get() = if (videoActive) video.positionMs else engine?.currentPositionMs
+        get() = if (videoActive) video.positionMs else engine?.takeIf { it.hasMedia }?.currentPositionMs
             ?: mp3?.currentPositionMs ?: _state.value.positionMs
 
     val durationMs: Long get() = _state.value.durationMs
@@ -509,9 +510,10 @@ class KrespotPlayer(private val context: Context) {
 
     val quality: String get() = _state.value.quality
 
-    val hasSource: Boolean get() = videoActive || (engine?.hasMedia == true && !engineIdle) || mp3 != null || job?.isActive == true
+    val hasSource: Boolean
+        get() = videoActive || (engine?.hasMedia == true && !engineIdle) || mp3 != null || job?.isActive == true
 
-    val hasQueuedNext: Boolean get() = !videoActive && mp3 == null && (engine?.hasQueuedNext ?: false)
+    val hasQueuedNext: Boolean get() = !videoActive && mp3 == null && (engine?.takeIf { it.hasMedia }?.hasQueuedNext ?: false)
 
     val currentUri: String
         get() = engine?.takeIf { it.hasMedia }?.currentUri ?: _state.value.trackUri
@@ -521,15 +523,16 @@ class KrespotPlayer(private val context: Context) {
         spclient: String,
         fromMs: Long = 0L,
     ) {
+        if (!licenceRetrying) LicenseGate.resetStrikes()
+        val sinceLast = System.currentTimeMillis() - lastPlayAt
+        licenceSettling = lastPlayAt > 0L && sinceLast < LICENCE_SKIP_WINDOW_MS
+        lastPlayAt = System.currentTimeMillis()
         if (track.isDirect) {
             playDirect(track)
             return
         }
         val file = track.best() ?: track.files.firstOrNull()
         this.spclient = spclient
-        val sinceLast = System.currentTimeMillis() - lastPlayAt
-        licenceSettling = lastPlayAt > 0L && sinceLast < LICENCE_SKIP_WINDOW_MS
-        lastPlayAt = System.currentTimeMillis()
         stop()
         if (!focus.acquire()) {
             log.w("play refused, another app holds the audio focus")
@@ -539,6 +542,7 @@ class KrespotPlayer(private val context: Context) {
         val id = ++generation
         pendingPause = false
         queuedNextUri = ""
+        queuedNextTrack = null
         _state.value = PlayerState(
             playing = true,
             buffering = true,
@@ -571,25 +575,15 @@ class KrespotPlayer(private val context: Context) {
                         ),
                     )
                 } else {
-                    sourceFor(track.uri)
-                        ?: SourceResolver.resolve(
-                            context,
-                            spclient,
-                            track.uri,
-                            "",
-                            0,
-                            prefetched = manifestFor(track.uri),
-                        )?.also { rememberSource(track.uri, it) }
+                    sourceFor(track.uri) ?: warmSource(track.uri, spclient)
                 }
                 if (source == null) {
+                    if (id == generation) settleStopped()
                     _events.emit(PlayerEvent.Failed("no source"))
                     return@launch
                 }
                 if (offlineFile == null) rememberFile(track.uri, source.fileId)
-                if (id != generation) {
-                    log.i("play was skipped while its source resolved")
-                    return@launch
-                }
+                SongCache.touch(track.uri, context)
                 if (licenceSettling) {
                     log.i("licence deferred, the user is still skipping")
                     delay(LICENCE_SETTLE_MS)
@@ -598,18 +592,44 @@ class KrespotPlayer(private val context: Context) {
                         return@launch
                     }
                 }
+                if (id != generation) {
+                    log.i("play was skipped while its source resolved")
+                    return@launch
+                }
                 val totalMs = source.seektable.totalDuration * 1000L / source.seektable.timescale
                 val sink: (PlayerEvent) -> Unit = { event ->
                     if (id == generation) {
-                        val refusedSource = (event as? PlayerEvent.Failed)?.message
+                        val failed = (event as? PlayerEvent.Failed)?.message
                             ?.takeIf { it.contains("DRM_LICENSE_ACQUISITION_FAILED") }
-                            ?.let { sourceFor(track.uri) }
-                        if (refusedSource != null) {
-                            SourceResolver.blockFormat(refusedSource.format)
-                            forgetSource(track.uri)
-                            log.w("the licence refused format ${refusedSource.format}, trying the next one")
-                            scope.launch {
-                                if (id == generation) play(track, spclient)
+                        if (failed != null) {
+                            // A queued track may already have taken the slot by
+                            // the time the licence for the previous one comes
+                            // back refused; retrying the stale track would loop
+                            // the same two rows, so whatever is waiting is the
+                            // one to keep.
+                            val movedTo = _state.value.trackUri == queuedNextUri
+                            val waiting = if (movedTo) queuedNextTrack ?: track else track
+                            val refusedSource = sourceFor(waiting.uri)
+                            if (refusedSource != null && !LicenseGate.rateLimited) {
+                                SourceResolver.blockFormat(refusedSource.format)
+                                forgetSource(waiting.uri)
+                                log.w("the licence refused format ${refusedSource.format}, trying the next one")
+                                scope.launch {
+                                    if (id == generation) play(waiting, spclient)
+                                }
+                            } else if (refusedSource != null) {
+                                log.w("the licence is rate limited, keeping format ${refusedSource.format}")
+                                licencePending = waiting
+                                licenceFrom = if (movedTo) 0L else fromMs
+                            } else if (LicenseGate.remainingMs() > 0L) {
+                                refused = waiting
+                                refusedFrom = if (movedTo) 0L else player?.currentPositionMs ?: 0L
+                                log.w("the licence is closed for ${LicenseGate.remainingMs() / 1000}s, " +
+                                        "keeping '${waiting.name.ifBlank { waiting.uri }}' for a retry"
+                                )
+                            } else {
+                                mirror(event, player?.durationMs ?: totalMs)
+                                if (event !is PlayerEvent.Progress) _events.tryEmit(event)
                             }
                         } else {
                             mirror(event, player?.durationMs ?: totalMs)
@@ -617,11 +637,18 @@ class KrespotPlayer(private val context: Context) {
                         }
                     }
                 }
-                player = engine?.also { it.onEvent = sink } ?: AudioEngine(context, { spclient }, scope, sink).also { engine = it }
+                player = engine?.also { it.onEvent = sink }
+                    ?: AudioEngine(context, { spclient }, scope, sink).also { engine = it }
                 val startAt = if (pendingSeekMs >= 0L) pendingSeekMs.also { pendingSeekMs = -1L } else fromMs
                 val ready = player.prepare(source, track.uri, startAt, autoplay = !pendingPause, file?.gainDb ?: 0.0)
                 if (!ready || id != generation) {
                     player.stop()
+                    if (id == generation) {
+                        settleStopped()
+                        _events.emit(PlayerEvent.Failed("prepare"))
+                    } else {
+                        log.i("play was superseded before the engine came up")
+                    }
                     return@launch
                 }
                 engine = player
@@ -649,13 +676,12 @@ class KrespotPlayer(private val context: Context) {
                 throw cancellation
             } catch (failure: Throwable) {
                 log.e("play failed ${failure.javaClass.simpleName}: ${failure.message}")
-                if (player != null && engine === player) {
-                    player.stop()
-                    engineIdle = true
-                }
+                player?.stop()
+                if (player != null && engine === player) engineIdle = true
                 val refusedSource = sourceFor(track.uri)
                 if (refusedSource != null &&
-                    failure.message.orEmpty().contains("DRM_LICENSE_ACQUISITION_FAILED")
+                    failure.message.orEmpty().contains("DRM_LICENSE_ACQUISITION_FAILED") &&
+                    !LicenseGate.rateLimited
                 ) {
                     SourceResolver.blockFormat(refusedSource.format)
                     forgetSource(track.uri)
@@ -666,13 +692,41 @@ class KrespotPlayer(private val context: Context) {
                 if (LicenseGate.remainingMs() > 0L) {
                     refused = track
                     refusedFrom = fromMs
+                    licencePending = track
+                    licenceFrom = fromMs
                     log.w("the licence is closed for ${LicenseGate.remainingMs() / 1000}s, " +
                             "keeping '${track.name.ifBlank { track.uri }}' for a retry"
                     )
+                    return@launch
                 }
                 _events.emit(PlayerEvent.Failed(failure.message.orEmpty()))
             }
         }
+    }
+
+    /**
+     * Hands the track to [OfflineAudio]. Nothing is resolved here: the downloader mints a fresh
+     * stream url when it starts, the way Yuma does, so a song queued minutes ago still lands.
+     */
+    fun download(track: CommandTrack, spclient: String) {
+        if (track.isDirect || track.isAd || track.uri.isBlank()) return
+        this.spclient = spclient
+        OfflineAudio.enqueue(
+            context,
+            OfflineRequest(
+                uri = track.uri,
+                spclient = spclient,
+                title = track.name,
+                artists = track.artists,
+                album = track.album,
+                imageUrl = track.imageUrl,
+                durationMs = track.durationMs,
+            ),
+        )
+    }
+
+    fun removeDownload(trackUri: String) {
+        OfflineAudio.remove(context, trackUri)
     }
 
     private fun playDirect(track: CommandTrack) {
@@ -768,7 +822,7 @@ class KrespotPlayer(private val context: Context) {
             _state.update { it.copy(positionMs = ms) }
             return
         }
-        val engine = engine
+        val engine = engine?.takeIf { it.hasMedia }
         if (engine == null) {
             if (job?.isActive == true) {
                 pendingSeekMs = ms
@@ -784,11 +838,17 @@ class KrespotPlayer(private val context: Context) {
         _state.update { it.copy(positionMs = engine.currentPositionMs) }
     }
 
+    /** Nothing is running: the state must not keep claiming it plays. */
+    private fun settleStopped() {
+        _state.update { it.copy(playing = false, paused = false, buffering = false) }
+    }
+
     fun stop() {
         generation++
         pendingPause = false
         pendingSeekMs = -1L
         queuedNextUri = ""
+        queuedNextTrack = null
         refused = null
         stopVideo()
         deepJob?.cancel()
@@ -904,7 +964,6 @@ class KrespotPlayer(private val context: Context) {
     private fun stopAudio() {
         generation++
         engine?.stop()
-        engineIdle = true
         mp3?.stop()
         mp3 = null
         job?.cancel()
@@ -913,6 +972,8 @@ class KrespotPlayer(private val context: Context) {
 
     fun reset() {
         stop()
+        engine?.release()
+        engine = null
         _state.value = PlayerState()
         LicenseEndpoint.reset()
         log.i("reset, engine and state cleared")
