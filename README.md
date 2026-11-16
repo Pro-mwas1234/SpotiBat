@@ -3,7 +3,11 @@
 
   <h1>SpotiBat</h1>
   <p>
-    <a href="https://github.com/Pro-mwas1234/SpotiBat/stargazers">
+a>
+
+  </p>
+  <p>
+    <a href="https://deepwikia href="https://github.com/Pro-mwas1234/SpotiBat/stargazers">
       <img src="https://img.shields.io/github/stars/Pro-mwas1234/SpotiBat?style=for-the-badge&logo=starship&labelColor=0d0d0d&color=1DB954" alt="stars"/>
     </a>
     &nbsp;
@@ -22,7 +26,9 @@
     <a href="https://github.com/Pro-mwas1234/SpotiBat/commits/main">
       <img src="https://img.shields.io/github/last-commit/Pro-mwas1234/SpotiBat?style=for-the-badge&logo=git&labelColor=0d0d0d&color=1DB954" alt="last commit"/>
     </a>
-    &nbsp;
+
+  </p>
+  <p>
     <a href="https://deepwiki.com/Pro-mwas1234/SpotiBat">
       <img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki" height="28" style="vertical-align: middle;"/>
     </a>
