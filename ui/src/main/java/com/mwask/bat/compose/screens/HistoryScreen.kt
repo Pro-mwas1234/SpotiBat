@@ -6,9 +6,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,7 +20,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -30,11 +31,11 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mwask.bat.compose.R
@@ -60,12 +61,17 @@ data class HistoryStats(
     val listenStreakDays: Int = 0,
     val loginStreakDays: Int = 0,
     val topArtistName: String = "",
+    val topArtistUri: String = "",
     val topArtistPlays: Int = 0,
+    val topArtistImageUrl: String? = null,
     val topPlaylistName: String = "",
+    val topPlaylistUri: String = "",
     val topPlaylistPlays: Int = 0,
+    val topPlaylistImageUrl: String? = null,
     val topReplayTitle: String = "",
     val topReplayArtist: String = "",
     val topReplayPlays: Int = 0,
+    val topReplayImageUrl: String? = null,
 ) {
     val hasAny: Boolean
         get() = totalPlayedMs > 0L || listenStreakDays > 0 || loginStreakDays > 0 ||
@@ -94,11 +100,15 @@ fun HistoryScreen(
         earlierTracks.isNotEmpty()
 
     val expandedGroups = remember { mutableStateMapOf<String, Boolean>() }
+    val sectionExpanded = remember { mutableStateMapOf<String, Boolean>() }
+    val todayEntries = remember(todayTracks) { groupByArtist(todayTracks) }
+    val yesterdayEntries = remember(yesterdayTracks) { groupByArtist(yesterdayTracks) }
+    val earlierEntries = remember(earlierTracks) { groupByArtist(earlierTracks) }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(EncoreColors.Background)
+            .background(EncoreTheme.colors.background)
             .statusBarsPadding()
     ) {
         Row(
@@ -160,33 +170,48 @@ fun HistoryScreen(
                 }
                 historySection(
                     label = todayLabel,
-                    tracks = todayTracks,
+                    entries = todayEntries,
                     currentTrackTitle = currentTrackTitle,
                     isPlaying = isPlaying,
                     onTrackSelect = onTrackSelect,
                     onTrackOptionsClick = onTrackOptionsClick,
                     onTrackAddToQueue = onTrackAddToQueue,
-                    expandedGroups = expandedGroups
+                    expandedGroups = expandedGroups,
+                    isExpanded = sectionExpanded[todayLabel] != false,
+                    onToggle = {
+                        val wasExpanded = sectionExpanded[todayLabel] != false
+                        sectionExpanded[todayLabel] = !wasExpanded
+                    }
                 )
                 historySection(
                     label = yesterdayLabel,
-                    tracks = yesterdayTracks,
+                    entries = yesterdayEntries,
                     currentTrackTitle = currentTrackTitle,
                     isPlaying = isPlaying,
                     onTrackSelect = onTrackSelect,
                     onTrackOptionsClick = onTrackOptionsClick,
                     onTrackAddToQueue = onTrackAddToQueue,
-                    expandedGroups = expandedGroups
+                    expandedGroups = expandedGroups,
+                    isExpanded = sectionExpanded[yesterdayLabel] != false,
+                    onToggle = {
+                        val wasExpanded = sectionExpanded[yesterdayLabel] != false
+                        sectionExpanded[yesterdayLabel] = !wasExpanded
+                    }
                 )
                 historySection(
                     label = earlierLabel,
-                    tracks = earlierTracks,
+                    entries = earlierEntries,
                     currentTrackTitle = currentTrackTitle,
                     isPlaying = isPlaying,
                     onTrackSelect = onTrackSelect,
                     onTrackOptionsClick = onTrackOptionsClick,
                     onTrackAddToQueue = onTrackAddToQueue,
-                    expandedGroups = expandedGroups
+                    expandedGroups = expandedGroups,
+                    isExpanded = sectionExpanded[earlierLabel] != false,
+                    onToggle = {
+                        val wasExpanded = sectionExpanded[earlierLabel] != false
+                        sectionExpanded[earlierLabel] = !wasExpanded
+                    }
                 )
 
                 item {
@@ -202,7 +227,7 @@ fun HistoryScreen(
  * same artist collapsed behind an expandable header naming the artist.
  */
 private sealed interface HistoryEntry {
-    data class Single(val track: TrackItem) : HistoryEntry
+    data class Single(val track: TrackItem, val id: String) : HistoryEntry
 
     data class Group(
         val artist: String,
@@ -225,15 +250,16 @@ private fun groupByArtist(tracks: List<TrackItem>): List<HistoryEntry> {
         var j = i + 1
         while (j < tracks.size && artistKey(tracks[j]) == key) j++
         val run = tracks.subList(i, j)
+        val id = "$i-${head.artistUri.ifBlank { head.artist }}"
         out += if (run.size >= 2) {
             HistoryEntry.Group(
                 artist = head.artist,
                 imageUrl = head.imageUrl,
                 tracks = run.toList(),
-                id = "$i-${head.artistUri.ifBlank { head.artist }}",
+                id = id,
             )
         } else {
-            HistoryEntry.Single(head)
+            HistoryEntry.Single(head, id)
         }
         i = j
     }
@@ -242,60 +268,81 @@ private fun groupByArtist(tracks: List<TrackItem>): List<HistoryEntry> {
 
 private fun LazyListScope.historySection(
     label: String,
-    tracks: List<TrackItem>,
+    entries: List<HistoryEntry>,
     currentTrackTitle: String,
     isPlaying: Boolean,
     onTrackSelect: (TrackItem) -> Unit,
     onTrackOptionsClick: (TrackItem) -> Unit,
     onTrackAddToQueue: (TrackItem) -> Unit,
-    expandedGroups: SnapshotStateMap<String, Boolean>
+    expandedGroups: SnapshotStateMap<String, Boolean>,
+    isExpanded: Boolean,
+    onToggle: () -> Unit
 ) {
-    if (tracks.isEmpty()) return
-    item(key = "header-$label") {
-        Text(
-            text = label,
-            style = EncoreTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            ),
-            modifier = Modifier.padding(top = 12.dp, bottom = 8.dp)
-        )
-    }
-    val entries = groupByArtist(tracks)
-    itemsIndexed(entries, key = { index, entry ->
-        when (entry) {
-            is HistoryEntry.Single -> "$label-$index-${entry.track.uri}"
-            is HistoryEntry.Group -> "group-$label-${entry.id}"
-        }
-    }) { _, entry ->
-        when (entry) {
-            is HistoryEntry.Single -> EncoreTrackRow(
-                trackNumber = null,
-                title = entry.track.title,
-                artist = entry.track.artist,
-                isExplicit = entry.track.isExplicit,
-                imageUrl = entry.track.imageUrl,
-                artistUri = entry.track.artistUri,
-                isPlaying = isPlaying && entry.track.title == currentTrackTitle,
-                onClick = { onTrackSelect(entry.track) },
-                onMoreClick = { onTrackOptionsClick(entry.track) },
-                onAddToQueue = { onTrackAddToQueue(entry.track) }
+    if (entries.isEmpty()) return
+    item(key = "section-$label") {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .animateItem()
+                .clickable(onClick = onToggle)
+                .padding(top = 12.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = EncoreTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                ),
+                modifier = Modifier.weight(1f)
             )
-            is HistoryEntry.Group -> {
-                val groupKey = "$label:${entry.id}"
-                val expanded = expandedGroups[groupKey] == true
-                HistoryArtistGroup(
-                    group = entry,
-                    isExpanded = expanded,
-                    onToggle = {
-                        expandedGroups[groupKey] = !expanded
-                    },
-                    currentTrackTitle = currentTrackTitle,
-                    isPlaying = isPlaying,
-                    onTrackSelect = onTrackSelect,
-                    onTrackOptionsClick = onTrackOptionsClick,
-                    onTrackAddToQueue = onTrackAddToQueue
-                )
+            Icon(
+                painter = painterResource(
+                    id = if (isExpanded) R.drawable.encore_icon_chevron_up_24
+                    else R.drawable.encore_icon_chevron_down_24
+                ),
+                contentDescription = if (isExpanded) "Collapse $label" else "Expand $label",
+                tint = EncoreColors.TextSecondary,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+    if (isExpanded) {
+        entries.forEach { entry ->
+            when (entry) {
+                is HistoryEntry.Single -> item(key = "$label:row:${entry.id}") {
+                    EncoreTrackRow(
+                        trackNumber = null,
+                        title = entry.track.title,
+                        artist = entry.track.artist,
+                        isExplicit = entry.track.isExplicit,
+                        imageUrl = entry.track.imageUrl,
+                        artistUri = entry.track.artistUri,
+                        isPlaying = isPlaying && entry.track.title == currentTrackTitle,
+                        onClick = { onTrackSelect(entry.track) },
+                        onMoreClick = { onTrackOptionsClick(entry.track) },
+                        onAddToQueue = { onTrackAddToQueue(entry.track) },
+                        modifier = Modifier.animateItem()
+                    )
+                }
+                is HistoryEntry.Group -> item(key = "$label:group:${entry.id}") {
+                    val groupKey = "$label:${entry.id}"
+                    val expanded = expandedGroups[groupKey] == true
+                    Box(modifier = Modifier.animateItem()) {
+                        HistoryArtistGroup(
+                            group = entry,
+                            isExpanded = expanded,
+                            onToggle = {
+                                expandedGroups[groupKey] = !expanded
+                            },
+                            currentTrackTitle = currentTrackTitle,
+                            isPlaying = isPlaying,
+                            onTrackSelect = onTrackSelect,
+                            onTrackOptionsClick = onTrackOptionsClick,
+                            onTrackAddToQueue = onTrackAddToQueue
+                        )
+                    }
+                }
             }
         }
     }
@@ -400,7 +447,12 @@ private fun HistoryStatsSection(
             ),
             modifier = Modifier.padding(top = 12.dp, bottom = 8.dp)
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier
+                .height(IntrinsicSize.Min)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             HistoryStatCard(
                 label = stringResource(R.string.minutes_played),
                 value = formatMinutes(stats.totalPlayedMs),
@@ -413,7 +465,12 @@ private fun HistoryStatsSection(
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier
+                .height(IntrinsicSize.Min)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             HistoryStatCard(
                 label = stringResource(R.string.login_streak),
                 value = daysLabel(stats.loginStreakDays),
@@ -423,15 +480,24 @@ private fun HistoryStatsSection(
                 label = stringResource(R.string.top_artist),
                 value = stats.topArtistName.ifBlank { "—" },
                 sub = playsLabel(stats.topArtistPlays),
+                imageUrl = stats.topArtistImageUrl?.takeIf { it.isNotBlank() },
+                imageShape = CircleShape,
                 modifier = Modifier.weight(1f)
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier
+                .height(IntrinsicSize.Min)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             HistoryStatCard(
                 label = stringResource(R.string.top_playlist),
                 value = stats.topPlaylistName.ifBlank { "—" },
                 sub = playsLabel(stats.topPlaylistPlays),
+                imageUrl = stats.topPlaylistImageUrl?.takeIf { it.isNotBlank() },
+                imageShape = RoundedCornerShape(4.dp),
                 modifier = Modifier.weight(1f)
             )
             HistoryStatCard(
@@ -441,6 +507,8 @@ private fun HistoryStatsSection(
                     stats.topReplayArtist.takeIf { it.isNotBlank() },
                     playsLabel(stats.topReplayPlays).takeIf { stats.topReplayPlays > 1 },
                 ).joinToString(" · ").ifBlank { null },
+                imageUrl = stats.topReplayImageUrl?.takeIf { it.isNotBlank() },
+                imageShape = RoundedCornerShape(4.dp),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -452,36 +520,51 @@ private fun HistoryStatCard(
     label: String,
     value: String,
     sub: String? = null,
+    imageUrl: String? = null,
+    imageShape: Shape? = null,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    Row(
         modifier = modifier
+            .fillMaxHeight()
             .background(EncoreColors.Card, RoundedCornerShape(EncoreCornerRadii.Larger2))
-            .padding(horizontal = 12.dp, vertical = 12.dp)
+            .padding(horizontal = 12.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Text(
-            text = label,
-            style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = value,
-            style = EncoreTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.SemiBold,
-                color = EncoreColors.TextPrimary
-            ),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        if (sub != null) {
+        if (imageUrl != null && imageShape != null) {
+            EncoreArtworkImage(
+                imageUrl = imageUrl,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp),
+                shape = imageShape
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = sub,
+                text = label,
                 style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = value,
+                style = EncoreTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    color = EncoreColors.TextPrimary
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (sub != null) {
+                Text(
+                    text = sub,
+                    style = EncoreTheme.typography.bodySmall.copy(color = EncoreColors.TextSecondary),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
@@ -501,26 +584,3 @@ private fun daysLabel(days: Int): String =
 @Composable
 private fun playsLabel(plays: Int): String =
     pluralStringResource(R.plurals.play_count, plays, formatCount(plays.toLong()))
-
-@Preview
-@Composable
-fun PreviewHistoryScreen() {
-    EncoreAppTheme {
-        HistoryScreen(
-            onBackClick = {},
-            onTrackSelect = {},
-            stats = HistoryStats(
-                totalPlayedMs = 1_512_000L,
-                listenStreakDays = 4,
-                loginStreakDays = 12,
-                topArtistName = "Piche Kota",
-                topArtistPlays = 37,
-                topPlaylistName = "My Playlist #18",
-                topPlaylistPlays = 21,
-                topReplayTitle = "Bahagia Lagi",
-                topReplayArtist = "Piche Kota",
-                topReplayPlays = 9,
-            )
-        )
-    }
-}

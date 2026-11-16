@@ -69,13 +69,13 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -122,6 +122,7 @@ data class TrackItem(
     val hasVideo: Boolean = false,
     val isEnhanced: Boolean = false,
     val plays: Long = 0L,
+    val addedAt: Long = 0L,
 )
 
 private val trackSearchEngine = GenericSearchEngine<TrackItem>(maxResult = Int.MAX_VALUE)
@@ -131,6 +132,10 @@ private val TRACK_SEARCH_FIELDS = SearchableFieldExtractor<TrackItem> {
 }
 
 private const val PRELOAD_REMAINING_TRACKS = 25
+private const val SORT_LOAD_STALL = 3
+private const val SORT_PREFS = "quackify.client"
+private const val SORT_KEY_PREFIX = "playlistSort:"
+private const val SORT_DIR_KEY_SUFFIX = ":direction"
 
 enum class PlaylistSort(
     val labelRes: Int,
@@ -201,9 +206,7 @@ fun EncorePlaylistScreen(
     onLoadMore: () -> Unit = {},
     loadFailed: Boolean = false,
     onRetry: () -> Unit = {},
-    downloadedCount: Int = 0,
-    downloadedUris: Set<String> = emptySet(),
-    onDownloadClick: () -> Unit = {}
+    sortKey: String = ""
 ) {
     var currentTitle by remember(title) { mutableStateOf(title) }
     val smoothHeaderColor by rememberSmoothColor(target = headerColor)
@@ -213,10 +216,15 @@ fun EncorePlaylistScreen(
     var isEditDetailsOpen by remember { mutableStateOf(false) }
     var isSearching by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-    val isDownloaded = downloadedCount > 0 && downloadedCount >= tracks.size
+    var isDownloaded by remember { mutableStateOf(false) }
     var isShuffle by remember { mutableStateOf(false) }
-    var sortOption by remember { mutableStateOf(PlaylistSort.CUSTOM) }
-    var sortDirection by remember { mutableStateOf(SortDirection.ASCENDING) }
+    val sortContext = LocalContext.current
+    val sortPreferences = remember(sortContext) {
+        com.mwask.bat.backend.core.store.AppPrefs.prefs(sortContext, SORT_PREFS)
+    }
+    val storedSort = remember(sortKey) { readSort(sortPreferences, sortKey) }
+    var sortOption by remember(sortKey) { mutableStateOf(storedSort.first) }
+    var sortDirection by remember(sortKey) { mutableStateOf(storedSort.second) }
     var isSearchRevealed by remember { mutableStateOf(false) }
     val bottomPadding = rememberBottomPadding()
     val scope = rememberCoroutineScope()
@@ -260,7 +268,13 @@ fun EncorePlaylistScreen(
                 }
             }
             PlaylistSort.RECENTLY_ADDED -> {
-                if (sortDirection == SortDirection.DESCENDING) {
+                if (base.any { it.addedAt > 0L }) {
+                    if (sortDirection == SortDirection.DESCENDING) {
+                        base.sortedByDescending { it.addedAt }
+                    } else {
+                        base.sortedBy { it.addedAt }
+                    }
+                } else if (sortDirection == SortDirection.DESCENDING) {
                     base.reversed()
                 } else {
                     base
@@ -272,6 +286,23 @@ fun EncorePlaylistScreen(
 
     val listState = rememberLazyListState()
     val density = LocalDensity.current
+
+    var sortStallAttempts by remember(sortOption) { mutableStateOf(0) }
+    var sortLoadedRows by remember(sortOption) { mutableStateOf(tracks.size) }
+    LaunchedEffect(sortOption, hasMore, loadingMore, loadFailed, tracks.size) {
+        if (sortOption == PlaylistSort.CUSTOM) {
+            sortStallAttempts = 0
+            sortLoadedRows = tracks.size
+            return@LaunchedEffect
+        }
+        if (tracks.size > sortLoadedRows) {
+            sortLoadedRows = tracks.size
+            sortStallAttempts = 0
+        }
+        if (!hasMore || loadingMore || loadFailed || sortStallAttempts >= SORT_LOAD_STALL) return@LaunchedEffect
+        sortStallAttempts += 1
+        onLoadMore()
+    }
 
     val shouldLoadMore by remember(hasMore, loadingMore, displayedTracks.size, isEditable, canAddTracks, onLoadMore) {
         derivedStateOf {
@@ -509,7 +540,6 @@ fun EncorePlaylistScreen(
                             hasVideo = track.hasVideo,
                             imageUrl = track.imageUrl,
                             artistUri = track.artistUri,
-                            isDownloaded = track.uri.isNotBlank() && track.uri in downloadedUris,
                             onClick = { onTrackSelect(track) },
                             onMoreClick = { onTrackOptionsClick(track) },
                             saved = track.saved,
@@ -939,7 +969,7 @@ fun EncorePlaylistScreen(
                                         modifier = Modifier
                                             .size(32.dp)
                                             .clip(CircleShape)
-                                            .clickable(onClick = onDownloadClick),
+                                            .clickable { isDownloaded = !isDownloaded },
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
@@ -1108,7 +1138,6 @@ fun EncorePlaylistScreen(
                         hasVideo = track.hasVideo,
                         imageUrl = track.imageUrl,
                         artistUri = track.artistUri,
-                        isDownloaded = track.uri.isNotBlank() && track.uri in downloadedUris,
                         onClick = { onTrackSelect(track) },
                         onMoreClick = { onTrackOptionsClick(track) },
                         saved = track.saved,
@@ -1379,6 +1408,7 @@ fun EncorePlaylistScreen(
         onSortSelected = { selected, direction ->
             sortOption = selected
             sortDirection = direction
+            saveSort(sortPreferences, sortKey, selected, direction)
         },
         onDismiss = { isSortSheetOpen = false }
     )
@@ -1747,4 +1777,32 @@ private fun PlaylistEmptyCurationHeader(
             }
         }
     }
+}
+
+private fun readSort(
+    preferences: com.mwask.bat.backend.core.store.AppPrefs.Prefs,
+    key: String,
+): Pair<PlaylistSort, SortDirection> {
+    if (key.isBlank()) return PlaylistSort.CUSTOM to SortDirection.ASCENDING
+    val stored = preferences.getString(SORT_KEY_PREFIX + key, "").orEmpty()
+    val option = PlaylistSort.values().firstOrNull { it.name == stored }
+        ?: return PlaylistSort.CUSTOM to SortDirection.ASCENDING
+    val storedDirection = preferences.getString(SORT_KEY_PREFIX + key + SORT_DIR_KEY_SUFFIX, "")
+        .orEmpty()
+    val direction = SortDirection.values().firstOrNull { it.name == storedDirection }
+        ?: option.defaultDirection
+    return option to direction
+}
+
+private fun saveSort(
+    preferences: com.mwask.bat.backend.core.store.AppPrefs.Prefs,
+    key: String,
+    option: PlaylistSort,
+    direction: SortDirection,
+) {
+    if (key.isBlank()) return
+    preferences.edit()
+        .putString(SORT_KEY_PREFIX + key, option.name)
+        .putString(SORT_KEY_PREFIX + key + SORT_DIR_KEY_SUFFIX, direction.name)
+        .apply()
 }
