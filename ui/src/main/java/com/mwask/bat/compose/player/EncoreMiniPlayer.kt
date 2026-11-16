@@ -42,9 +42,11 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.mwask.bat.backend.model.DeviceKind
 import com.mwask.bat.compose.R
@@ -215,7 +217,15 @@ fun EncoreMiniPlayer(
                                 }
                         ) {
                             Text(
-                                text = title,
+                                text = buildAnnotatedString {
+                                    append(title)
+                                    if (artist.isNotBlank()) {
+                                        append(" \u2022 ")
+                                        withStyle(SpanStyle(color = EncoreColors.TextSecondary)) {
+                                            append(artist)
+                                        }
+                                    }
+                                },
                                 style = EncoreTheme.typography.bodySmallBold.copy(
                                     fontWeight = FontWeight.SemiBold,
                                     color = EncoreColors.TextPrimary
@@ -230,18 +240,18 @@ fun EncoreMiniPlayer(
                                         velocity = 30.dp
                                     )
                             )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .basicMarquee(
-                                        iterations = Int.MAX_VALUE,
-                                        initialDelayMillis = 2000,
-                                        velocity = 30.dp
-                                    )
-                            ) {
-                                if (!connectedDeviceName.isNullOrBlank()) {
+                            if (!connectedDeviceName.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .basicMarquee(
+                                            iterations = Int.MAX_VALUE,
+                                            initialDelayMillis = 2000,
+                                            velocity = 30.dp
+                                        )
+                                ) {
                                     Icon(
                                         painter = painterResource(id = R.drawable.encore_icon_connect_24),
                                         contentDescription = null,
@@ -250,18 +260,9 @@ fun EncoreMiniPlayer(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = stringResource(R.string.connected_device_artist, connectedDeviceName, artist),
+                                        text = connectedDeviceName,
                                         style = EncoreTheme.typography.marginal.copy(
                                             color = EncoreColors.Green
-                                        ),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Clip
-                                    )
-                                } else {
-                                    Text(
-                                        text = artist,
-                                        style = EncoreTheme.typography.marginal.copy(
-                                            color = EncoreColors.TextSecondary
                                         ),
                                         maxLines = 1,
                                         overflow = TextOverflow.Clip
@@ -317,27 +318,5 @@ fun EncoreMiniPlayer(
                 trackColor = EncoreColors.ProgressBarBackground
             )
         }
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF121212)
-@Composable
-fun PreviewEncoreMiniPlayer() {
-    EncoreAppTheme {
-        var isPlaying by remember { mutableStateOf(true) }
-        var isLiked by remember { mutableStateOf(true) }
-
-        EncoreMiniPlayer(
-            title = "Starboy",
-            artist = "The Weeknd, Daft Punk",
-            isPlaying = isPlaying,
-            progress = 0.45f,
-            isLiked = isLiked,
-            connectedDeviceName = "Galaxy Buds2 Pro",
-            onPlayPauseClick = { isPlaying = !isPlaying },
-            onLikeClick = { isLiked = !isLiked },
-            onDeviceClick = {},
-            onBarClick = {}
-        )
     }
 }

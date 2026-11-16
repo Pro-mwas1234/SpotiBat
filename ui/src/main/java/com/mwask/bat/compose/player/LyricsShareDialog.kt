@@ -390,7 +390,7 @@ private fun ShareCardPreview(
                     }
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = stringResource(R.string.spotibat),
+                        text = stringResource(R.string.quackify),
                         style = EncoreTheme.typography.bodySmallBold.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp,

@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -26,6 +27,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,6 +47,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -64,6 +67,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -73,6 +77,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -82,20 +87,21 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.positionChangeIgnoreConsumed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
@@ -125,6 +131,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import com.mwask.bat.compose.theme.EncoreTheme
+import com.mwask.bat.compose.playlist.TrackItem
 import com.mwask.bat.compose.util.rememberDominantColor
 import androidx.compose.ui.res.stringResource
 
@@ -228,6 +235,8 @@ fun EncoreNowPlayingScreen(
     onPlayPauseClick: () -> Unit,
     onSkipNextClick: () -> Unit,
     onSkipPreviousClick: () -> Unit,
+    onSwipePreviousClick: () -> Unit = onSkipPreviousClick,
+    docked: Boolean = false,
     onLikeClick: () -> Unit,
     onShuffleClick: () -> Unit,
     onRepeatClick: () -> Unit,
@@ -272,12 +281,23 @@ fun EncoreNowPlayingScreen(
     artistImageUrl: String? = null,
     isArtistFollowing: Boolean = false,
     onArtistFollowToggle: (Boolean) -> Unit = {},
-    lyrics: List<TimeSyncedLyric> = emptyList()
+    lyrics: List<TimeSyncedLyric> = emptyList(),
+    isLyricsUnderCoverEnabled: Boolean = true,
+    showLyricsPreview: Boolean = true,
+    previousTrack: TrackItem? = null,
+    nextTrack: TrackItem? = null,
+    onSkipToPreviousClick: () -> Unit = {}
 ) {
     var isLyricsFullscreen by remember { mutableStateOf(false) }
     var isLyricsShareOpen by remember { mutableStateOf(false) }
 
     BackHandler(enabled = isLyricsFullscreen) { isLyricsFullscreen = false }
+
+    val view = LocalView.current
+    DisposableEffect(videoActive) {
+        view.keepScreenOn = videoActive
+        onDispose { view.keepScreenOn = false }
+    }
 
     if (videoFullscreen && videoActive) {
         BackHandler { onToggleVideoFullscreen(false) }
@@ -315,10 +335,13 @@ fun EncoreNowPlayingScreen(
     }
 
     val effectiveIsLoading = isLoading
-    val effectiveLyricsVisible = lyrics.isNotEmpty() && activeLyricLine.isNotBlank()
+    val lyricsAvailable = lyrics.isNotEmpty() && activeLyricLine.isNotBlank()
+    val syncedLyricLineVisible = isLyricsUnderCoverEnabled && lyricsAvailable
+    val effectiveLyricsVisible = lyricsAvailable
+    val previewLyricVisible = effectiveLyricsVisible && showLyricsPreview
 
     val lyricLineHeight by animateDpAsState(
-        targetValue = if (effectiveLyricsVisible) 44.dp else 0.dp,
+        targetValue = if (previewLyricVisible) 44.dp else 0.dp,
         animationSpec = tween(
             durationMillis = 350,
             easing = EncoreAnimation.DecelerateInterpolator
@@ -326,7 +349,7 @@ fun EncoreNowPlayingScreen(
         label = "lyricLineHeight"
     )
     val lyricBottomSpacerHeight by animateDpAsState(
-        targetValue = if (effectiveLyricsVisible) 28.dp else 0.dp,
+        targetValue = if (previewLyricVisible) 28.dp else 0.dp,
         animationSpec = tween(
             durationMillis = 350,
             easing = EncoreAnimation.DecelerateInterpolator
@@ -335,7 +358,7 @@ fun EncoreNowPlayingScreen(
     )
 
     val artworkPushUpOffset by animateDpAsState(
-        targetValue = if (effectiveLyricsVisible) 0.dp else 40.dp,
+        targetValue = if (previewLyricVisible) 0.dp else 40.dp,
         animationSpec = tween(
             durationMillis = 350,
             easing = EncoreAnimation.DecelerateInterpolator
@@ -361,7 +384,10 @@ fun EncoreNowPlayingScreen(
     val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
     val dismissThresholdPx = with(density) { DISMISS_THRESHOLD_DP.dp.toPx() }
     val videoTopHeight = (configuration.screenWidthDp * 9f / 16f).dp
-    val artworkSide = (configuration.screenWidthDp - 48).dp
+    val artworkSide = minOf(
+        configuration.screenWidthDp - 48,
+        (configuration.screenHeightDp * 0.55f).toInt()
+    ).coerceAtLeast(120).dp
     val mediaTransition = tween<Dp>(350, easing = EncoreAnimation.DecelerateInterpolator)
     val animatedMediaHeight by animateDpAsState(
         targetValue = if (videoActive) videoTopHeight else artworkSide,
@@ -413,13 +439,17 @@ fun EncoreNowPlayingScreen(
         }
     }
 
-    val headerDragModifier = Modifier.npvDismissDragGesture(
-        coroutineScope = coroutineScope,
-        playerOffsetY = playerOffsetY,
-        dismissThresholdPx = dismissThresholdPx,
-        onDismiss = dismissPlayer,
-        onSnapBack = snapBackPlayer
-    )
+    val headerDragModifier = if (docked) {
+        Modifier
+    } else {
+        Modifier.npvDismissDragGesture(
+            coroutineScope = coroutineScope,
+            playerOffsetY = playerOffsetY,
+            dismissThresholdPx = dismissThresholdPx,
+            onDismiss = dismissPlayer,
+            onSnapBack = snapBackPlayer
+        )
+    }
 
     val artworkGestureModifier = Modifier.npvArtworkGesture(
         coroutineScope = coroutineScope,
@@ -427,6 +457,7 @@ fun EncoreNowPlayingScreen(
         scrollState = scrollState,
         scrollEnabled = !effectiveIsLoading,
         dismissThresholdPx = dismissThresholdPx,
+        dismissEnabled = !docked,
         onDismiss = dismissPlayer,
         onSnapBack = snapBackPlayer
     )
@@ -521,24 +552,51 @@ fun EncoreNowPlayingScreen(
                             .weight(LANDSCAPE_ARTWORK_PANE_WEIGHT)
                             .fillMaxHeight()
                             .then(artworkGestureModifier)
-                            .padding(start = 24.dp, top = 8.dp, end = 16.dp, bottom = 16.dp),
-                        contentAlignment = Alignment.Center
                     ) {
-                        NowPlayingArtworkCard(
-                            title = title,
-                            coverUrl = coverUrl,
-                            dominantColor = dynamicArtworkColor,
-                            backgroundColor = animatedDominantColor,
-                            canvasFilePath = canvasFilePath,
-                            isCanvasEnabled = canvasActive,
-                            videoActive = videoActive,
-                            videoQualities = videoQualities,
-                            onVideoQuality = onVideoQuality,
-                            onVideoSurface = onVideoSurface,
-                            onToggleVideoFullscreen = { onToggleVideoFullscreen(true) },
-                            modifier = Modifier
-                                .aspectRatio(if (videoActive) 16f / 9f else 1.0f)
-                        )
+                        if (videoActive || canvasActive) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(start = 24.dp, top = 8.dp, end = 16.dp, bottom = 16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                NowPlayingArtworkCard(
+                                    title = title,
+                                    coverUrl = coverUrl,
+                                    dominantColor = dynamicArtworkColor,
+                                    backgroundColor = animatedDominantColor,
+                                    canvasFilePath = canvasFilePath,
+                                    isCanvasEnabled = canvasActive,
+                                    videoActive = videoActive,
+                                    videoQualities = videoQualities,
+                                    onVideoQuality = onVideoQuality,
+                                    onVideoSurface = onVideoSurface,
+                                    onToggleVideoFullscreen = { onToggleVideoFullscreen(true) },
+                                    modifier = Modifier
+                                        .aspectRatio(if (videoActive) 16f / 9f else 1.0f)
+                                )
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(start = 24.dp, top = 8.dp, end = 16.dp, bottom = 16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                SwipableTrackArtwork(
+                                    currentTitle = title,
+                                    currentCoverUrl = coverUrl,
+                                    currentDominantColor = dynamicArtworkColor,
+                                    cardBackgroundColor = animatedDominantColor,
+                                    previousTrack = previousTrack,
+                                    nextTrack = nextTrack,
+                                    canSwipePrevious = canSkipPrevious,
+                                    onSwipePrevious = onSkipToPreviousClick,
+                                    onSwipeNext = onSkipNextClick,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
                     }
 
                     Column(
@@ -550,6 +608,7 @@ fun EncoreNowPlayingScreen(
                         NowPlayingHeaderRow(
                             resolvedContextTitle = resolvedContextTitle,
                             contextSubtitle = if (hasSubtitle) albumOrPlaylistContext else null,
+                            showCollapse = !docked,
                             onCollapseClick = onCollapseClick,
                             onMoreClick = onMoreClick,
                             dominantColor = animatedDominantColor,
@@ -560,8 +619,8 @@ fun EncoreNowPlayingScreen(
 
                         NowPlayingSyncedLyricLine(
                             lyricText = activeLyricLine,
-                            visible = effectiveLyricsVisible,
-                            height = if (effectiveLyricsVisible) 44.dp else 0.dp,
+                            visible = previewLyricVisible,
+                            height = if (previewLyricVisible) 44.dp else 0.dp,
                             onOpenLyrics = { isLyricsFullscreen = true }
                         )
 
@@ -572,7 +631,7 @@ fun EncoreNowPlayingScreen(
                             onSwitch = onSwitchVideo
                         )
 
-                        if (effectiveLyricsVisible) {
+                        if (previewLyricVisible) {
                             Spacer(modifier = Modifier.height(8.dp))
                         }
 
@@ -644,7 +703,7 @@ fun EncoreNowPlayingScreen(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         NowPlayingLyricsCard(
-                            visible = effectiveLyricsVisible,
+                            visible = lyricsAvailable,
                             lyrics = lyrics,
                             activeIndex = activeLyricIndex,
                             dominantColor = dynamicArtworkColor,
@@ -654,7 +713,7 @@ fun EncoreNowPlayingScreen(
                         )
 
                         if (!effectiveIsLoading && artist.isNotBlank()) {
-                            if (effectiveLyricsVisible) {
+                            if (lyricsAvailable) {
                                 Spacer(modifier = Modifier.height(EncoreSpacers.Base))
                             }
 
@@ -694,6 +753,7 @@ fun EncoreNowPlayingScreen(
                                 NowPlayingHeaderRow(
                                     resolvedContextTitle = resolvedContextTitle,
                                     contextSubtitle = if (hasSubtitle) albumOrPlaylistContext else null,
+                                    showCollapse = !docked,
                                     onCollapseClick = onCollapseClick,
                                     onMoreClick = onMoreClick,
                                     dominantColor = animatedDominantColor,
@@ -701,22 +761,22 @@ fun EncoreNowPlayingScreen(
                                 )
                             }
 
-                            Spacer(modifier = Modifier.weight(topSpacerWeight.coerceAtLeast(0.01f)))
+                        Spacer(modifier = Modifier.weight(topSpacerWeight.coerceAtLeast(0.01f)))
 
-                            Box(
+                        Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = animatedMediaPadding)
                                     .revealAt(reveal, REVEAL_ARTWORK_DELAY_MS / REVEAL_MS.toFloat()),
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (canvasActive && !videoActive) {
                                     Spacer(
                                         modifier = Modifier
+                                            .padding(horizontal = animatedMediaPadding)
                                             .fillMaxWidth()
                                             .aspectRatio(1.0f)
                                     )
-                                } else {
+                                } else if (videoActive) {
                                     NowPlayingArtworkCard(
                                         title = title,
                                         coverUrl = coverUrl,
@@ -724,12 +784,28 @@ fun EncoreNowPlayingScreen(
                                         backgroundColor = animatedDominantColor,
                                         canvasFilePath = canvasFilePath,
                                         isCanvasEnabled = canvasActive,
-                                        videoActive = videoActive,
-                                        videoFullBleed = videoActive,
+                                        videoActive = true,
+                                        videoFullBleed = true,
                                         videoQualities = videoQualities,
                                         onVideoQuality = onVideoQuality,
                                         onVideoSurface = onVideoSurface,
                                         onToggleVideoFullscreen = { onToggleVideoFullscreen(true) },
+                                        modifier = Modifier
+                                            .padding(horizontal = animatedMediaPadding)
+                                            .fillMaxWidth()
+                                            .height(animatedMediaHeight)
+                                    )
+                                } else {
+                                    SwipableTrackArtwork(
+                                        currentTitle = title,
+                                        currentCoverUrl = coverUrl,
+                                        currentDominantColor = dynamicArtworkColor,
+                                        cardBackgroundColor = animatedDominantColor,
+                                        previousTrack = previousTrack,
+                                        nextTrack = nextTrack,
+                                        canSwipePrevious = canSkipPrevious,
+                                        onSwipePrevious = onSkipToPreviousClick,
+                                        onSwipeNext = onSkipNextClick,
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(animatedMediaHeight)
@@ -748,7 +824,7 @@ fun EncoreNowPlayingScreen(
                             if (!videoActive) {
                                 NowPlayingSyncedLyricLine(
                                     lyricText = activeLyricLine,
-                                    visible = effectiveLyricsVisible,
+                                    visible = previewLyricVisible,
                                     height = lyricLineHeight,
                                     onOpenLyrics = { isLyricsFullscreen = true }
                                 )
@@ -854,7 +930,7 @@ fun EncoreNowPlayingScreen(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             NowPlayingLyricsCard(
-                                visible = effectiveLyricsVisible && canvasControlsShown,
+                                visible = lyricsAvailable && canvasControlsShown,
                                 lyrics = lyrics,
                                 activeIndex = activeLyricIndex,
                                 dominantColor = dynamicArtworkColor,
@@ -869,7 +945,7 @@ fun EncoreNowPlayingScreen(
                                     exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
                                 ) {
                                     Column {
-                                        if (effectiveLyricsVisible) {
+                                        if (lyricsAvailable) {
                                             Spacer(modifier = Modifier.height(EncoreSpacers.Base))
                                         }
 
@@ -978,14 +1054,21 @@ private fun Modifier.npvDismissDragGesture(
 }
 
 /**
- * Artwork gestures: horizontal drags perform the swipe-to-skip track
- * animation while vertical drags translate the whole player for
- * drag-to-dismiss.
+ * Artwork gestures: vertical drags translate the whole player for
+ * drag-to-dismiss while horizontal drags are yielded to the swipe
+ * carousel that owns the artwork row.
  *
- * The axis is resolved manually, before any event is consumed. Vertical drags
- * are only claimed once the page can no longer scroll in that direction, so
- * dragging over the artwork scrolls the page like any other part of it and
- * only turns into a dismissal once the top is reached.
+ * The axis is resolved manually, before any event is consumed. Vertical
+ * drags are only claimed once the page can no longer scroll in that
+ * direction, so dragging over the artwork scrolls the page like any other
+ * part of it and only turns into a dismissal once the top is reached.
+ *
+ * The claim is re-evaluated on every move: the scroll may not sit at the
+ * top when the drag starts, but it reaches it as the finger keeps pulling
+ * down, and from that moment the player must track the finger 1:1 instead
+ * of staying frozen until the next gesture. Deltas are read with
+ * positionChangeIgnoreConsumed so an intermediate scroll consumer cannot
+ * zero them out mid-drag.
  */
 private fun Modifier.npvArtworkGesture(
     coroutineScope: CoroutineScope,
@@ -993,9 +1076,10 @@ private fun Modifier.npvArtworkGesture(
     scrollState: ScrollState,
     scrollEnabled: Boolean,
     dismissThresholdPx: Float,
+    dismissEnabled: Boolean,
     onDismiss: () -> Unit,
     onSnapBack: () -> Unit
-): Modifier = pointerInput(dismissThresholdPx, scrollEnabled) {
+): Modifier = pointerInput(dismissThresholdPx, scrollEnabled, dismissEnabled) {
     var axis = AXIS_UNDECIDED
     var totalDragX = 0f
     var totalDragY = 0f
@@ -1014,15 +1098,16 @@ private fun Modifier.npvArtworkGesture(
             val change = event.changes.firstOrNull { it.id == down.id } ?: break
             if (!change.pressed) break
 
-            val delta = change.positionChange()
+            val delta = change.positionChangeIgnoreConsumed()
             totalDragX += delta.x
             totalDragY += delta.y
 
-            if (axis == AXIS_UNDECIDED) {
-                if (totalDragY > DRAG_AXIS_SLOP_PX) {
-                    val pageAtTop = !scrollEnabled || scrollState.value <= 0
-                    axis = if (pageAtTop) AXIS_VERTICAL else AXIS_YIELD
-                } else if (totalDragY < -DRAG_AXIS_SLOP_PX || totalDragX.absoluteValue > DRAG_AXIS_SLOP_PX) {
+            val verticalBias = totalDragY.absoluteValue > totalDragX.absoluteValue
+            if (axis == AXIS_UNDECIDED || axis == AXIS_YIELD) {
+                val pageAtTop = !scrollEnabled || scrollState.value <= 0
+                if (totalDragY > DRAG_AXIS_SLOP_PX && verticalBias && pageAtTop && dismissEnabled) {
+                    axis = AXIS_VERTICAL
+                } else if (totalDragY < -DRAG_AXIS_SLOP_PX || totalDragX.absoluteValue > DRAG_AXIS_SLOP_PX && !verticalBias) {
                     axis = AXIS_YIELD
                 }
             }
@@ -1064,6 +1149,7 @@ private fun Modifier.npvArtworkGesture(
 private fun NowPlayingHeaderRow(
     resolvedContextTitle: String,
     contextSubtitle: String?,
+    showCollapse: Boolean = true,
     onCollapseClick: () -> Unit,
     onMoreClick: () -> Unit,
     dominantColor: Color,
@@ -1078,14 +1164,18 @@ private fun NowPlayingHeaderRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        EncoreIconButton(
-            iconRes = R.drawable.encore_icon_chevron_down_24,
-            contentDescription = stringResource(R.string.collapse_player),
-            onClick = onCollapseClick,
-            tint = ink,
-            size = 48.dp,
-            iconSize = 24.dp
-        )
+        if (showCollapse) {
+            EncoreIconButton(
+                iconRes = R.drawable.encore_icon_chevron_down_24,
+                contentDescription = stringResource(R.string.collapse_player),
+                onClick = onCollapseClick,
+                tint = ink,
+                size = 48.dp,
+                iconSize = 24.dp
+            )
+        } else {
+            Spacer(modifier = Modifier.size(48.dp))
+        }
 
         Column(
             modifier = Modifier
@@ -1289,6 +1379,184 @@ private fun NowPlayingArtworkCard(
                     modifier = Modifier.fillMaxSize()
                 )
             }
+        }
+    }
+}
+
+private const val SWIPE_COMMIT_FRACTION = 0.3f
+private const val SWIPE_SETTLE_MS = 240
+
+@Composable
+private fun SwipableTrackArtwork(
+    currentTitle: String,
+    currentCoverUrl: String?,
+    currentDominantColor: Color,
+    cardBackgroundColor: Color,
+    previousTrack: TrackItem?,
+    nextTrack: TrackItem?,
+    canSwipePrevious: Boolean,
+    onSwipePrevious: () -> Unit,
+    onSwipeNext: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val hasPrev = canSwipePrevious && previousTrack != null
+    val hasNext = nextTrack != null
+    val drag = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+    val haptics = LocalHapticFeedback.current
+
+    LaunchedEffect(currentCoverUrl, currentTitle) {
+        drag.snapTo(0f)
+    }
+
+    BoxWithConstraints(
+        modifier = modifier
+            .clipToBounds()
+            .pointerInput(hasPrev, hasNext) {
+                val cardWidthPx = size.width.toFloat()
+                val flickVelocity = cardWidthPx * 1.5f
+                val commitDistancePx = cardWidthPx * SWIPE_COMMIT_FRACTION
+                val tracker = VelocityTracker()
+                var tickedNext = false
+                var tickedPrev = false
+                detectHorizontalDragGestures(
+                    onDragStart = {
+                        tracker.resetTracking()
+                        tickedNext = false
+                        tickedPrev = false
+                    },
+                    onDragEnd = {
+                        val velocity = tracker.calculateVelocity().x
+                        tracker.resetTracking()
+                        val offset = drag.value
+                        val commitNext = hasNext && offset < 0f &&
+                            (offset < -cardWidthPx * SWIPE_COMMIT_FRACTION || velocity < -flickVelocity)
+                        val commitPrev = hasPrev && offset > 0f &&
+                            (offset > cardWidthPx * SWIPE_COMMIT_FRACTION || velocity > flickVelocity)
+                        if ((commitNext && !tickedNext) || (commitPrev && !tickedPrev)) {
+                            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                        }
+                        if (commitNext) onSwipeNext()
+                        if (commitPrev) onSwipePrevious()
+                        scope.launch {
+                            drag.animateTo(
+                                targetValue = 0f,
+                                animationSpec = tween(
+                                    durationMillis = SWIPE_SETTLE_MS,
+                                    easing = FastOutSlowInEasing
+                                )
+                            )
+                        }
+                    },
+                    onDragCancel = {
+                        scope.launch {
+                            drag.animateTo(
+                                targetValue = 0f,
+                                animationSpec = tween(
+                                    durationMillis = SWIPE_SETTLE_MS,
+                                    easing = FastOutSlowInEasing
+                                )
+                            )
+                        }
+                    },
+                    onHorizontalDrag = { change, amount ->
+                        change.consume()
+                        tracker.addPosition(change.uptimeMillis, change.position)
+                        val raw = drag.value + amount
+                        val clamped = when {
+                            raw > 0f && !hasPrev -> 0f
+                            raw < 0f && !hasNext -> 0f
+                            raw > cardWidthPx -> cardWidthPx
+                            raw < -cardWidthPx -> -cardWidthPx
+                            else -> raw
+                        }
+                        if (hasNext && clamped <= -commitDistancePx) {
+                            if (!tickedNext) {
+                                tickedNext = true
+                                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                            }
+                        } else {
+                            tickedNext = false
+                        }
+                        if (hasPrev && clamped >= commitDistancePx) {
+                            if (!tickedPrev) {
+                                tickedPrev = true
+                                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                            }
+                        } else {
+                            tickedPrev = false
+                        }
+                        scope.launch { drag.snapTo(clamped) }
+                    }
+                )
+            }
+    ) {
+        val pageWidth = maxWidth
+        val pageWidthPx = with(LocalDensity.current) { pageWidth.toPx() }
+        Row(
+            modifier = Modifier
+                .requiredWidth(pageWidth * 3)
+                .fillMaxHeight()
+                .graphicsLayer { translationX = drag.value }
+        ) {
+            SwipeTrackArtworkSlot(
+                title = previousTrack?.title.orEmpty(),
+                coverUrl = previousTrack?.imageUrl,
+                dominantColor = currentDominantColor,
+                backgroundColor = cardBackgroundColor,
+                modifier = Modifier
+                    .width(pageWidth)
+                    .fillMaxHeight()
+            )
+            SwipeTrackArtworkSlot(
+                title = currentTitle,
+                coverUrl = currentCoverUrl,
+                dominantColor = currentDominantColor,
+                backgroundColor = cardBackgroundColor,
+                modifier = Modifier
+                    .width(pageWidth)
+                    .fillMaxHeight()
+            )
+            SwipeTrackArtworkSlot(
+                title = nextTrack?.title.orEmpty(),
+                coverUrl = nextTrack?.imageUrl,
+                dominantColor = currentDominantColor,
+                backgroundColor = cardBackgroundColor,
+                modifier = Modifier
+                    .width(pageWidth)
+                    .fillMaxHeight()
+            )
+        }
+    }
+}
+
+@Composable
+private fun SwipeTrackArtworkSlot(
+    title: String,
+    coverUrl: String?,
+    dominantColor: Color,
+    backgroundColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .aspectRatio(1f)
+                .shadow(elevation = 16.dp, shape = RoundedCornerShape(EncoreCornerRadii.Larger2))
+                .clip(RoundedCornerShape(EncoreCornerRadii.Larger2))
+                .background(backgroundColor),
+            contentAlignment = Alignment.Center
+        ) {
+            EncoreArtworkImage(
+                imageUrl = coverUrl,
+                contentDescription = title.ifBlank { null },
+                fallbackColor = dominantColor,
+                requestSize = 640,
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 }
@@ -2253,76 +2521,4 @@ private fun formatTime(ms: Long): String {
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
     return String.format("%d:%02d", minutes, seconds)
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF121212)
-@Composable
-fun PreviewEncoreNowPlayingScreen() {
-    EncoreAppTheme {
-        var isPlaying by remember { mutableStateOf(true) }
-        var isLiked by remember { mutableStateOf(true) }
-        var isShuffle by remember { mutableStateOf(false) }
-        var isRepeat by remember { mutableStateOf(true) }
-
-        EncoreNowPlayingScreen(
-            title = "Starboy",
-            artist = "The Weeknd, Daft Punk",
-            albumOrPlaylistContext = "Today's Top Hits",
-            isPlaying = isPlaying,
-            progress = 0.35f,
-            durationMs = 230000L,
-            currentPositionMs = 80000L,
-            isLiked = isLiked,
-            isShuffle = isShuffle,
-            isRepeat = isRepeat,
-            connectedDeviceName = "Living Room Speaker",
-            onCollapseClick = {},
-            onPlayPauseClick = { isPlaying = !isPlaying },
-            onSkipNextClick = {},
-            onSkipPreviousClick = {},
-            onLikeClick = { isLiked = !isLiked },
-            onShuffleClick = { isShuffle = !isShuffle },
-            onRepeatClick = { isRepeat = !isRepeat },
-            onSeek = {},
-            onMoreClick = {},
-            onQueueClick = {},
-            onDeviceClick = {}
-        )
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF121212, widthDp = 800, heightDp = 360)
-@Composable
-fun PreviewEncoreNowPlayingScreenLandscape() {
-    EncoreAppTheme {
-        var isPlaying by remember { mutableStateOf(true) }
-        var isLiked by remember { mutableStateOf(true) }
-        var isShuffle by remember { mutableStateOf(false) }
-        var isRepeat by remember { mutableStateOf(true) }
-
-        EncoreNowPlayingScreen(
-            title = "Starboy",
-            artist = "The Weeknd, Daft Punk",
-            albumOrPlaylistContext = "Today's Top Hits",
-            isPlaying = isPlaying,
-            progress = 0.35f,
-            durationMs = 230000L,
-            currentPositionMs = 80000L,
-            isLiked = isLiked,
-            isShuffle = isShuffle,
-            isRepeat = isRepeat,
-            connectedDeviceName = "Living Room Speaker",
-            onCollapseClick = {},
-            onPlayPauseClick = { isPlaying = !isPlaying },
-            onSkipNextClick = {},
-            onSkipPreviousClick = {},
-            onLikeClick = { isLiked = !isLiked },
-            onShuffleClick = { isShuffle = !isShuffle },
-            onRepeatClick = { isRepeat = !isRepeat },
-            onSeek = {},
-            onMoreClick = {},
-            onQueueClick = {},
-            onDeviceClick = {}
-        )
-    }
 }
