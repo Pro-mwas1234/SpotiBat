@@ -21,7 +21,7 @@
       <img src="https://img.shields.io/github/last-commit/Pro-mwas1234/SpotiBat?style=for-the-badge&logo=git&labelColor=0d0d0d&color=1DB954" alt="last commit"/>
     </a>
     &nbsp;
-    <a href="https://deepwiki.com/Pro-mwas1234/SpotiBat">
+    <a href="https://deepwiki.com/Pro-mwas1234/SpotiBat/">
       <img src="https://deepwiki.com/badge.svg" alt="DeepWiki" style="height: 28px;"/>
     </a>
   </p>
@@ -33,8 +33,6 @@
   </p>
 </div>
 
-> [!WARNING]
-> **BETA Notice** — This project is still under continuous development. Not everything may work exactly as expected yet. Any help is welcome, as long as you know what you are doing.
 
 ---
 
