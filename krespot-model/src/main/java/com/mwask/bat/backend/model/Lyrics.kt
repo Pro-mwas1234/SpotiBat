@@ -29,4 +29,12 @@ data class TrackLyrics(
 data class LyricLine(
     val startTimeMs: Long,
     val text: String,
+    val words: List<LyricWord> = emptyList(),
+)
+
+/** Word-level timing from word-synced sources (TTML, enhanced LRC, YouLyPlus). */
+data class LyricWord(
+    val startTimeMs: Long,
+    val endTimeMs: Long,
+    val text: String,
 )

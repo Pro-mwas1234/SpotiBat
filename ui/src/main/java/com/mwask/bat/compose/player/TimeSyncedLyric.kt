@@ -4,6 +4,14 @@ package com.mwask.bat.compose.player
  */
 data class TimeSyncedLyric(
     val startTimeMs: Long,
+    val text: String,
+    /** Word-level timing for karaoke highlighting; empty for line-synced lyrics. */
+    val words: List<TimeSyncedWord> = emptyList()
+)
+
+data class TimeSyncedWord(
+    val startTimeMs: Long,
+    val endTimeMs: Long,
     val text: String
 )
 

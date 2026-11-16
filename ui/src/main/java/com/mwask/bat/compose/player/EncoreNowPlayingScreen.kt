@@ -693,24 +693,22 @@ fun EncoreNowPlayingScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        MusicVideoSwitchRow(
+                            available = musicVideoAvailable,
+                            active = videoActive,
+                            switching = videoSwitching,
+                            onSwitch = { onToggleVideoFullscreen(true) }
+                        )
+
                         NowPlayingFooterRow(
                             connectedDeviceName = connectedDeviceName,
                             onDeviceClick = onDeviceClick,
                             onQueueClick = onQueueClick,
-                            onShareClick = onShareClick
+                            onShareClick = onShareClick,
+                            onLyricsClick = { isLyricsFullscreen = true }
                         )
 
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        NowPlayingLyricsCard(
-                            visible = lyricsAvailable,
-                            lyrics = lyrics,
-                            activeIndex = activeLyricIndex,
-                            dominantColor = dynamicArtworkColor,
-                            peekHeight = LANDSCAPE_LYRICS_PEEK_HEIGHT,
-                            onOpenLyrics = { isLyricsFullscreen = true },
-                            onShareLyrics = { isLyricsShareOpen = true }
-                        )
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         if (!effectiveIsLoading && artist.isNotBlank()) {
                             if (lyricsAvailable) {
@@ -916,7 +914,8 @@ fun EncoreNowPlayingScreen(
                                         connectedDeviceName = connectedDeviceName,
                                         onDeviceClick = onDeviceClick,
                                         onQueueClick = onQueueClick,
-                                        onShareClick = onShareClick
+                                        onShareClick = onShareClick,
+                                        onLyricsClick = { isLyricsFullscreen = true }
                                     )
                                 }
                             }
@@ -929,15 +928,6 @@ fun EncoreNowPlayingScreen(
                             .revealAt(reveal, REVEAL_REST_DELAY_MS / REVEAL_MS.toFloat())
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            NowPlayingLyricsCard(
-                                visible = lyricsAvailable && canvasControlsShown,
-                                lyrics = lyrics,
-                                activeIndex = activeLyricIndex,
-                                dominantColor = dynamicArtworkColor,
-                                onOpenLyrics = { isLyricsFullscreen = true },
-                                onShareLyrics = { isLyricsShareOpen = true }
-                            )
-
                             if (!effectiveIsLoading && artist.isNotBlank()) {
                                 AnimatedVisibility(
                                     visible = canvasControlsShown,
@@ -2111,6 +2101,7 @@ private fun NowPlayingFooterRow(
     onDeviceClick: () -> Unit,
     onQueueClick: () -> Unit,
     onShareClick: () -> Unit,
+    onLyricsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -2120,6 +2111,17 @@ private fun NowPlayingFooterRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Lyrics button on the left
+        EncoreIconButton(
+            iconRes = R.drawable.encore_icon_lyrics_24,
+            contentDescription = stringResource(R.string.lyrics),
+            onClick = onLyricsClick,
+            tint = if (connectedDeviceName.isNotBlank()) EncoreColors.Green else EncoreColors.TextPrimary,
+            size = 32.dp,
+            iconSize = 20.dp
+        )
+
+        // Device button in center
         Row(
             modifier = Modifier
                 .clip(CircleShape)
@@ -2144,6 +2146,7 @@ private fun NowPlayingFooterRow(
             }
         }
 
+        // Share and Queue on the right
         Row(verticalAlignment = Alignment.CenterVertically) {
             EncoreIconButton(
                 iconRes = R.drawable.encore_icon_share_android_24,
@@ -2436,13 +2439,8 @@ private fun FullscreenLyricsView(
     onShareClick: () -> Unit,
     onClose: () -> Unit
 ) {
-    val activeIndex = lyrics.indexOfLast { currentPositionMs >= it.startTimeMs }.coerceAtLeast(0)
     val listState = rememberLazyListState()
     val ink = contrastInk(dominantColor)
-
-    LaunchedEffect(activeIndex) {
-        listState.animateScrollToItem((activeIndex - 1).coerceAtLeast(0))
-    }
 
     Column(
         modifier = Modifier
@@ -2489,29 +2487,26 @@ private fun FullscreenLyricsView(
             )
         }
 
-        Spacer(modifier = Modifier.height(EncoreSpacers.Looser2))
-
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 96.dp)
-        ) {
-            itemsIndexed(lyrics) { index, line ->
-                val isCurrentLine = index == activeIndex
+        if (lyrics.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
-                    text = line.text,
-                    style = EncoreTheme.typography.titleLarge.copy(
-                        fontSize = 24.sp,
-                        lineHeight = 34.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isCurrentLine) ink else ink.copy(alpha = 0.35f)
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onSeekMs(line.startTimeMs) }
-                        .padding(vertical = EncoreSpacers.Tighter)
+                    text = stringResource(R.string.lyrics_not_found),
+                    style = EncoreTheme.typography.bodyMedium,
+                    color = ink.copy(alpha = 0.6f)
                 )
             }
+        } else {
+            EncoreKaraokeLyrics(
+                lyrics = lyrics,
+                currentPositionMs = currentPositionMs,
+                textColor = ink,
+                listState = listState,
+                onSeekMs = onSeekMs,
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 }

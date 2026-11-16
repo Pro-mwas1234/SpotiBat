@@ -85,6 +85,7 @@ import com.mwask.bat.compose.library.DownloadedTrack
 import com.mwask.bat.compose.library.LibraryItem
 import com.mwask.bat.compose.library.LibraryItemType
 import com.mwask.bat.compose.player.TimeSyncedLyric
+import com.mwask.bat.compose.player.TimeSyncedWord
 import com.mwask.bat.compose.playlist.TrackItem
 import com.mwask.bat.compose.screens.AppUpdate
 import com.mwask.bat.compose.screens.ArtistRelease
@@ -1535,8 +1536,14 @@ class MainActivity : ComponentActivity() {
         nowPlayingArtistImageUrl = nowPlayingArtist?.imageUrl?.takeIf { it.isNotBlank() },
         nowPlayingArtistFollowed = nowPlayingArtistFollowed,
         nowPlayingLyrics = remember(nowPlayingLyrics) {
-            nowPlayingLyrics?.lines?.map {
-                TimeSyncedLyric(it.startTimeMs, it.text)
+            nowPlayingLyrics?.lines?.map { line ->
+                TimeSyncedLyric(
+                    startTimeMs = line.startTimeMs,
+                    text = line.text,
+                    words = line.words.map { word ->
+                        TimeSyncedWord(word.startTimeMs, word.endTimeMs, word.text)
+                    }
+                )
             }.orEmpty()
         },
         canvasFilePath = canvasFile,

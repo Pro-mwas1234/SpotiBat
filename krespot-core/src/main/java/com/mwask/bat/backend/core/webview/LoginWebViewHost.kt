@@ -156,7 +156,6 @@ class LoginWebViewHost(val context: Context, private val startUrl: String = LOGI
     }
 
     init {
-        log.i("init ua=${EncoreAuth.DESKTOP_UA}")
         container.addView(
             webView,
             FrameLayout.LayoutParams(
@@ -545,7 +544,6 @@ class LoginWebViewHost(val context: Context, private val startUrl: String = LOGI
                 manager.setAcceptThirdPartyCookies(view, true)
             }
             view.settings.apply {
-                userAgentString = EncoreAuth.DESKTOP_UA
                 javaScriptEnabled = true
                 domStorageEnabled = true
                 databaseEnabled = true

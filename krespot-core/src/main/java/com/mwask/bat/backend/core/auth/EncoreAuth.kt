@@ -350,8 +350,8 @@ object EncoreAuth {
         }.getOrDefault(0L)
     }
 
-    const val DESKTOP_UA =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
+    /** User-Agent used when contacting Spotify APIs. Set to null to let WebViews use the system default instead of a spoofed one. */
+    const val DESKTOP_UA = ""
 
     private val COOKIE_DOMAINS = listOf(
         "https://open.spotify.com",

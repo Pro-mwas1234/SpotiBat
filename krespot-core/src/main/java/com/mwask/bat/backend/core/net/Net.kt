@@ -74,8 +74,8 @@ object Net {
         return headers + (key to "Bearer $token")
     }
 
-    const val DESKTOP_UA =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
+    /** User-Agent used when contacting Spotify APIs. Set to null to let clients use the system default instead of a spoofed one. */
+    const val DESKTOP_UA = ""
 
     data class Response(
         val code: Int,

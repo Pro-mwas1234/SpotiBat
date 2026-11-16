@@ -18,6 +18,7 @@ import com.mwask.bat.compose.home.toShelves
 import com.mwask.bat.compose.playlist.TrackItem
 import com.mwask.bat.compose.screens.HistoryStats
 import com.mwask.bat.backend.core.log.Logs
+import com.mwask.bat.lyrics.LyricsRepository
 import java.util.Calendar
 
 private val log = Logs.of(Logs.Module.MAIN)
@@ -157,7 +158,26 @@ internal fun MainActivity.rememberNowPlayingData(
             writers.setLyrics(null)
             return@LaunchedEffect
         }
-        writers.setLyrics(Krespot.lyrics.lyrics(this@rememberNowPlayingData, uri))
+        // Spotify's own lyrics first; the Yuma-derived providers fill the gaps.
+        val spotify = Krespot.lyrics.lyrics(this@rememberNowPlayingData, uri)
+        if (spotify != null && spotify.lines.isNotEmpty()) {
+            writers.setLyrics(spotify)
+            return@LaunchedEffect
+        }
+        val track = ((playback?.queue.orEmpty()) + (playback?.queueFromContext.orEmpty()))
+            .firstOrNull { it.uri == uri }
+        val durationMs = PlaybackHost.bridge?.progress?.durationMs?.takeIf { it > 0L }
+            ?: track?.durationMs ?: 0L
+        val external = LyricsRepository.load(
+            context = this@rememberNowPlayingData,
+            trackId = uri.substringAfterLast(":"),
+            title = playback?.title.orEmpty().ifBlank { track?.title.orEmpty() },
+            artist = playback?.artist.orEmpty().ifBlank { track?.artist.orEmpty() },
+            album = track?.albumName?.takeIf { it.isNotBlank() },
+            durationMs = durationMs,
+        )
+        log.i("lyrics for $uri came from ${external?.provider ?: "no provider"}")
+        writers.setLyrics(external)
     }
     LaunchedEffect(playback?.trackUri, canvasAllowed, canvasResolution) {
         writers.setCanvasFile(null)

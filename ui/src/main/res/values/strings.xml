@@ -170,6 +170,7 @@
     <string name="log_out">Log out</string>
     <string name="login_streak">Login streak</string>
     <string name="lyrics">Lyrics</string>
+    <string name="lyrics_not_found">Lyrics not found</string>
     <string name="minutes_played">Minutes played</string>
     <string name="more">More</string>
     <string name="more_like_this">More Like This</string>

@@ -27,8 +27,8 @@ android {
         targetSdk = 37
         // SpotiBat 1.2.4 shipped with applicationId com.mwask.bat and versionCode 25,
         // so new builds must keep climbing from there to upgrade in place.
-        versionCode = 26
-        versionName = "2.0.0"
+        versionCode = 27
+        versionName = "2.1.0"
         multiDexEnabled = true
 
         ndk {
@@ -164,6 +164,7 @@ dependencies {
     implementation(libs.androidx.palette.ktx)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.okhttp)
     implementation(libs.androidx.profileinstaller)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
