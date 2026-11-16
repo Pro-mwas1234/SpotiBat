@@ -2,10 +2,7 @@
   <img src="website/icon.png" alt="SpotiBat" width="120" style="margin-bottom: 8px;"/>
 
   <h1>SpotiBat</h1>
-  <p>
-a>
-
-  </p>
+  
   <p>
     <a href="https://deepwikia href="https://github.com/Pro-mwas1234/SpotiBat/stargazers">
       <img src="https://img.shields.io/github/stars/Pro-mwas1234/SpotiBat?style=for-the-badge&logo=starship&labelColor=0d0d0d&color=1DB954" alt="stars"/>
