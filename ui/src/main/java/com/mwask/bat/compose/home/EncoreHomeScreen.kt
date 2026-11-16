@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -297,7 +298,7 @@ fun EncoreHomeScreen(
             }
         }
 
-        items(shelfSections, key = { it.id }) { shelf ->
+        itemsIndexed(shelfSections, key = { index, shelf -> "$index:${shelf.id}" }) { _, shelf ->
             when {
                 shelf.artists.isNotEmpty() -> ArtistShelfSection(
                     title = shelf.title,
@@ -505,7 +506,7 @@ private fun ShelfSection(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(cards, key = { it.uri }) { card ->
+            itemsIndexed(cards, key = { index, card -> "$index:${card.uri}" }) { _, card ->
                 Column(
                     modifier = Modifier
                         .width(148.dp)
@@ -605,7 +606,7 @@ private fun ArtistShelfSection(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(artists, key = { it.uri }) { artist ->
+            itemsIndexed(artists, key = { index, artist -> "$index:${artist.uri}" }) { _, artist ->
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier

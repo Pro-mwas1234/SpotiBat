@@ -81,7 +81,12 @@ private fun HomeItem.toCard() = RecommendationCard(
     caption = caption,
 )
 
-private fun List<HomeItem>.toCards(): List<RecommendationCard> = map { it.toCard() }
+/**
+ * Compose lazy lists reject duplicate item keys, so a shelf never repeats a card. Feed items can
+ * arrive without a uri, in which case the title keeps the cards apart.
+ */
+private fun List<HomeItem>.toCards(): List<RecommendationCard> =
+    distinctBy { it.uri.ifBlank { it.title } }.map { it.toCard() }
 
 /**
  * Turns the feed into shelves. Podcast episodes and shows are dropped unless the user is on a
@@ -125,7 +130,7 @@ fun List<HomeSection>.toShelves(includePodcasts: Boolean = false): List<HomeShel
             label = labelOf(items.map { it.kind }),
             cards = if (artistsOnly) emptyList() else cards,
             artists = if (artistsOnly) {
-                items.map { item ->
+                items.distinctBy { it.uri.ifBlank { it.title } }.map { item ->
                     ArtistCardItem(
                         name = item.title,
                         color = colorOf(item),
@@ -142,7 +147,10 @@ fun List<HomeSection>.toShelves(includePodcasts: Boolean = false): List<HomeShel
 }
 
 fun List<HomeSection>.toQuickAccess(): List<QuickAccessItem> =
-    firstOrNull { it.kind == HomeFeed.SHORTS }?.items?.filterNot { it.isPodcast() }?.map { item ->
+    firstOrNull { it.kind == HomeFeed.SHORTS }?.items
+        ?.filterNot { it.isPodcast() }
+        ?.distinctBy { it.uri.ifBlank { it.title } }
+        ?.map { item ->
         QuickAccessItem(
             title = item.title,
             coverColor = colorOf(item),
@@ -183,7 +191,8 @@ fun List<TrackItem>.toRecentlyPlayedShelf(): HomeShelf? {
     return HomeShelf(
         id = LOCAL_RECENT_SHELF_ID,
         title = "Recently played",
-        cards = take(RECENT_SHELF_SIZE).map { track ->
+        // Skipping back and forth puts the same track in the history more than once.
+        cards = distinctBy { it.uri }.take(RECENT_SHELF_SIZE).map { track ->
             RecommendationCard(
                 title = track.title,
                 subtitle = track.artist,
