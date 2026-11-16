@@ -23,8 +23,8 @@
       <img src="https://img.shields.io/github/last-commit/Pro-mwas1234/SpotiBat?style=for-the-badge&logo=git&labelColor=0d0d0d&color=1DB954" alt="last commit"/>
     </a>
     &nbsp;
-    <a href="https://deepwiki.com/Pro-mwas1234/SpotiBat/">
-      <img src="https://deepwiki.com/badge.svg" alt="DeepWiki" style="height: 28px;"/>
+    <a href="https://deepwiki.com/Pro-mwas1234/SpotiBat">
+      <img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki" style="height: 28px;"/>
     </a>
   </p>
   <p>
