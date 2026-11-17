@@ -89,10 +89,10 @@ class SquareArtWidget : AppWidgetProvider() {
                         val rounded = roundCorners(scaled, 28f, density)
                         remoteViews.setImageViewBitmap(R.id.img_cover, rounded)
                     } catch (e: Throwable) {
-                        remoteViews.setImageViewResource(R.id.img_cover, R.drawable.logo_duck)
+                        remoteViews.setImageViewResource(R.id.img_cover, R.drawable.spotibat_logo)
                     }
                 } else {
-                    remoteViews.setImageViewResource(R.id.img_cover, R.drawable.logo_duck)
+                    remoteViews.setImageViewResource(R.id.img_cover, R.drawable.spotibat_logo)
                     if (artUrl != null) {
                         WidgetArt.prefetch(context.applicationContext, artUrl) {
                             updateAllWidgets(context)
@@ -100,7 +100,7 @@ class SquareArtWidget : AppWidgetProvider() {
                     }
                 }
             } else {
-                remoteViews.setImageViewResource(R.id.img_cover, R.drawable.logo_duck)
+                remoteViews.setImageViewResource(R.id.img_cover, R.drawable.spotibat_logo)
             }
 
             // Click opens the player in app

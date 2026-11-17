@@ -1585,6 +1585,11 @@ class PlaybackBridge(private val context: Context) {
             speed = if (wasPlaying) 0.0 else 1.0,
             paused = wasPlaying,
             videoOn = canvasOn,
+        ) ?: localSnapshot(
+            source,
+            positionMs = player.positionMs,
+            durationMs = progress.durationMs,
+            playing = !wasPlaying,
         )
         if (snapshot == null) {
             log.w("toggle: no snapshot")
@@ -1767,6 +1772,26 @@ class PlaybackBridge(private val context: Context) {
         player.download(commandFor(uri, chainContext), connect.spclientHost)
     }
 
+    /**
+     * Queues a list row by the metadata the list already has. Playlist and album rows sit
+     * outside the playing window, so [commandFor] can only give an empty name for them, and a
+     * download without a title has nothing to resolve.
+     */
+    fun download(uri: String, title: String, artist: String, durationMs: Long) {
+        if (uri.isBlank()) return
+        val known = commandFor(uri, chainContext)
+        val track = if (title.isBlank() || known.name.isNotBlank()) {
+            known
+        } else {
+            known.copy(
+                name = title,
+                artists = artist,
+                durationMs = durationMs.takeIf { it > 0L } ?: known.durationMs,
+            )
+        }
+        player.download(track, connect.spclientHost)
+    }
+
     fun setVideoPolicy(musicVideos: Boolean, otherVideos: Boolean) {
         if (musicVideosAllowed == musicVideos && otherVideosAllowed == otherVideos) return
         musicVideosAllowed = musicVideos
@@ -1812,8 +1837,16 @@ class PlaybackBridge(private val context: Context) {
         val command = connect.playback
         if (command == null) {
             if (player.hasSource && remoteTarget().isBlank()) {
-                log.i("focus pause: no command, publishing the local state")
+                log.i("focus pause: no command, reporting the local state")
                 publishLocalFromEngine(playing = false)
+                val snapshot = localSnapshot(
+                    DebugSource.PAUSE,
+                    positionMs = player.positionMs,
+                    durationMs = progress.durationMs,
+                    playing = false,
+                )
+                val accepted = snapshot?.let { connect.report(it) }
+                log.i("focus pause reported locally accepted=$accepted")
             } else {
                 log.i("focus pause: no command, nothing to report")
             }
@@ -1839,8 +1872,16 @@ class PlaybackBridge(private val context: Context) {
         val command = connect.playback
         if (command == null) {
             if (player.hasSource && remoteTarget().isBlank()) {
-                log.i("focus resume: no command, publishing the local state")
+                log.i("focus resume: no command, reporting the local state")
                 publishLocalFromEngine(playing = true)
+                val snapshot = localSnapshot(
+                    DebugSource.RESUME,
+                    positionMs = player.positionMs,
+                    durationMs = progress.durationMs,
+                    playing = true,
+                )
+                val accepted = snapshot?.let { connect.report(it) }
+                log.i("focus resume reported locally accepted=$accepted")
             } else {
                 log.i("focus resume: no command, nothing to report")
             }
@@ -3800,6 +3841,17 @@ class PlaybackBridge(private val context: Context) {
                     }
                     scope.launch {
                         publishLocalFromEngine()
+                        if (connect.playback == null) {
+                            val snapshot = localSnapshot(
+                                DebugSource.STARTED_PLAYING,
+                                positionMs = player.positionMs,
+                                durationMs = player.durationMs,
+                                playing = player.isPlaying,
+                                previousPositionMs = 0L,
+                            )
+                            val accepted = snapshot?.let { connect.report(it) }
+                            log.i("report started_playing local accepted=$accepted")
+                        }
                         queueGaplessNext(event.uri.ifBlank { state.trackUri })
                     }
                 }
@@ -3876,7 +3928,12 @@ class PlaybackBridge(private val context: Context) {
                         speed = 1.0,
                         videoOn = canvasOn,
                     )
-                    snapshot?.let { connect.report(it) }
+                    (snapshot ?: localSnapshot(
+                        DebugSource.SEEK,
+                        positionMs = event.positionMs,
+                        durationMs = progress.durationMs,
+                        playing = true,
+                    ))?.let { connect.report(it) }
                 }
             }
 
@@ -3979,21 +4036,66 @@ class PlaybackBridge(private val context: Context) {
         thresholdTrack = playing.trackUri
         log.i("threshold at ${playing.positionMs}ms '${playing.trackUri}'")
         scope.launch {
-            val command = connect.playback ?: return@launch
-            val snapshot = Snapshot.of(
-                command,
-                DebugSource.PLAYED_THRESHOLD_REACHED,
-                positionMs = playing.positionMs,
-                previousPositionMs = playing.positionMs,
-                speed = 1.0,
-                durationMs = playing.durationMs,
-                format = playing.format.toString(),
-                bitrate = playing.bitrate,
-                quality = playing.quality,
-            )
+            val command = connect.playback
+            val snapshot = if (command != null) {
+                Snapshot.of(
+                    command,
+                    DebugSource.PLAYED_THRESHOLD_REACHED,
+                    positionMs = playing.positionMs,
+                    previousPositionMs = playing.positionMs,
+                    speed = 1.0,
+                    durationMs = playing.durationMs,
+                    format = playing.format.toString(),
+                    bitrate = playing.bitrate,
+                    quality = playing.quality,
+                )
+            } else {
+                localSnapshot(
+                    DebugSource.PLAYED_THRESHOLD_REACHED,
+                    positionMs = playing.positionMs,
+                    durationMs = playing.durationMs,
+                    playing = true,
+                )
+            }
             val accepted = snapshot?.let { connect.report(it) }
             log.i("report played_threshold_reached accepted=$accepted pos=${playing.positionMs}")
         }
+    }
+
+    /**
+     * State reports echo the ids of the server-pushed playback command. When the engine queued a
+     * track on this phone there is no command yet, so the first report is built locally: Spotify
+     * answers it with the command every later report follows. Without that first report no
+     * play is ever recorded against the account, which is why listening minutes never counted.
+     */
+    private val localStateMachineId: String =
+        java.util.UUID.randomUUID().toString().replace("-", "")
+
+    private fun localSnapshot(
+        source: String,
+        positionMs: Long,
+        durationMs: Long,
+        playing: Boolean,
+        previousPositionMs: Long = positionMs,
+    ): Snapshot? {
+        if (remoteTarget().isNotBlank()) return null
+        val uri = player.state.value.trackUri.ifBlank { state.trackUri }
+        if (uri.isBlank()) return null
+        return Snapshot(
+            stateMachineId = localStateMachineId,
+            stateId = localStateMachineId,
+            paused = !playing,
+            positionMs = positionMs,
+            durationMs = durationMs.takeIf { it > 0L } ?: progress.durationMs,
+            speed = if (playing) 1.0 else 0.0,
+            previousPositionMs = previousPositionMs,
+            debugSource = source,
+            mediaType = "AUDIO",
+            format = player.format.takeIf { it > 0 }?.toString().orEmpty(),
+            bitrate = player.bitrate,
+            quality = player.quality,
+            videoOn = canvasOn,
+        )
     }
 
     private fun chainFor(): List<String> {

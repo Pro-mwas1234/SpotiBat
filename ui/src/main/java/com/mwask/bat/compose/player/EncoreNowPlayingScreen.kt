@@ -144,6 +144,8 @@ private const val DISMISS_THRESHOLD_DP = 96f
 private const val AXIS_UNDECIDED = 0
 private const val AXIS_VERTICAL = 2
 private const val AXIS_YIELD = 3
+private const val AXIS_HORIZONTAL = 4
+private const val SKIP_SWIPE_THRESHOLD_PX = 64f
 
 /** Reveal choreography: the artwork lands first, then the rest follows. */
 private const val REVEAL_MS = 420
@@ -284,6 +286,8 @@ fun EncoreNowPlayingScreen(
     lyrics: List<TimeSyncedLyric> = emptyList(),
     isLyricsUnderCoverEnabled: Boolean = true,
     showLyricsPreview: Boolean = true,
+    showLyricsButton: Boolean = true,
+    showLyricsCard: Boolean = false,
     previousTrack: TrackItem? = null,
     nextTrack: TrackItem? = null,
     onSkipToPreviousClick: () -> Unit = {}
@@ -459,7 +463,9 @@ fun EncoreNowPlayingScreen(
         dismissThresholdPx = dismissThresholdPx,
         dismissEnabled = !docked,
         onDismiss = dismissPlayer,
-        onSnapBack = snapBackPlayer
+        onSnapBack = snapBackPlayer,
+        onSkipPrevious = onSkipPreviousClick,
+        onSkipNext = onSkipNextClick
     )
 
     BoxWithConstraints(
@@ -705,7 +711,20 @@ fun EncoreNowPlayingScreen(
                             onDeviceClick = onDeviceClick,
                             onQueueClick = onQueueClick,
                             onShareClick = onShareClick,
-                            onLyricsClick = { isLyricsFullscreen = true }
+                            onLyricsClick = { isLyricsFullscreen = true },
+                            showLyricsButton = showLyricsButton
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        NowPlayingLyricsCard(
+                            visible = effectiveLyricsVisible && showLyricsCard,
+                            lyrics = lyrics,
+                            activeIndex = activeLyricIndex,
+                            dominantColor = dynamicArtworkColor,
+                            peekHeight = LANDSCAPE_LYRICS_PEEK_HEIGHT,
+                            onOpenLyrics = { isLyricsFullscreen = true },
+                            onShareLyrics = { isLyricsShareOpen = true }
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -915,7 +934,8 @@ fun EncoreNowPlayingScreen(
                                         onDeviceClick = onDeviceClick,
                                         onQueueClick = onQueueClick,
                                         onShareClick = onShareClick,
-                                        onLyricsClick = { isLyricsFullscreen = true }
+                                        onLyricsClick = { isLyricsFullscreen = true },
+                                        showLyricsButton = showLyricsButton
                                     )
                                 }
                             }
@@ -928,6 +948,15 @@ fun EncoreNowPlayingScreen(
                             .revealAt(reveal, REVEAL_REST_DELAY_MS / REVEAL_MS.toFloat())
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            NowPlayingLyricsCard(
+                                visible = effectiveLyricsVisible && showLyricsCard && canvasControlsShown,
+                                lyrics = lyrics,
+                                activeIndex = activeLyricIndex,
+                                dominantColor = dynamicArtworkColor,
+                                onOpenLyrics = { isLyricsFullscreen = true },
+                                onShareLyrics = { isLyricsShareOpen = true }
+                            )
+
                             if (!effectiveIsLoading && artist.isNotBlank()) {
                                 AnimatedVisibility(
                                     visible = canvasControlsShown,
@@ -1068,7 +1097,9 @@ private fun Modifier.npvArtworkGesture(
     dismissThresholdPx: Float,
     dismissEnabled: Boolean,
     onDismiss: () -> Unit,
-    onSnapBack: () -> Unit
+    onSnapBack: () -> Unit,
+    onSkipPrevious: () -> Unit = {},
+    onSkipNext: () -> Unit = {},
 ): Modifier = pointerInput(dismissThresholdPx, scrollEnabled, dismissEnabled) {
     var axis = AXIS_UNDECIDED
     var totalDragX = 0f
@@ -1097,7 +1128,9 @@ private fun Modifier.npvArtworkGesture(
                 val pageAtTop = !scrollEnabled || scrollState.value <= 0
                 if (totalDragY > DRAG_AXIS_SLOP_PX && verticalBias && pageAtTop && dismissEnabled) {
                     axis = AXIS_VERTICAL
-                } else if (totalDragY < -DRAG_AXIS_SLOP_PX || totalDragX.absoluteValue > DRAG_AXIS_SLOP_PX && !verticalBias) {
+                } else if (totalDragX.absoluteValue > DRAG_AXIS_SLOP_PX && !verticalBias) {
+                    axis = AXIS_HORIZONTAL
+                } else if (totalDragY < -DRAG_AXIS_SLOP_PX) {
                     axis = AXIS_YIELD
                 }
             }
@@ -1110,6 +1143,7 @@ private fun Modifier.npvArtworkGesture(
                         playerOffsetY.snapTo((playerOffsetY.value + delta.y).coerceAtLeast(0f))
                     }
                 }
+                AXIS_HORIZONTAL -> change.consume()
                 AXIS_YIELD -> Unit
             }
         }
@@ -1124,6 +1158,10 @@ private fun Modifier.npvArtworkGesture(
                         playerOffsetY.value > dismissThresholdPx -> onDismiss()
                         else -> onSnapBack()
                     }
+                }
+                AXIS_HORIZONTAL -> when {
+                    totalDragX <= -SKIP_SWIPE_THRESHOLD_PX -> onSkipNext()
+                    totalDragX >= SKIP_SWIPE_THRESHOLD_PX -> onSkipPrevious()
                 }
             }
             axis = AXIS_UNDECIDED
@@ -2102,6 +2140,7 @@ private fun NowPlayingFooterRow(
     onQueueClick: () -> Unit,
     onShareClick: () -> Unit,
     onLyricsClick: () -> Unit,
+    showLyricsButton: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -2111,15 +2150,18 @@ private fun NowPlayingFooterRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Lyrics button on the left
-        EncoreIconButton(
-            iconRes = R.drawable.encore_icon_lyrics_24,
-            contentDescription = stringResource(R.string.lyrics),
-            onClick = onLyricsClick,
-            tint = if (connectedDeviceName.isNotBlank()) EncoreColors.Green else EncoreColors.TextPrimary,
-            size = 32.dp,
-            iconSize = 20.dp
-        )
+        // With the lyrics card expanded the button is gone and the device row goes back
+        // to the left edge, the way this footer looked before the button existed.
+        if (showLyricsButton) {
+            EncoreIconButton(
+                iconRes = R.drawable.encore_icon_lyrics_24,
+                contentDescription = stringResource(R.string.lyrics),
+                onClick = onLyricsClick,
+                tint = if (connectedDeviceName.isNotBlank()) EncoreColors.Green else EncoreColors.TextPrimary,
+                size = 32.dp,
+                iconSize = 20.dp
+            )
+        }
 
         // Device button in center
         Row(

@@ -159,7 +159,7 @@ class MusicCardWidget : AppWidgetProvider() {
                 val progressInt = if (duration > 0) (position * 1000L / duration).toInt().coerceIn(0, 1000) else 0
                 remoteViews.setProgressBar(R.id.progress_bar, 1000, progressInt, false)
 
-                // Rounded artwork with fallback to existing logo_duck
+                // Rounded artwork with fallback to the SpotiBat logo
                 val artUrl = resolveRemoteImageUrl(snapshot.coverUrl)
                 val art = artUrl?.let { url -> runCatching { WidgetArt.cached(url) }.getOrNull() }
                 if (art != null && !art.isRecycled) {
@@ -172,10 +172,10 @@ class MusicCardWidget : AppWidgetProvider() {
                         val rounded = roundCorners(scaled, 16f, density)
                         remoteViews.setImageViewBitmap(R.id.img_cover, rounded)
                     } catch (e: Throwable) {
-                        remoteViews.setImageViewResource(R.id.img_cover, R.drawable.logo_duck)
+                        remoteViews.setImageViewResource(R.id.img_cover, R.drawable.spotibat_logo)
                     }
                 } else {
-                    remoteViews.setImageViewResource(R.id.img_cover, R.drawable.logo_duck)
+                    remoteViews.setImageViewResource(R.id.img_cover, R.drawable.spotibat_logo)
                     if (artUrl != null) {
                         WidgetArt.prefetch(context.applicationContext, artUrl) {
                             updateAllWidgets(context)
@@ -198,7 +198,7 @@ class MusicCardWidget : AppWidgetProvider() {
                 remoteViews.setTextViewText(R.id.txt_duration, "--:--")
                 remoteViews.setProgressBar(R.id.progress_bar, 1000, 0, false)
 
-                remoteViews.setImageViewResource(R.id.img_cover, R.drawable.logo_duck)
+                remoteViews.setImageViewResource(R.id.img_cover, R.drawable.spotibat_logo)
             }
 
             // Click Handlers
@@ -222,7 +222,7 @@ class MusicCardWidget : AppWidgetProvider() {
             } catch (e: Throwable) {
                 try {
                     val fallbackViews = RemoteViews(context.packageName, R.layout.widget_music_card)
-                    fallbackViews.setImageViewResource(R.id.img_cover, R.drawable.logo_duck)
+                    fallbackViews.setImageViewResource(R.id.img_cover, R.drawable.spotibat_logo)
                     fallbackViews.setTextViewText(R.id.txt_title, snapshot.title.ifBlank { context.getString(R.string.txt_not_playing) })
                     fallbackViews.setOnClickPendingIntent(R.id.widget_root, mainPendingIntent)
                     appWidgetManager.updateAppWidget(appWidgetId, fallbackViews)

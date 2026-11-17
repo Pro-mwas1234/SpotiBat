@@ -185,6 +185,8 @@ fun EncorePlaylistScreen(
     contributors: List<PlaylistMember> = emptyList(),
     onContributorsClick: (() -> Unit)? = null,
     onShareClick: () -> Unit = {},
+    downloadedCount: Int = 0,
+    onDownloadClick: () -> Unit = {},
     isSaved: Boolean? = null,
     onSaveToggle: () -> Unit = {},
     recommendedTracks: List<TrackItem> = emptyList(),
@@ -216,7 +218,8 @@ fun EncorePlaylistScreen(
     var isEditDetailsOpen by remember { mutableStateOf(false) }
     var isSearching by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-    var isDownloaded by remember { mutableStateOf(false) }
+    // Reflected from the real offline library instead of a switch this screen keeps to itself.
+    val isDownloaded = tracks.isNotEmpty() && downloadedCount >= tracks.size
     var isShuffle by remember { mutableStateOf(false) }
     val sortContext = LocalContext.current
     val sortPreferences = remember(sortContext) {
@@ -969,7 +972,7 @@ fun EncorePlaylistScreen(
                                         modifier = Modifier
                                             .size(32.dp)
                                             .clip(CircleShape)
-                                            .clickable { isDownloaded = !isDownloaded },
+                                            .clickable { onDownloadClick() },
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(

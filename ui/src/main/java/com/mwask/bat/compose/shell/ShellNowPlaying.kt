@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 import com.mwask.bat.compose.components.RepeatMode
 import com.mwask.bat.compose.components.ShuffleMode
 import com.mwask.bat.compose.player.EncoreNowPlayingScreen
+import com.mwask.bat.compose.player.LyricsOptions
 import com.mwask.bat.compose.player.TimeSyncedLyric
 import com.mwask.bat.compose.theme.EncoreAnimation
 
@@ -80,6 +81,9 @@ internal fun ShellNowPlaying(
     onArtistClick: () -> Unit = {},
     onArtistLongClick: (() -> Unit)? = null,
 ) {
+    // Loaded once at startup; the flag is a live state so settings changes apply immediately.
+    val lyricsInline = LyricsOptions.inlineUnderPlayer
+
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn(
@@ -122,6 +126,9 @@ internal fun ShellNowPlaying(
             connectedDeviceName = connectedDevice,
             coverUrl = coverUrl,
             lyrics = lyrics,
+            showLyricsPreview = true,
+            showLyricsButton = !lyricsInline,
+            showLyricsCard = lyricsInline,
             canvasFilePath = canvasFilePath,
             isCanvasAllowed = isCanvasAllowed,
             isCanvasEnabled = isCanvasEnabled,

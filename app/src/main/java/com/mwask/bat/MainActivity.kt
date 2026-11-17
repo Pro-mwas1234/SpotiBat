@@ -293,6 +293,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         Library.onLibraryChanged = { Krespot.library.invalidate() }
+        com.mwask.bat.compose.player.LyricsOptions.load(this)
         setContent {
             val context = LocalContext.current
             val themeTick = themeTickState
@@ -1468,6 +1469,12 @@ class MainActivity : ComponentActivity() {
             OfflineDownloadService.start(context)
             bridge.download(uri)
         },
+        onDownloadRequest = { uri, title, artist, durationMs ->
+            // List rows carry their own metadata, so a playlist song that is not in the
+            // playing window still downloads by name instead of failing on an empty title.
+            OfflineDownloadService.start(context)
+            bridge.download(uri, title, artist, durationMs)
+        },
         playlistTracks = playlistTracks,
         playlistDetail = playlistDetail,
         playlistLoading = playlistLoading,
@@ -1541,7 +1548,11 @@ class MainActivity : ComponentActivity() {
                     startTimeMs = line.startTimeMs,
                     text = line.text,
                     words = line.words.map { word ->
-                        TimeSyncedWord(word.startTimeMs, word.endTimeMs, word.text)
+                        TimeSyncedWord(
+                            startTimeMs = word.startTimeMs,
+                            endTimeMs = word.endTimeMs,
+                            text = word.text
+                        )
                     }
                 )
             }.orEmpty()

@@ -45,10 +45,19 @@ object LyricsSource {
         }
         val url = "$SPCLIENT/color-lyrics/v2/track/$id" +
             "?format=json&vocalRemoval=false&market=from_token"
-        val response = Net.get(url, spHeaders(context), "lyrics") ?: return null
+        var response = Net.get(url, spHeaders(context), "lyrics") ?: return null
         if (!response.ok) {
-            log.w("lyrics $id http ${response.code}")
-            return null
+            log.w("lyrics $id http ${response.code} ${response.body.take(180)}")
+            // A 403 here is usually a client-token the edge no longer accepts: mint a fresh
+            // one and ask again before giving the track up to the external providers.
+            ClientToken.get(context, force = true)
+            response = Net.get(url, spHeaders(context), "lyrics") ?: return null
+            if (!response.ok) {
+                log.w("lyrics $id http ${response.code} after a fresh client token " +
+                        "${response.body.take(180)}"
+                )
+                return null
+            }
         }
         val node = response.json()?.optJSONObject("lyrics") ?: run {
             log.i("lyrics $id none")
@@ -75,6 +84,7 @@ object LyricsSource {
         put("Authorization", "Bearer ${EncoreAuth.token(context)}")
         put("Accept", "application/json")
         put("app-platform", "WebPlayer")
+        put("spotify-app-version", "1.3.8.509.g26b6eac7300d")
         put("User-Agent", Net.DESKTOP_UA)
         ClientToken.get(context).takeIf { it.isNotBlank() }?.let { put("client-token", it) }
     }

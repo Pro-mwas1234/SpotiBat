@@ -316,7 +316,7 @@ internal fun ShellPlaylistRoute(
         onTogglePlaylistSaved = onTogglePlaylistSaved,
         downloadedCount = playlistTracks.orEmpty().count { it.uri in env.downloadedUris },
         downloadedUris = env.downloadedUris,
-        onDownloadClick = { env.actions.downloadTracks(playlistTracks.orEmpty().map { it.uri }) },
+        onDownloadClick = { env.actions.downloadTracks(playlistTracks.orEmpty()) },
         playlistMembers = playlistPermissions?.members ?: playlistDetail?.members.orEmpty(),
         onOpenContributors = {
             env.flags.isContributorsOpen = true
@@ -394,7 +394,7 @@ internal fun ShellAlbumRoute(
         albumSaved = albumSaved == true,
         downloadedCount = albumTracks.orEmpty().count { it.uri in env.downloadedUris },
         downloadedUris = env.downloadedUris,
-        onDownloadClick = { env.actions.downloadTracks(albumTracks.orEmpty().map { it.uri }) },
+        onDownloadClick = { env.actions.downloadTracks(albumTracks.orEmpty()) },
         onAlbumLikeToggle = {
             val uri = env.active.albumUri.ifBlank { albumDetail?.uri.orEmpty() }
             if (uri.startsWith("spotify:album:")) {

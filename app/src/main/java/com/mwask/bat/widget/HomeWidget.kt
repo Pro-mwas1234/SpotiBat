@@ -193,10 +193,10 @@ class HomeWidget : AppWidgetProvider() {
                             remoteViews.setImageViewBitmap(R.id.img_cover, safeBitmap)
                         }
                     } catch (e: Throwable) {
-                        remoteViews.setImageViewResource(R.id.img_cover, R.drawable.logo_duck)
+                        remoteViews.setImageViewResource(R.id.img_cover, R.drawable.spotibat_logo)
                     }
                 } else {
-                    remoteViews.setImageViewResource(R.id.img_cover, R.drawable.logo_duck)
+                    remoteViews.setImageViewResource(R.id.img_cover, R.drawable.spotibat_logo)
                     if (artUrl != null) {
                         WidgetArt.prefetch(context.applicationContext, artUrl) {
                             updateAllWidgets(context)
@@ -229,7 +229,7 @@ class HomeWidget : AppWidgetProvider() {
                     remoteViews.setImageViewResource(R.id.btn_wfav, R.drawable.favoff)
                     remoteViews.setInt(R.id.btn_wfav, "setColorFilter", COLOR_INACTIVE)
                 }
-                remoteViews.setImageViewResource(R.id.img_cover, R.drawable.logo_duck)
+                remoteViews.setImageViewResource(R.id.img_cover, R.drawable.spotibat_logo)
             }
 
             // Click Handlers
@@ -263,7 +263,7 @@ class HomeWidget : AppWidgetProvider() {
                 // Fallback in case bitmap allocation limits exceed RemoteViews threshold
                 try {
                     val fallbackViews = RemoteViews(context.packageName, layoutId)
-                    fallbackViews.setImageViewResource(R.id.img_cover, R.drawable.logo_duck)
+                    fallbackViews.setImageViewResource(R.id.img_cover, R.drawable.spotibat_logo)
                     if (isExpanded) {
                         fallbackViews.setTextViewText(R.id.txt_title, snapshot.title)
                         fallbackViews.setTextViewText(R.id.txt_artist, snapshot.artist)

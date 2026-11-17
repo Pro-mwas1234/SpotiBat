@@ -14,6 +14,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -52,6 +53,16 @@ private const val READ_BUFFER_BYTES = 64 * 1024
 /** Whole-track retries, used when resolving a stream url fails outright. */
 private const val TRACK_ATTEMPTS = 3
 private const val TRACK_RETRY_BASE_MS = 2_000L
+
+/**
+ * Songs pulled at the same time. One at a time left a 40 track playlist waiting on 40
+ * YouTube resolves back to back; two keep the link busy without hammering it.
+ */
+private const val PARALLEL_DOWNLOADS = 2
+
+/** Pause before retrying a dropped range, so a flaky network is not hit in a tight loop. */
+private const val CHUNK_BACKOFF_MS = 400L
+private const val CHUNK_BACKOFF_MAX_MS = 3_000L
 
 /** The stream url resolve is bounded; longer than this and the song is stuck, not slow. */
 private const val RESOLVE_TIMEOUT_MS = 45_000L
@@ -130,11 +141,10 @@ object OfflineAudio {
     @Volatile
     private var consumerStarted = false
 
-    @Volatile
-    private var activeUri: String? = null
+    /** Downloads currently transferring; more than one when the queue runs in parallel. */
+    private val activeUris = ConcurrentHashMap.newKeySet<String>()
 
-    @Volatile
-    private var activeCall: okhttp3.Call? = null
+    private val activeCalls = ConcurrentHashMap<String, okhttp3.Call>()
 
     /**
      * A dedicated client for pulling audio. media3's DefaultHttpDataSource gives up after an
@@ -165,7 +175,7 @@ object OfflineAudio {
         val uri = request.uri
         if (uri.isBlank()) return false
         if (isDownloaded(uri)) return true
-        if (activeUri == uri || uri in queued) return true
+        if (uri in activeUris || uri in queued) return true
         cancelled.remove(uri)
         pending[uri] = request
         queued += uri
@@ -229,7 +239,8 @@ object OfflineAudio {
     /** Drops everything still waiting and aborts the one in flight. */
     fun cancelAll(context: Context) {
         queued.forEach { cancel(it) }
-        activeUri?.let { cancel(it) }
+        activeUris.toList().forEach { cancel(it) }
+        activeCalls.values.forEach { it.cancel() }
         queued.clear()
         _statuses.update { map -> map.filterValues { it.phase == DownloadPhase.DONE } }
         _progress.update { emptyMap() }
@@ -280,10 +291,14 @@ object OfflineAudio {
         synchronized(consumerLock) {
             if (consumerStarted) return
             consumerStarted = true
-            log.i("offline queue started")
+            log.i("offline queue started, $PARALLEL_DOWNLOADS at a time")
             scope.launch {
                 try {
-                    consume(app)
+                    coroutineScope {
+                        repeat(PARALLEL_DOWNLOADS) { worker ->
+                            launch { consume(app, worker) }
+                        }
+                    }
                 } finally {
                     // The channel is never closed, so reaching here means the loop died; let the
                     // next enqueue start a fresh one instead of queueing into a dead consumer.
@@ -294,8 +309,8 @@ object OfflineAudio {
         }
     }
 
-    /** Pulls songs one at a time in the order they were asked for, like SpotiBat's queue. */
-    private suspend fun consume(context: Context) {
+    /** One queue worker: takes the next song and pulls it before asking for another. */
+    private suspend fun consume(context: Context, worker: Int) {
         for (uri in queue) {
             queued.remove(uri)
             val request = pending[uri]
@@ -311,16 +326,16 @@ object OfflineAudio {
                 _statuses.update { it - uri }
                 continue
             }
-            activeUri = uri
-            log.i("offline picked '${request.title.ifBlank { uri.takeLast(12) }}'")
+            activeUris += uri
+            log.i("offline[$worker] picked '${request.title.ifBlank { uri.takeLast(12) }}'")
             try {
                 downloadTrack(context, request)
             } catch (t: Throwable) {
                 log.e("offline '${uri.takeLast(12)}' crashed: ${t.javaClass.simpleName}", t)
                 fail(uri, t.message?.takeIf { it.isNotBlank() } ?: "download crashed")
             } finally {
-                activeUri = null
-                activeCall = null
+                activeUris -= uri
+                activeCalls.remove(uri)
             }
         }
     }
@@ -328,6 +343,9 @@ object OfflineAudio {
     private suspend fun downloadTrack(context: Context, request: OfflineRequest) {
         val uri = request.uri
         var lastError: String? = null
+        // Re-resolving the same video yields a byte-identical stream, so a later attempt can
+        // carry on from the `.part` file instead of pulling the first 90% again.
+        var lastStreamKey: String? = null
         log.i("offline starting '${uri.takeLast(12)}'")
         for (attempt in 1..TRACK_ATTEMPTS) {
             if (cancelled.contains(uri)) return
@@ -348,7 +366,10 @@ object OfflineAudio {
             }
             log.i("yt: stream ${stream.uploader} ${stream.durationSeconds}s ${stream.mime}")
             val file = fileFor(context, uri)
-            when (val result = fetch(uri, stream.url, file)) {
+            val streamKey = "${stream.mime}|${stream.durationSeconds}|${stream.title}|${stream.uploader}"
+            val resume = lastStreamKey == streamKey
+            lastStreamKey = streamKey
+            when (val result = fetch(uri, stream.url, file, resume)) {
                 is FetchResult.Saved -> {
                     complete(context, request, stream, result.bytes)
                     return
@@ -377,15 +398,25 @@ object OfflineAudio {
      * [CHUNK_ATTEMPTS] times from where the previous attempt stopped. Bytes land in a `.part`
      * file first so an interrupted song never looks finished.
      */
-    private fun fetch(uri: String, url: String, file: File): FetchResult {
+    private suspend fun fetch(
+        uri: String,
+        url: String,
+        file: File,
+        resume: Boolean = false,
+    ): FetchResult {
         val part = partOf(file)
         part.parentFile?.mkdirs()
         var total = -1L
-        var position = 0L
+        var position = if (resume && part.isFile) part.length() else 0L
         var lastError = "connection dropped"
         try {
             RandomAccessFile(part, "rw").use { out ->
-                out.setLength(0)
+                if (position <= 0L) {
+                    out.setLength(0)
+                    position = 0L
+                } else {
+                    log.i("offline resuming '${uri.takeLast(12)}' at ${position}B")
+                }
                 transfer@ while (true) {
                     if (cancelled.contains(uri)) return FetchResult.Cancelled
                     val end = if (total > 0) {
@@ -405,10 +436,15 @@ object OfflineAudio {
                                 .header("User-Agent", MEDIA_USER_AGENT)
                                 .build(),
                         )
-                        activeCall = call
+                        activeCalls[uri] = call
                         try {
                             call.execute().use { response ->
                                 val code = response.code
+                                if (code == 416 && position > 0L) {
+                                    // The range starts past the end: the part file is already whole.
+                                    total = position
+                                    break@transfer
+                                }
                                 if (code !in 200..299) {
                                     return FetchResult.Failed(httpReason(code))
                                 }
@@ -445,8 +481,10 @@ object OfflineAudio {
                             lastError = e.message?.takeIf { it.isNotBlank() } ?: "connection dropped"
                             log.w("offline chunk @$position/$total attempt $attempt: $lastError")
                             if (attempt >= CHUNK_ATTEMPTS) return FetchResult.Failed(lastError)
+                            // Back off a little so a dead route is not retried in a tight loop.
+                            delay(minOf(CHUNK_BACKOFF_MAX_MS, CHUNK_BACKOFF_MS * attempt))
                         } finally {
-                            activeCall = null
+                            activeCalls.remove(uri)
                         }
                     }
                     if (fullBody) {
@@ -529,7 +567,8 @@ object OfflineAudio {
         cancelled += uri
         queued.remove(uri)
         pending.remove(uri)
-        if (activeUri == uri) activeCall?.cancel()
+        activeCalls.remove(uri)?.cancel()
+        activeUris -= uri
     }
 
     private fun setStatus(uri: String, status: DownloadStatus) {

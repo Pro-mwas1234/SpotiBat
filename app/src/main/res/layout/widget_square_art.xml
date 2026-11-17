@@ -12,5 +12,5 @@
         android:layout_height="match_parent"
         android:contentDescription="Album Art"
         android:scaleType="centerCrop"
-        android:src="@drawable/logo_duck" />
+        android:src="@drawable/spotibat_logo" />
 </FrameLayout>

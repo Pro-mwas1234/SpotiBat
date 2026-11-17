@@ -469,7 +469,7 @@ object EncoreAuth {
         return ""
     }
 
-    private suspend fun profile(context: Context, token: String): Account? {
+    suspend fun profile(context: Context, token: String): Account? {
         val json = Pathfinder.queryPost(
             context,
             token,

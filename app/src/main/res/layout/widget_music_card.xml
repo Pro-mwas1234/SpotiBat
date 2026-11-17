@@ -14,7 +14,7 @@
         android:layout_weight="1"
         android:contentDescription="Album Art"
         android:scaleType="fitCenter"
-        android:src="@drawable/logo_duck" />
+        android:src="@drawable/spotibat_logo" />
 
     <LinearLayout
         android:layout_width="match_parent"

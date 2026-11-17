@@ -7,7 +7,7 @@
     android:minResizeWidth="110dp"
     android:maxResizeHeight="700dp"
     android:maxResizeWidth="700dp"
-    android:previewImage="@drawable/widget_square_art_preview"
+    android:previewImage="@drawable/spotibat_logo"
     android:resizeMode="horizontal|vertical"
     android:targetCellWidth="2"
     android:targetCellHeight="2"

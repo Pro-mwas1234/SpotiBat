@@ -146,8 +146,8 @@ fun LoginScreen(
                 splash = false
                 continue
             }
-            val cookies = EncoreAuth.captureCookies(context)
-            val spDc = cookies?.let { EncoreAuth.spDcOf(it) }.orEmpty()
+            val cookies = EncoreAuth.captureCookies(context) ?: continue
+            val spDc = EncoreAuth.spDcOf(cookies)
             if (spDc.isBlank()) continue
 
             val now = SystemClock.elapsedRealtime()
@@ -188,7 +188,7 @@ fun LoginScreen(
 
                 Resolve.NotReady -> {
                     log.w("not ready (${SystemClock.elapsedRealtime() - started}ms)")
-                    if (rescues < 2 && ++rescues == 2) {
+                    rescues++; if (rescues >= 2) {
                         log.w("giving up on the player, reopening login")
                         splash = false
                         host.load(LOGIN_URL)
@@ -293,7 +293,8 @@ private suspend fun resolveAccount(
     if (session != null) {
         EncoreAuth.saveToken(host.context, session.token, session.expiresAtMs)
         val account = EncoreAuth.fetchAccount(session.token)
-        log(if (account != null) "/v1/me ok (${account.name})" else "/v1/me failed")
+            ?: EncoreAuth.profile(host.context, session.token)
+        log(if (account != null) "account ok (${account.name})" else "account lookup failed")
         if (account != null && account.name.isNotBlank()) return Resolve.Ok(account)
     }
 
@@ -313,9 +314,10 @@ private suspend fun resolveAccount(
     val httpToken = EncoreAuth.fetchToken(host.context, spDc)
     log(if (httpToken != null) "http token ok (${httpToken.length})" else "http token: none")
     if (httpToken != null) {
-        EncoreAuth.fetchAccount(httpToken)?.let { account ->
-            if (account.name.isNotBlank()) return Resolve.Ok(account)
-        }
+        val account = EncoreAuth.fetchAccount(httpToken)
+            ?: EncoreAuth.profile(host.context, httpToken)
+        log(if (account != null) "http account ok (${account.name})" else "http account failed")
+        if (account != null && account.name.isNotBlank()) return Resolve.Ok(account)
     }
     return Resolve.NotReady
 }

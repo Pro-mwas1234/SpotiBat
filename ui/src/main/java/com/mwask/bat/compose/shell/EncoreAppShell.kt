@@ -129,6 +129,7 @@ fun EncoreAppShell(
     onDownloadedRemove: (DownloadedTrack) -> Unit = {},
     onDownloadedDeleteAll: (() -> Unit)? = null,
     onDownloadTrack: ((String) -> Unit)? = null,
+    onDownloadRequest: ((String, String, String, Long) -> Unit)? = null,
     onRemoveDownload: ((String) -> Unit)? = null,
     downloadedUris: Set<String> = emptySet(),
     downloadProgress: Map<String, DownloadStatus> = emptyMap(),
@@ -439,6 +440,7 @@ fun EncoreAppShell(
         searchQuery = { searchQueryNow },
         clipboard = clipboard,
         onDownloadTrack = onDownloadTrack,
+        onDownloadRequest = onDownloadRequest,
         onRemoveDownload = onRemoveDownload,
     )
 

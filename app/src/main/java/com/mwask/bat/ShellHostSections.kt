@@ -158,11 +158,13 @@ internal fun MainActivity.rememberNowPlayingData(
             writers.setLyrics(null)
             return@LaunchedEffect
         }
-        // Spotify's own lyrics first; the Yuma-derived providers fill the gaps.
+        // Spotify's line-synced lyrics show immediately; Yuma's providers are asked as well
+        // and a word-timed payload replaces them when one is available.
         val spotify = Krespot.lyrics.lyrics(this@rememberNowPlayingData, uri)
+        val spotifyHasWords = LyricsRepository.hasWordTimings(spotify)
         if (spotify != null && spotify.lines.isNotEmpty()) {
             writers.setLyrics(spotify)
-            return@LaunchedEffect
+            if (spotifyHasWords) return@LaunchedEffect
         }
         val track = ((playback?.queue.orEmpty()) + (playback?.queueFromContext.orEmpty()))
             .firstOrNull { it.uri == uri }
@@ -176,8 +178,14 @@ internal fun MainActivity.rememberNowPlayingData(
             album = track?.albumName?.takeIf { it.isNotBlank() },
             durationMs = durationMs,
         )
-        log.i("lyrics for $uri came from ${external?.provider ?: "no provider"}")
-        writers.setLyrics(external)
+        log.i(
+            "lyrics for $uri came from ${external?.provider ?: "no provider"} " +
+                "spotify=${spotify != null} wordTimed=${LyricsRepository.hasWordTimings(external)}"
+        )
+        when {
+            LyricsRepository.hasWordTimings(external) -> writers.setLyrics(external)
+            spotify == null || spotify.lines.isEmpty() -> writers.setLyrics(external)
+        }
     }
     LaunchedEffect(playback?.trackUri, canvasAllowed, canvasResolution) {
         writers.setCanvasFile(null)

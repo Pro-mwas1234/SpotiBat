@@ -22,6 +22,7 @@ internal class ShellActions(
     private val searchQuery: () -> String,
     private val clipboard: ClipboardManager,
     private val onDownloadTrack: ((String) -> Unit)? = null,
+    private val onDownloadRequest: ((String, String, String, Long) -> Unit)? = null,
     private val onRemoveDownload: ((String) -> Unit)? = null,
 ) {
     private val active get() = navController.active
@@ -32,8 +33,23 @@ internal class ShellActions(
         onDownloadTrack?.invoke(uri)
     }
 
-    fun downloadTracks(uris: List<String>) {
-        uris.filter { it.isNotBlank() }.distinct().forEach { onDownloadTrack?.invoke(it) }
+    /**
+     * Queues a row the list already knows. The name travels with the request because a playlist
+     * row is usually outside the playing window, and a download with no title cannot be looked
+     * up at all.
+     */
+    fun downloadTrack(track: TrackItem) {
+        if (track.uri.isBlank()) return
+        val request = onDownloadRequest
+        if (request != null && track.title.isNotBlank()) {
+            request(track.uri, track.title, track.artist, track.durationMs)
+        } else {
+            onDownloadTrack?.invoke(track.uri)
+        }
+    }
+
+    fun downloadTracks(tracks: List<TrackItem>) {
+        tracks.filter { it.uri.isNotBlank() }.distinctBy { it.uri }.forEach { downloadTrack(it) }
     }
 
     fun removeDownload(uri: String) {
