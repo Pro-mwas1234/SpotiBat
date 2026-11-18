@@ -34,3 +34,8 @@ log.log
 keystore/
 keystore.properties
 SpotiDuck.png
+
+# Google AI Studio compatibility
+/app/build.gradle.kts
+/gradle/libs.versions.toml
+/gradle/wrapper/gradle-wrapper.properties
