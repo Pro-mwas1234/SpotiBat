@@ -27,8 +27,8 @@ android {
         targetSdk = 37
         // SpotiBat 1.2.4 shipped with applicationId com.mwask.bat and versionCode 25,
         // so new builds must keep climbing from there to upgrade in place.
-        versionCode = 28
-        versionName = "2.1.1"
+        versionCode = 29
+        versionName = "2.1.2"
         multiDexEnabled = true
 
         ndk {
