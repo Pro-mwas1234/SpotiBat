@@ -606,8 +606,12 @@ object EncoreAuth {
         log.i("logout")
         val active = activeAccountId(context)
         if (active.isNotBlank()) {
+            // Only remove the account being logged out; keep any other saved accounts.
             forgetAccount(context, active)
         }
+        // Do NOT remove KEY_MULTI_ACTIVE or the multi.<id>.* keys – those belong to
+        // other accounts the user may have saved. Only clear the single-session keys
+        // for the account we're actually signing out of.
         prefs(context).edit()
             .remove(KEY_SESSION)
             .remove(KEY_NAME)
@@ -623,7 +627,6 @@ object EncoreAuth {
             .remove(KEY_TOKEN_EXP)
             .remove(KEY_CLIENT_TOKEN)
             .remove(KEY_CLIENT_TOKEN_EXP)
-            .remove(KEY_MULTI_ACTIVE)
             .apply()
         clearTokenMemos()
         resolvedUserId = ""

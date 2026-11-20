@@ -26,6 +26,9 @@ object LrcParser {
     private const val INSTRUMENTAL_INTRO_START_MS = 1000L
     private const val INSTRUMENTAL_OUTRO_VOCAL_TAIL_MS = 2500L
 
+    /** Used only when a line and its successor carry no usable end time. */
+    private const val LYRICS_LINE_FALLBACK_MS = 3500L
+
     fun isTtml(lyrics: String): Boolean {
         val trimmed = normalizeLyricsText(lyrics)
         if (!trimmed.startsWith("<")) return false
@@ -61,17 +64,9 @@ object LrcParser {
             .replace(INVISIBLE_CHARS_REGEX, "")
             .trim { it.isWhitespace() || it == NBSP }
         val unwrapped = stripCodeFence(raw)
-        val normalized =
-            if (isEscapedTtml(unwrapped)) {
-                unwrapped
-                    .replace("&lt;", "<")
-                    .replace("&gt;", ">")
-                    .replace("&quot;", "\"")
-                    .replace("&#39;", "'")
-                    .replace("&apos;", "'")
-            } else {
-                unwrapped
-            }
+        // Providers escape punctuation (`don&#8217;t`, `&amp;`), so the raw entities used to
+        // reach the screen verbatim in LRC and plain payloads too.
+        val normalized = HtmlEntities.decode(unwrapped)
         return normalized.trim { it.isWhitespace() || it == NBSP }
     }
 
@@ -83,14 +78,6 @@ object LrcParser {
             if (remaining.lastOrNull()?.trim() == "```") remaining.dropLast(1) else remaining
         }
         return body.joinToString("\n").trim { it.isWhitespace() || it == NBSP }
-    }
-
-    private fun isEscapedTtml(lyrics: String): Boolean {
-        val trimmed = lyrics.trimStart()
-        return trimmed.startsWith("&lt;tt", ignoreCase = true) ||
-            trimmed.contains("&lt;tt", ignoreCase = true) ||
-            trimmed.contains("http://www.w3.org/ns/ttml", ignoreCase = true) &&
-            trimmed.contains("&lt;", ignoreCase = true)
     }
 
     /** Parses everything Yuma's parser handles: TTML, LRC, YRC, plain text. */
@@ -144,14 +131,18 @@ object LrcParser {
             val entries = parseLineSyncedLrcLine(line) ?: parseMillisecondsSyncedLine(line)
             if (entries != null) result.addAll(entries)
         }
-        return mergeLineSyncedTranslations(result).sorted()
+        return resolveWordEndTimes(mergeLineSyncedTranslations(result).sorted())
     }
 
     private fun parseLineSyncedLrcLine(line: String): List<LyricsEntry>? {
         if (line.isEmpty()) return null
         val match = LINE_REGEX.matchEntire(line.trim()) ?: return null
         val times = match.groupValues[1]
-        val text = cleanInlineWordTimingText(match.groupValues[3])
+        val content = match.groupValues[3]
+        val text = cleanInlineWordTimingText(content)
+        // Providers that ship enhanced LRC put a `<mm:ss.xx>` before every word; keeping it
+        // is what lets the karaoke view light each word instead of splitting the line by length.
+        val words = parseEnhancedLrcWords(content)
         return TIME_REGEX.findAll(times).map { timeMatch ->
             val minutes = timeMatch.groupValues[1].toLong()
             val seconds = timeMatch.groupValues[2].toLong()
@@ -161,8 +152,65 @@ object LrcParser {
                 1 -> millis *= 100
                 2 -> millis *= 10
             }
-            LyricsEntry(minutes * MINUTE_MS + seconds * SECOND_MS + millis, text)
+            LyricsEntry(minutes * MINUTE_MS + seconds * SECOND_MS + millis, text, words = words)
         }.toList()
+    }
+
+    /** `<mm:ss.xx>word` runs; the text after a tag belongs to that tag's word. */
+    private fun parseEnhancedLrcWords(content: String): List<WordTimestamp>? {
+        val timings = ENHANCED_LRC_WORD_TIME_CAPTURING_REGEX.findAll(content).toList()
+        if (timings.size < 2) return null
+        val words = mutableListOf<WordTimestamp>()
+        timings.forEachIndexed { index, match ->
+            val textStart = match.range.last + 1
+            val textEnd = timings.getOrNull(index + 1)?.range?.first ?: content.length
+            if (textStart >= textEnd) return@forEachIndexed
+            val word = content.substring(textStart, textEnd).trim { it.isWhitespace() || it == NBSP }
+            if (word.isEmpty()) return@forEachIndexed
+            words += WordTimestamp(
+                text = word,
+                startTime = enhancedLrcTime(match),
+                // The next tag's start is this word's end; a trailing tag closes the last word.
+                endTime = timings.getOrNull(index + 1)?.let(::enhancedLrcTime) ?: enhancedLrcTime(match)
+            )
+        }
+        return words.takeIf { it.isNotEmpty() }
+    }
+
+    private fun enhancedLrcTime(match: MatchResult): Double {
+        val minutes = match.groupValues[1].toDoubleOrNull() ?: 0.0
+        val seconds = match.groupValues[2].toDoubleOrNull() ?: 0.0
+        val fraction = match.groupValues[3]
+        var millis = fraction.toDoubleOrNull() ?: 0.0
+        when (fraction.length) {
+            1 -> millis *= 100
+            2 -> millis *= 10
+            3 -> Unit
+        }
+        return minutes * 60.0 + seconds + millis / 1000.0
+    }
+
+    /**
+     * A word with no end (or a zero-length one) would never fill, so each end is pulled
+     * from the next word's start, otherwise the line's end, otherwise the next line.
+     */
+    private fun resolveWordEndTimes(entries: List<LyricsEntry>): List<LyricsEntry> = entries.mapIndexed { index, entry ->
+        val words = entry.words?.takeIf { it.isNotEmpty() } ?: return@mapIndexed entry
+        val lineEnd = entry.durationMs.takeIf { it > 0L }?.let { entry.time + it }
+            ?: entries.getOrNull(index + 1)?.time
+            ?: (entry.time + LYRICS_LINE_FALLBACK_MS)
+        val resolved = words.mapIndexed { wordIndex, word ->
+            val startMs = (word.startTime * 1000.0).toLong()
+            val nextStart = words.getOrNull(wordIndex + 1)?.startTime?.times(1000.0)?.toLong()
+            val endMs = (word.endTime * 1000.0).toLong()
+            when {
+                endMs > startMs -> word
+                nextStart != null && nextStart > startMs -> word.copy(endTime = nextStart / 1000.0)
+                lineEnd > startMs -> word.copy(endTime = lineEnd / 1000.0)
+                else -> word
+            }
+        }
+        entry.copy(words = resolved)
     }
 
     private fun parseMillisecondsSyncedLine(line: String): List<LyricsEntry>? {

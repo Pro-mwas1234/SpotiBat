@@ -18,6 +18,7 @@ import com.mwask.bat.compose.home.toShelves
 import com.mwask.bat.compose.playlist.TrackItem
 import com.mwask.bat.compose.screens.HistoryStats
 import com.mwask.bat.backend.core.log.Logs
+import com.mwask.bat.lyrics.LyricsCache
 import com.mwask.bat.lyrics.LyricsRepository
 import java.util.Calendar
 
@@ -158,13 +159,30 @@ internal fun MainActivity.rememberNowPlayingData(
             writers.setLyrics(null)
             return@LaunchedEffect
         }
+        val downloadEnabled = LyricsRepository.downloadEnabled(this@rememberNowPlayingData)
+        // Lyrics saved while online come first, so a downloaded song still has timed words
+        // with no connection and no lookup.
+        val cached = LyricsCache.load(this@rememberNowPlayingData, uri)
+        if (cached != null && cached.lines.isNotEmpty()) writers.setLyrics(cached)
         // Spotify's line-synced lyrics show immediately; Yuma's providers are asked as well
         // and a word-timed payload replaces them when one is available.
         val spotify = Krespot.lyrics.lyrics(this@rememberNowPlayingData, uri)
         val spotifyHasWords = LyricsRepository.hasWordTimings(spotify)
         if (spotify != null && spotify.lines.isNotEmpty()) {
             writers.setLyrics(spotify)
-            if (spotifyHasWords) return@LaunchedEffect
+            if (spotifyHasWords) {
+                if (downloadEnabled) LyricsCache.save(this@rememberNowPlayingData, uri, spotify)
+                return@LaunchedEffect
+            }
+        }
+        // "Download lyrics" in Personalization turns the provider lookup off; Spotify's own
+        // lyrics above still show when it is.
+        if (!downloadEnabled) {
+            log.i(
+                "lyrics for $uri: downloads are off, keeping Spotify only " +
+                    "spotify=${spotify != null} cached=${cached != null}"
+            )
+            return@LaunchedEffect
         }
         val track = ((playback?.queue.orEmpty()) + (playback?.queueFromContext.orEmpty()))
             .firstOrNull { it.uri == uri }
@@ -186,6 +204,13 @@ internal fun MainActivity.rememberNowPlayingData(
             LyricsRepository.hasWordTimings(external) -> writers.setLyrics(external)
             spotify == null || spotify.lines.isEmpty() -> writers.setLyrics(external)
         }
+        // Only a payload that actually won the screen is worth keeping.
+        val shown = when {
+            LyricsRepository.hasWordTimings(external) -> external
+            spotify == null || spotify.lines.isEmpty() -> external
+            else -> null
+        }
+        shown?.let { LyricsCache.save(this@rememberNowPlayingData, uri, it) }
     }
     LaunchedEffect(playback?.trackUri, canvasAllowed, canvasResolution) {
         writers.setCanvasFile(null)

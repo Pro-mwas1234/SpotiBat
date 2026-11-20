@@ -10,6 +10,7 @@ import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.os.SystemClock
 import androidx.compose.runtime.snapshotFlow
 import androidx.core.app.NotificationCompat
 import androidx.media.app.NotificationCompat as MediaNotificationCompat
@@ -230,14 +231,16 @@ class PlaybackService : Service() {
             return
         }
         val playing = state.isPlaying
+        // Seek stays on even when the duration/position are not known yet (a local engine that is
+        // still opening the file, or a Connect session we have no progress for): the slider then
+        // has no range of its own, but a drag still reaches the bridge instead of being refused.
         var actions = PlaybackStateCompat.ACTION_PLAY or
             PlaybackStateCompat.ACTION_PAUSE or
             PlaybackStateCompat.ACTION_PLAY_PAUSE or
             PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
-            PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
-        if (state.remoteCanSeek) {
-            actions = actions or PlaybackStateCompat.ACTION_SEEK_TO
-        }
+            PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
+            PlaybackStateCompat.ACTION_STOP or
+            PlaybackStateCompat.ACTION_SEEK_TO
         val playback = PlaybackStateCompat.Builder()
             .setActions(actions)
         playback.addCustomAction(
@@ -262,10 +265,14 @@ class PlaybackService : Service() {
                 ).build()
             )
         }
+        val speed = if (playing) state.playbackSpeed.takeIf { it > 0f } ?: 1f else 0.0f
         playback.setState(
             if (playing) PlaybackStateCompat.STATE_PLAYING else PlaybackStateCompat.STATE_PAUSED,
             progress.positionMs,
-            if (playing) 1.0f else 0.0f,
+            speed,
+            // Timestamped, so the system drags the bar from the moment this sample was taken
+            // instead of assuming it came from an unknown one.
+            SystemClock.elapsedRealtime(),
         )
         session.setPlaybackState(playback.build())
     }

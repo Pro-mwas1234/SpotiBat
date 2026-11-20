@@ -47,13 +47,21 @@ internal object TtmlParser {
             val end = parseTime(END_ATTR.find(attributes)?.groupValues?.get(1))
                 ?: parseTime(DUR_ATTR.find(attributes)?.groupValues?.get(1))?.let { begin + it }
 
+            // Two passes over the spans: a word that carries only `begin` would otherwise
+            // collapse to zero duration and never fill, so its end comes from the next
+            // word's begin, then the paragraph's end.
             val spans = SPAN_REGEX.findAll(body).toList()
-            val words = spans.mapNotNull { span ->
+            val words = spans.mapIndexedNotNull { index, span ->
                 val spanAttributes = span.groupValues[1]
                 val spanBegin = parseTime(BEGIN_ATTR.find(spanAttributes)?.groupValues?.get(1))
-                    ?: return@mapNotNull null
+                    ?: return@mapIndexedNotNull null
+                val nextBegin = spans.getOrNull(index + 1)?.let { next ->
+                    parseTime(BEGIN_ATTR.find(next.groupValues[1])?.groupValues?.get(1))
+                }
                 val spanEnd = parseTime(END_ATTR.find(spanAttributes)?.groupValues?.get(1))
                     ?: parseTime(DUR_ATTR.find(spanAttributes)?.groupValues?.get(1))?.let { spanBegin + it }
+                    ?: nextBegin?.takeIf { it > spanBegin }
+                    ?: end?.takeIf { it > spanBegin }
                     ?: spanBegin
                 WordTimestamp(
                     text = plainText(span.groupValues[2]),
@@ -114,12 +122,5 @@ internal object TtmlParser {
         .replace(Regex("""\s+"""), " ")
         .trim()
 
-    private fun unescape(text: String): String = text
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", "\"")
-        .replace("&apos;", "'")
-        .replace("&#39;", "'")
-        .replace("&nbsp;", " ")
-        .replace("&amp;", "&")
+    private fun unescape(text: String): String = HtmlEntities.decode(text)
 }

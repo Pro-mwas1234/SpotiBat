@@ -63,8 +63,8 @@ import androidx.compose.ui.res.stringResource
 
 /**
  * - stringResource(R.string.now_playing) item with animated Encore equalizer indicator
- * - stringResource(R.string.next_in_queue) with dismiss action and reordering handles
- * - "Next from: [Context]" with upcoming queue items
+ * - one "Next in queue" run of rows: the hand-added queue then the context's upcoming tracks,
+ *   every row draggable into a new position (dropping rewrites the queue to that order)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,7 +85,15 @@ fun EncoreQueueSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val listState = rememberLazyListState()
     val haptics = LocalHapticFeedback.current
-    val queueRows = remember(userQueue) { userQueue.toQueueRows() }
+    // One list, so a drag can drop anywhere: the hand-added queue first, then the tracks the
+    // context was going to play. Whatever order comes out is handed back as the queue.
+    val upcomingRows = remember(userQueue, nextFromContext) {
+        mutableStateListOf<EditableTrackItem>().apply {
+            addAll(userQueue.toQueueRows("q"))
+            addAll(nextFromContext.toQueueRows("c"))
+        }
+    }
+    val originalOrder = remember(userQueue, nextFromContext) { userQueue + nextFromContext }
     val currentOnReorder by rememberUpdatedState(onReorderQueue)
     val reorderState = rememberReorderableLazyListState(
         listState = listState,
@@ -93,16 +101,16 @@ fun EncoreQueueSheet(
             val visible = listState.layoutInfo.visibleItemsInfo
             val fromId = visible.firstOrNull { it.index == fromIndex }?.key
             val toId = visible.firstOrNull { it.index == toIndex }?.key
-            val from = queueRows.indexOfFirst { it.id == fromId }
-            val to = queueRows.indexOfFirst { it.id == toId }
+            val from = upcomingRows.indexOfFirst { it.id == fromId }
+            val to = upcomingRows.indexOfFirst { it.id == toId }
             if (from >= 0 && to >= 0 && from != to) {
-                queueRows.add(to, queueRows.removeAt(from))
+                upcomingRows.add(to, upcomingRows.removeAt(from))
                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             }
         },
         onDragEnd = {
-            val tracks = queueRows.map { it.track }
-            if (tracks != userQueue) currentOnReorder(tracks)
+            val tracks = upcomingRows.map { it.track }
+            if (tracks != originalOrder) currentOnReorder(tracks)
         }
     )
 
@@ -211,23 +219,43 @@ fun EncoreQueueSheet(
                     Spacer(modifier = Modifier.height(EncoreSpacers.Base))
                 }
 
-                if (queueRows.isNotEmpty()) {
+                if (upcomingRows.isNotEmpty()) {
                     item {
-                        Text(
-                            text = stringResource(R.string.next_in_queue),
-                            style = EncoreTheme.typography.bodySmallBold.copy(color = EncoreColors.TextSecondary),
-                            modifier = Modifier.padding(horizontal = EncoreSpacers.Base, vertical = EncoreSpacers.Tighter)
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = EncoreSpacers.Base, vertical = EncoreSpacers.Tighter),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(R.string.next_in_queue),
+                                style = EncoreTheme.typography.bodySmallBold.copy(color = EncoreColors.TextSecondary)
+                            )
+                            if (queueSourceContext.isNotBlank() && nextFromContext.isNotEmpty()) {
+                                Text(
+                                    text = queueSourceContext,
+                                    style = EncoreTheme.typography.bodySmall.copy(
+                                        color = EncoreColors.TextSecondary.copy(alpha = 0.7f)
+                                    ),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(start = EncoreSpacers.Tighter)
+                                )
+                            }
+                        }
                     }
 
-                    itemsIndexed(queueRows, key = { _, row -> row.id }) { _, row ->
+                    itemsIndexed(upcomingRows, key = { _, row -> row.id }) { _, row ->
                         val track = row.track
                         val isDragging = reorderState.draggingItemKey == row.id
                         QueueTrackRow(
                             track = track,
                             showDragHandle = true,
                             onSelect = { onTrackSelect(track) },
-                            onRemove = { onRemoveFromQueue(track) },
+                            onRemove = {
+                                if (userQueue.any { it.uri == track.uri }) onRemoveFromQueue(track)
+                            },
                             handleModifier = Modifier.dragHandle(state = reorderState, key = row.id),
                             modifier = if (isDragging) {
                                 Modifier
@@ -244,28 +272,6 @@ fun EncoreQueueSheet(
 
                     item {
                         Spacer(modifier = Modifier.height(EncoreSpacers.Base))
-                    }
-                }
-
-                if (nextFromContext.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = if (queueSourceContext.isBlank()) {
-                                stringResource(R.string.next_up)
-                            } else {
-                                "Next from: $queueSourceContext"
-                            },
-                            style = EncoreTheme.typography.bodySmallBold.copy(color = EncoreColors.TextSecondary),
-                            modifier = Modifier.padding(horizontal = EncoreSpacers.Base, vertical = EncoreSpacers.Tighter)
-                        )
-                    }
-
-                    itemsIndexed(nextFromContext) { _, track ->
-                        QueueTrackRow(
-                            track = track,
-                            showDragHandle = false,
-                            onSelect = { onTrackSelect(track) }
-                        )
                     }
                 }
             }
@@ -363,15 +369,14 @@ private fun QueueTrackRow(
     }
 }
 
-private fun List<TrackItem>.toQueueRows(): MutableList<EditableTrackItem> {
+private fun List<TrackItem>.toQueueRows(prefix: String): List<EditableTrackItem> {
     val seen = HashMap<String, Int>()
-    val rows = map { track ->
+    return map { track ->
         val base = track.uri.ifBlank { track.title }
         val occurrence = seen.getOrDefault(base, 0)
         seen[base] = occurrence + 1
-        EditableTrackItem("${base}_$occurrence", track)
+        EditableTrackItem("$prefix-${base}_$occurrence", track)
     }
-    return mutableStateListOf<EditableTrackItem>().apply { addAll(rows) }
 }
 
 @Preview

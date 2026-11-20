@@ -78,6 +78,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -129,6 +130,7 @@ import com.mwask.bat.compose.theme.EncoreAppTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import kotlin.math.absoluteValue
 import com.mwask.bat.compose.theme.EncoreTheme
 import com.mwask.bat.compose.playlist.TrackItem
@@ -597,7 +599,7 @@ fun EncoreNowPlayingScreen(
                                     previousTrack = previousTrack,
                                     nextTrack = nextTrack,
                                     canSwipePrevious = canSkipPrevious,
-                                    onSwipePrevious = onSkipToPreviousClick,
+                                    onSwipePrevious = onSwipePreviousClick,
                                     onSwipeNext = onSkipNextClick,
                                     modifier = Modifier.fillMaxSize()
                                 )
@@ -821,7 +823,7 @@ fun EncoreNowPlayingScreen(
                                         previousTrack = previousTrack,
                                         nextTrack = nextTrack,
                                         canSwipePrevious = canSkipPrevious,
-                                        onSwipePrevious = onSkipToPreviousClick,
+                                        onSwipePrevious = onSwipePreviousClick,
                                         onSwipeNext = onSkipNextClick,
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -1464,16 +1466,28 @@ private fun SwipableTrackArtwork(
                         if ((commitNext && !tickedNext) || (commitPrev && !tickedPrev)) {
                             haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
                         }
-                        if (commitNext) onSwipeNext()
-                        if (commitPrev) onSwipePrevious()
+                        // Carry the artwork all the way off before the track changes, so the
+                        // neighbour slides into place. Changing first would snap the row back to
+                        // centre and the swipe would read as a hard cut.
                         scope.launch {
-                            drag.animateTo(
-                                targetValue = 0f,
-                                animationSpec = tween(
-                                    durationMillis = SWIPE_SETTLE_MS,
-                                    easing = FastOutSlowInEasing
+                            if (commitNext || commitPrev) {
+                                drag.animateTo(
+                                    targetValue = if (commitNext) -cardWidthPx else cardWidthPx,
+                                    animationSpec = tween(
+                                        durationMillis = SWIPE_SETTLE_MS,
+                                        easing = FastOutSlowInEasing
+                                    )
                                 )
-                            )
+                                if (commitNext) onSwipeNext() else onSwipePrevious()
+                            } else {
+                                drag.animateTo(
+                                    targetValue = 0f,
+                                    animationSpec = tween(
+                                        durationMillis = SWIPE_SETTLE_MS,
+                                        easing = FastOutSlowInEasing
+                                    )
+                                )
+                            }
                         }
                     },
                     onDragCancel = {
@@ -2529,6 +2543,8 @@ private fun FullscreenLyricsView(
             )
         }
 
+        if (lyrics.isNotEmpty()) LyricsSyncRow(ink = ink)
+
         if (lyrics.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -2547,10 +2563,74 @@ private fun FullscreenLyricsView(
                 textColor = ink,
                 listState = listState,
                 onSeekMs = onSeekMs,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
             )
         }
     }
+}
+
+/** How far one tap on the sync control nudges the lyrics highlight. */
+private const val LYRICS_SYNC_STEP_MS = 100
+
+/**
+ * Spotify's timings can land a little before or after the phone's audio, so the highlighted line
+ * drifts out of time with what is being sung. Nudge it here by ear: the value lives in
+ * [LyricsOptions] and applies to every song, and tapping the value puts it back to the default.
+ */
+@Composable
+private fun LyricsSyncRow(ink: Color) {
+    val context = LocalContext.current
+    val offsetMs = LyricsOptions.syncOffsetMs
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = EncoreSpacers.Tighter2),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = stringResource(R.string.lyrics_sync),
+            style = EncoreTheme.typography.marginal.copy(color = ink.copy(alpha = 0.7f))
+        )
+        Spacer(modifier = Modifier.width(EncoreSpacers.Tighter2))
+        Text(
+            text = "\u2212",
+            style = EncoreTheme.typography.bodySmallBold.copy(color = ink),
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .clickable {
+                    LyricsOptions.setSyncOffsetMs(context, offsetMs - LYRICS_SYNC_STEP_MS)
+                }
+                .padding(horizontal = 14.dp, vertical = 6.dp)
+        )
+        Text(
+            text = formatSyncOffset(offsetMs),
+            style = EncoreTheme.typography.bodySmallBold.copy(color = ink),
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .clickable { LyricsOptions.resetSyncOffsetMs(context) }
+                .padding(horizontal = 10.dp, vertical = 6.dp)
+        )
+        Text(
+            text = "+",
+            style = EncoreTheme.typography.bodySmallBold.copy(color = ink),
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .clickable {
+                    LyricsOptions.setSyncOffsetMs(context, offsetMs + LYRICS_SYNC_STEP_MS)
+                }
+                .padding(horizontal = 14.dp, vertical = 6.dp)
+        )
+    }
+}
+
+/** "+0.3s" / "−0.1s": signed, so the direction of the nudge is obvious at a glance. */
+private fun formatSyncOffset(offsetMs: Int): String {
+    val seconds = abs(offsetMs) / 1000f
+    val sign = if (offsetMs < 0) "\u2212" else "+"
+    return sign + String.format("%.1f", seconds) + "s"
 }
 
 private fun formatTime(ms: Long): String {

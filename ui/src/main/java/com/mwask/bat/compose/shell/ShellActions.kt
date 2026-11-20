@@ -124,6 +124,11 @@ internal class ShellActions(
         playerListener?.onSkipPrevious()
     }
 
+    /** Back a track regardless of how far into the current one we are (the artwork swipe). */
+    fun previousTrack() {
+        playerListener?.onPreviousTrack()
+    }
+
     fun openTrackOptions(track: TrackItem) {
         local.trackForOptions = track
         flags.isTrackOptionsFromPlayer = false

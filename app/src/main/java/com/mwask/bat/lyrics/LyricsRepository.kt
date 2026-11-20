@@ -30,7 +30,15 @@ import kotlinx.coroutines.withTimeoutOrNull
  */
 object LyricsRepository {
 
+    private const val CLIENT_PREFS = "quackify.client"
+
+    /** Settings > Personalization switch; off means lyrics stay whatever Spotify already has. */
+    private const val LYRICS_DOWNLOAD_PREF = "lyricsDownload"
+
     private const val PROVIDER_TIMEOUT_MS = 8_000L
+
+    fun downloadEnabled(context: Context): Boolean =
+        AppPrefs.prefs(context, CLIENT_PREFS).getBoolean(LYRICS_DOWNLOAD_PREF, true)
 
     /** Upper bound for the whole provider walk, so a bad network cannot stall lyrics for a minute. */
     private const val TOTAL_BUDGET_MS = 15_000L

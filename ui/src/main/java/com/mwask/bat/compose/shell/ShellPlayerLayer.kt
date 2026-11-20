@@ -58,6 +58,7 @@ internal class ShellPlayerEnv(
     val handlePlayPause: () -> Unit,
     val handleSkipNext: () -> Unit,
     val handleSkipPrevious: () -> Unit,
+    val handleSwipePrevious: () -> Unit = handleSkipPrevious,
     val onCanvasToggle: ((Boolean) -> Unit)?,
     val onToggleVideoFullscreen: ((Boolean) -> Unit)?,
     val onArtistFollowToggle: ((String, Boolean) -> Unit)?,
@@ -162,6 +163,21 @@ internal fun BoxScope.ShellPlayerLayer(env: ShellPlayerEnv) {
     val effectiveCanSkipPrevious = if (remoteCtl) playbackState?.remoteCanSkipPrev ?: true else true
     val effectiveCanSeek = if (remoteCtl) playbackState?.remoteCanSeek ?: true else true
 
+    // Neighbours for the swipe-on-artwork slide: the play context around the current track,
+    // falling back to the user queue when the track was started on its own.
+    val swipeQueue = playbackState?.queueFromContext.orEmpty()
+        .ifEmpty { playbackState?.queue.orEmpty() }
+    val swipeIndex = swipeQueue.indexOfFirst { it.uri == playbackState?.trackUri }
+    // The bridge knows the row before the playing one in the loaded context; the upcoming list
+    // above only ever holds what comes next.
+    // Compute swipePrevious from the playback state's context lists first.
+    // These are set when a downloads list is playing (queueFromContext = downloads URIs).
+    val swipePrevious = playbackState?.queueFromContext
+        ?.lastOrNull()
+        ?: playbackState?.queuePrevious?.lastOrNull()
+        ?: swipeQueue.getOrNull(swipeIndex - 1).takeIf { swipeIndex > 0 }
+    val swipeNext = swipeQueue.getOrNull(swipeIndex + 1)
+
     ShellNowPlaying(
         visible = env.isPlayerExpanded,
         title = env.playerIdentity.title,
@@ -185,6 +201,8 @@ internal fun BoxScope.ShellPlayerLayer(env: ShellPlayerEnv) {
                 env.onArtistFollowToggle?.invoke(env.resolvedArtistUri, follow)
             }
         },
+        previousTrack = swipePrevious,
+        nextTrack = swipeNext,
         lyrics = env.nowPlayingLyrics,
         canvasFilePath = env.canvasFilePath,
         isCanvasAllowed = env.isCanvasAllowed,
@@ -218,6 +236,7 @@ internal fun BoxScope.ShellPlayerLayer(env: ShellPlayerEnv) {
         onPlayPause = env.handlePlayPause,
         onSkipNext = env.handleSkipNext,
         onSkipPrevious = env.handleSkipPrevious,
+        onSwipePrevious = env.handleSwipePrevious,
         onLike = {
             val playingTrack = TrackItem(
                 title = env.currentTrackTitle,

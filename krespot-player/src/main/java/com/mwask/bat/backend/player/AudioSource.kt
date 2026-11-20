@@ -274,11 +274,11 @@ internal object LicenseEndpoint {
         val url = "https://$host/melody/v1/license_url?$LICENSE_QUERY"
         val response = Net.get(url, PlayerHeaders.of(context), tag = "license-url")
         val json = response?.takeIf { it.ok }?.json()
-        val uri = json?.optString("uri").orEmpty()
+        val uri = json?.optString("uri").orEmpty().trimStart('/')
         val resolved = when {
             uri.startsWith("http") -> uri
             uri.isNotBlank() -> "https://$host/$uri"
-            else -> "https://$host/$LICENSE_PATH"
+            else -> "https://$host/${LICENSE_PATH.trimStart('/')}"
         }
         val expires = json?.optLong("expires", 0L) ?: 0L
         expiresAt = if (expires > now) expires else now + ENDPOINT_FALLBACK_SECONDS
@@ -291,6 +291,18 @@ internal object LicenseEndpoint {
     fun reset() {
         cached = ""
         expiresAt = 0L
+    }
+
+    /** Drops the resolved endpoint, in memory and on disk, after a licence
+     *  request failed: the next attempt resolves a fresh one. */
+    fun invalidate(context: Context) {
+        reset()
+        runCatching {
+            SecureStore.prefs(context).edit()
+                .remove(KEY_URL)
+                .remove(KEY_EXP)
+                .apply()
+        }
     }
 
     private fun stored(context: Context, host: String, now: Long): String? {

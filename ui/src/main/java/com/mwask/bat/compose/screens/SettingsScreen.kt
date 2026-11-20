@@ -158,6 +158,9 @@ fun SettingsScreen(
     var lyricsUnderPlayer by remember {
         mutableStateOf(com.mwask.bat.compose.player.LyricsOptions.inlineUnderPlayer)
     }
+    var lyricsDownload by remember {
+        mutableStateOf(clientPrefs.getBoolean("lyricsDownload", true))
+    }
     var appIcon by remember {
         mutableStateOf(clientPrefs.getString("appIcon", "default").orEmpty().ifBlank { "default" })
     }
@@ -375,6 +378,30 @@ fun SettingsScreen(
                                 }
                             )
                         }
+                    }
+
+                    item {
+                        SettingsSectionHeader(title = stringResource(R.string.lyrics))
+                        SettingsToggleRow(
+                            title = stringResource(R.string.lyrics_download),
+                            subtitle = stringResource(R.string.lyrics_download_description),
+                            isChecked = lyricsDownload,
+                            enabled = true,
+                            onCheckedChange = { on ->
+                                lyricsDownload = on
+                                clientPrefs.edit().putBoolean("lyricsDownload", on).apply()
+                            }
+                        )
+                        SettingsToggleRow(
+                            title = stringResource(R.string.lyrics_under_player),
+                            subtitle = stringResource(R.string.lyrics_under_player_description),
+                            isChecked = lyricsUnderPlayer,
+                            enabled = true,
+                            onCheckedChange = { on ->
+                                lyricsUnderPlayer = on
+                                com.mwask.bat.compose.player.LyricsOptions.setInlineUnderPlayer(context, on)
+                            }
+                        )
                     }
 
                 }
@@ -631,16 +658,6 @@ fun SettingsScreen(
                             onCheckedChange = { on ->
                                 gapless = on
                                 clientPrefs.edit().putBoolean("gaplessPlayback", on).apply()
-                            }
-                        )
-                        SettingsToggleRow(
-                            title = stringResource(R.string.lyrics_under_player),
-                            subtitle = stringResource(R.string.lyrics_under_player_description),
-                            isChecked = lyricsUnderPlayer,
-                            enabled = true,
-                            onCheckedChange = { on ->
-                                lyricsUnderPlayer = on
-                                com.mwask.bat.compose.player.LyricsOptions.setInlineUnderPlayer(context, on)
                             }
                         )
                     }

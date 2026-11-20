@@ -546,6 +546,13 @@ object OfflineAudio {
         )
         _library.update { list -> list.filterNot { it.uri == uri } + track }
         persist(context)
+        // The row is saved first so the download finishes promptly; the cover is fetched after
+        // and swapped in, so a slow image host never holds up the next song in the queue.
+        val art = cacheArtwork(context, uri, track.imageUrl.ifBlank { stream.thumbnailUrl })
+        if (art != null && art != track.imageUrl) {
+            _library.update { list -> list.map { if (it.uri == uri) it.copy(imageUrl = art) else it } }
+            persist(context)
+        }
         pending.remove(uri)
         lastPublishedAt.remove(uri)
         setStatus(uri, DownloadStatus(DownloadPhase.DONE, 1f))

@@ -434,10 +434,22 @@ class MainActivity : ComponentActivity() {
 
                         val activeAccountId = remember { EncoreAuth.activeAccountId(context) }
                         LaunchedEffect(Unit) {
-                            if (EncoreAuth.activeAccountId(context).isBlank()) {
-                                EncoreAuth.userId(context)
-                                EncoreAuth.storeCurrentAccount(context)
-                                savedAccountsList = EncoreAuth.savedAccounts(context)
+                            // If we already have a saved active account ID from a prior session, restore it
+                            // instead of always resolving from the token (which would drop any previously-
+                            // saved accounts such as a second account).
+                            val maybeRestored = if (EncoreAuth.activeAccountId(context).isBlank()) {
+                                // No stored active id; check whether any accounts were previously saved.
+                                val saved = EncoreAuth.savedAccounts(context)
+                                saved.isNotEmpty().let { hasSaved ->
+                                    if (hasSaved) {
+                                        // Restore the most recently saved account as active.
+                                        EncoreAuth.switchAccount(context, saved.last().id)
+                                    }
+                                }
+                                EncoreAuth.savedAccounts(context)
+                            } else {
+                                // An active account ID already exists (e.g. restored after logout); keep it.
+                                EncoreAuth.savedAccounts(context)
                             }
                             val missing = savedAccountsList.filter { it.colorHex.isBlank() }
                             if (missing.isNotEmpty()) {
@@ -451,7 +463,6 @@ class MainActivity : ComponentActivity() {
                                         log.i("profile color backfilled for '${saved.name}' -> $color")
                                     }
                                 }
-                                savedAccountsList = EncoreAuth.savedAccounts(context)
                             }
                         }
 
@@ -1454,7 +1465,12 @@ class MainActivity : ComponentActivity() {
             com.mwask.bat.backend.core.store.AppPrefs.prefs(context, "quackify.client").edit().putString("themeAccent", id).apply()
             themeTickState++
         },
-        onDownloadedPlay = { track -> bridge.listener.onPlayUri(track.uri) },
+        onDownloadedPlay = { track ->
+            // Hand over the whole downloads list, so skipping and the artwork swipe keep
+            // working with nothing to ask Spotify.
+            val uris = offlineTracks.map { it.uri }
+            bridge.listener.onPlayOffline(uris, uris.indexOf(track.uri))
+        },
         onDownloadedRemove = { track -> OfflineAudio.remove(context, track.uri) },
         onDownloadedDeleteAll = {
             OfflineAudio.removeAll(context)

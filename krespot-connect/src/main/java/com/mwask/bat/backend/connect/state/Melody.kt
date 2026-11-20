@@ -72,6 +72,117 @@ class Melody(
         return send("jssdk_playback_start", message)
     }
 
+    /**
+     * Closes a play session the way the web player does: a
+     * track_stream_verification (which is what makes the play show up in
+     * listening history on this account) plus the jssdk_playback_stats row.
+     */
+    suspend fun streamFinished(
+        track: CommandTrack,
+        stateId: String,
+        nextPlaybackId: String,
+        internalPlayId: Int,
+        startPositionMs: Long,
+        endPositionMs: Long,
+        durationMs: Long,
+        startWallClock: Long,
+        reasonStart: String,
+        reasonEnd: String,
+        msPlayed: Long,
+    ): Boolean {
+        val verification = JSONObject()
+            .put("play_track", track.uri)
+            .put("playback_id", stateId)
+            .put("ms_played", msPlayed)
+            .put("ms_nominal_played", msPlayed)
+            .put("session_id", sessionId())
+            .put("sequence_id", 0)
+            .put("playback_service", "track-playback")
+        if (nextPlaybackId.isNotBlank()) verification.put("next_playback_id", nextPlaybackId)
+        return sendBatch(
+            "track_stream_verification" to verification,
+            "jssdk_playback_stats" to statsMessage(
+                track, stateId, internalPlayId, startPositionMs, endPositionMs,
+                durationMs, startWallClock, reasonStart, reasonEnd, msPlayed,
+            ),
+        )
+    }
+
+    private fun statsMessage(
+        track: CommandTrack,
+        stateId: String,
+        internalPlayId: Int,
+        startPositionMs: Long,
+        endPositionMs: Long,
+        durationMs: Long,
+        startWallClock: Long,
+        reasonStart: String,
+        reasonEnd: String,
+        msPlayed: Long,
+    ): JSONObject {
+        val direct = track.isDirect
+        val fileId = track.best()?.fileId.orEmpty()
+        val bitrate = track.reportBitrate
+        val audioFormat = if (direct) "mp3" else "mp4"
+        return JSONObject()
+            .put("play_track", track.uri)
+            .put("file_id", fileId)
+            .put("playback_id", stateId)
+            .put("internal_play_id", internalPlayId.toString())
+            .put("memory_cached", false)
+            .put("persistent_cached", false)
+            .put("audio_format", audioFormat)
+            .put("video_format", "")
+            .put("manifest_id", fileId)
+            .put("protected", !direct)
+            .put("key_system", if (direct) "" else KEY_SYSTEM)
+            .put("key_system_impl", if (direct) "" else "native")
+            .put("start_time", startWallClock)
+            .put("end_time", System.currentTimeMillis())
+            .put("ms_played", msPlayed)
+            .put("ms_nominal_played", msPlayed)
+            .put("ms_file_duration", durationMs)
+            .put("ms_actual_duration", durationMs)
+            .put("ms_metadata_duration", 0)
+            .put("ms_start_position", startPositionMs)
+            .put("ms_end_position", endPositionMs)
+            .put("ms_initial_rebuffer", 0)
+            .put("ms_seek_rebuffer", 0)
+            .put("ms_stall_rebuffer", 0)
+            .put("ms_played_per_surface", JSONObject())
+            .put("ms_played_visible", 0)
+            .put("n_stalls", 0)
+            .put("n_rendition_upgrade", 0)
+            .put("n_rendition_downgrade", 0)
+            .put("bps_bandwidth_max", 0)
+            .put("bps_bandwidth_min", 0)
+            .put("bps_bandwidth_avg", 0)
+            .put("n_seekback", 0)
+            .put("n_seekforward", 0)
+            .put("audio_start_bitrate", bitrate)
+            .put("video_start_bitrate", JSONObject.NULL)
+            .put("start_bitrate", bitrate)
+            .put("time_weighted_bitrate", 0)
+            .put("reason_start", reasonStart)
+            .put("reason_end", reasonEnd)
+            .put("initially_paused", false)
+            .put("had_error", false)
+            .put("n_warnings", 0)
+            .put("n_navigator_offline", 0)
+            .put("session_id", sessionId())
+            .put("sequence_id", 0)
+            .put("client_id", "")
+            .put("correlation_id", "")
+            .put("n_dropped_video_frames", 0)
+            .put("n_total_video_frames", 0)
+            .put("resolution_max", 0)
+            .put("resolution_min", 0)
+            .put("total_bytes", 0)
+            .put("strategy", "MSE")
+            .put("ms_played_per_audio_format", JSONObject().put("$audioFormat;$bitrate", msPlayed))
+            .put("ms_played_per_video_format", JSONObject())
+    }
+
     suspend fun start(track: CommandTrack, stateId: String, positionMs: Long, paused: Boolean): Boolean {
         reset()
         val media = JSONObject()
@@ -171,21 +282,33 @@ class Melody(
         return JSONObject().put("events", array).put("context", context)
     }
 
-    private suspend fun send(type: String, message: JSONObject): Boolean {
+    private suspend fun send(type: String, message: JSONObject): Boolean =
+        sendBatch(type to message)
+
+    private suspend fun sendBatch(vararg messages: Pair<String, JSONObject>): Boolean {
         val host = spclient()
         if (host.isBlank()) {
             log.w("no spclient host")
             return false
         }
+        val array = JSONArray()
+        messages.forEach { (type, message) ->
+            array.put(JSONObject().put("type", type).put("message", message))
+        }
         val payload = JSONObject()
-            .put("messages", JSONArray().put(JSONObject().put("type", type).put("message", message)))
+            .put("messages", array)
             .put("sdk_id", SDK_ID)
             .put("platform", PLATFORM)
             .put("client_version", CLIENT_VERSION)
         val url = "https://$host/melody/v1/msg/batch"
-        val response = Net.postJson(url, payload.toString(), ConnectHeaders.of(context), tag = "melody")
+        val headers = ConnectHeaders.of(context) +
+            mapOf("Content-Type" to "text/plain;charset=UTF-8")
+        val response = Net.postJson(url, payload.toString(), headers, tag = "melody")
         val ok = response?.ok == true
-        if (!ok) log.w("melody $type failed ${response?.code ?: "no response"}")
+        if (!ok) {
+            val names = messages.joinToString(",") { it.first }
+            log.w("melody $names failed ${response?.code ?: "no response"}")
+        }
         return ok
     }
 }

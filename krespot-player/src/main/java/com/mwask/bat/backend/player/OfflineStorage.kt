@@ -15,6 +15,9 @@ object OfflineStorage {
     private const val KEY_ROOT = "storage_root"
     private const val AUDIO_DIR = "offline_audio"
 
+    /** Album art kept beside the songs, so an offline row still has a cover. */
+    private const val ART_DIR = "offline_art"
+
     /** Folder created on a removable volume, so the songs are not buried under Android/data. */
     private const val FOLDER = "SpotiBat"
     private const val COPY_BUFFER_BYTES = 256 * 1024
@@ -62,6 +65,13 @@ object OfflineStorage {
     /** The folder holding the songs, created if it is missing. */
     fun audioDir(context: Context): File {
         val dir = File(configuredRoot(context) ?: context.applicationContext.filesDir, AUDIO_DIR)
+        if (!dir.isDirectory) dir.mkdirs()
+        return dir
+    }
+
+    /** The folder holding downloaded covers, created if it is missing. */
+    fun artDir(context: Context): File {
+        val dir = File(configuredRoot(context) ?: context.applicationContext.filesDir, ART_DIR)
         if (!dir.isDirectory) dir.mkdirs()
         return dir
     }

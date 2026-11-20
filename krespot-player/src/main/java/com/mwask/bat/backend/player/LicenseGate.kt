@@ -27,6 +27,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.mwask.bat.backend.core.log.Logs
+import kotlin.random.Random
 
 private val log = Logs.of(Logs.Module.DRM)
 
@@ -37,6 +38,13 @@ private const val GATE_MAX_MS = 60_000L
 private const val GATE_STEPS = 5
 
 private const val GATE_MAX_STRIKES = 4
+
+/**
+ * The server's Retry-After is a real window: Spotify can ask for several
+ * minutes. Clamping it to the local 60 s escalation made every retry land
+ * inside the window and burn another strike, so it gets its own cap.
+ */
+private const val GATE_SERVER_CAP_MS = 10 * 60_000L
 
 internal object LicenseGate {
 
@@ -68,7 +76,11 @@ internal object LicenseGate {
         log.w("licence refused $status, strike $strikes")
         val escalated = (GATE_BASE_MS shl (strikes - 1).coerceAtMost(GATE_STEPS))
             .coerceAtMost(GATE_MAX_MS)
-        val wait = if (millis > 0L) maxOf(millis, escalated).coerceAtMost(GATE_MAX_MS) else escalated
+        val server = millis.coerceIn(0L, GATE_SERVER_CAP_MS)
+        val base = maxOf(escalated, server)
+        // Jitter keeps every account/device that hit the same window from
+        // retrying on the same millisecond.
+        val wait = base + Random.nextLong(0L, (base / 4L).coerceAtLeast(250L))
         val target = System.currentTimeMillis() + wait
         if (target > until) until = target
         log.w("licence gate closed for ${wait / 1000}s (strike $strikes)")

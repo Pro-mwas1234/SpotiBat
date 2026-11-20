@@ -581,6 +581,8 @@ fun EncoreAppShell(
 
     val handleSkipPrevious: () -> Unit = { actions.skipPrevious() }
 
+    val handleSwipePrevious: () -> Unit = { actions.previousTrack() }
+
     val homeLabel = stringResource(R.string.home)
     val searchLabel = stringResource(R.string.search)
     val yourLibraryLabel = stringResource(R.string.your_library)
@@ -743,6 +745,7 @@ fun EncoreAppShell(
             playbackOrigin = playbackOrigin,
             handleSkipNext = handleSkipNext,
             handleSkipPrevious = handleSkipPrevious,
+            handleSwipePrevious = handleSwipePrevious,
             onCanvasToggle = onCanvasToggle,
             onToggleVideoFullscreen = onToggleVideoFullscreen,
             onArtistFollowToggle = onArtistFollowToggle,

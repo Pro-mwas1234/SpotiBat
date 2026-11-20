@@ -81,12 +81,5 @@ internal object QrcParser {
         return unescapeXml(raw.substring(valueStart, valueEnd))
     }
 
-    private fun unescapeXml(value: String): String = value
-        .replace("&quot;", "\"")
-        .replace("&apos;", "'")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&#10;", "\n")
-        .replace("&#13;", "\r")
-        .replace("&amp;", "&")
+    private fun unescapeXml(value: String): String = HtmlEntities.decode(value)
 }

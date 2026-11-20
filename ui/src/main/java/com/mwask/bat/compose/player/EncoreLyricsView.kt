@@ -1,5 +1,6 @@
 package com.mwask.bat.compose.player
 
+import android.os.SystemClock
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +16,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
@@ -26,6 +31,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import kotlin.math.abs
 
 /**
@@ -54,6 +60,45 @@ private const val LYRICS_LINE_FALLBACK_MS = 3500L
 /** Words not reached yet, and the un-filled half of the word being sung. */
 private const val LYRICS_DIM_ALPHA = 0.35f
 
+/** Snapshot intervals arrive at most ~500 ms apart; never extrapolate past one. */
+private const val LYRICS_SMOOTH_MAX_DRIFT_MS = 520L
+
+/** ~20 Hz: enough for a smooth wipe, and only the active line listens to it. */
+private const val LYRICS_SMOOTH_TICK_MS = 48L
+
+/**
+ * Fills the gaps between the engine's position snapshots.
+ *
+ * The player reports its position every half second, so painting straight from it makes
+ * the karaoke fill jump in 500 ms steps and land late. This anchors a monotonic clock to
+ * each snapshot and lets wall time carry the position forward, capped at one snapshot
+ * interval so a pause or a stall cannot run away with it.
+ *
+ * Only [positionMs] reads [tick], and only the active line calls it, so a tick costs one
+ * row of recomposition rather than the whole list.
+ */
+@Stable
+private class LyricsClock(initialSnapshotMs: Long) {
+    private var snapshotMs = initialSnapshotMs
+    private var anchorMs = SystemClock.elapsedRealtime()
+
+    /** Bumped by the ticker; reading it is what schedules the next recomposition. */
+    var tick by mutableLongStateOf(0L)
+
+    fun anchor(snapshot: Long) {
+        if (snapshot == snapshotMs) return
+        snapshotMs = snapshot
+        anchorMs = SystemClock.elapsedRealtime()
+    }
+
+    fun positionMs(): Long {
+        tick
+        val elapsed = (SystemClock.elapsedRealtime() - anchorMs)
+            .coerceIn(0L, LYRICS_SMOOTH_MAX_DRIFT_MS)
+        return snapshotMs + elapsed
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun EncoreKaraokeLyrics(
@@ -62,18 +107,33 @@ internal fun EncoreKaraokeLyrics(
     textColor: Color,
     listState: LazyListState,
     onSeekMs: (Long) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isPlaying: Boolean = true,
 ) {
     if (lyrics.isEmpty()) return
 
     // Every timestamp at zero means plain text: show it without karaoke.
     val synced = lyrics.any { it.startTimeMs > 0L }
     val lineWords = remember(lyrics) { lyrics.indices.map { index -> wordsForLine(lyrics, index) } }
+    // Provider times land slightly before the phone's audio, and the offset is tunable in the
+    // fullscreen lyrics so a lagging or rushing highlight can be corrected by ear.
+    val syncOffsetMs = LyricsOptions.syncOffsetMs.toLong()
+    val playheadMs = currentPositionMs + syncOffsetMs
 
     val activeIdx = if (synced) {
-        lyrics.indexOfLast { currentPositionMs >= it.startTimeMs }.coerceAtLeast(0)
+        lyrics.indexOfLast { playheadMs >= it.startTimeMs }.coerceAtLeast(0)
     } else {
         -1
+    }
+
+    val clock = remember { LyricsClock(currentPositionMs) }
+    LaunchedEffect(currentPositionMs) { clock.anchor(currentPositionMs) }
+    LaunchedEffect(isPlaying) {
+        if (!isPlaying) return@LaunchedEffect
+        while (true) {
+            delay(LYRICS_SMOOTH_TICK_MS)
+            clock.tick = SystemClock.elapsedRealtime()
+        }
     }
 
     LaunchedEffect(activeIdx) {
@@ -102,6 +162,9 @@ internal fun EncoreKaraokeLyrics(
                 .coerceAtMost(LYRICS_BLUR_MAX_DP)
                 .dp
             val words = lineWords[index]
+            // Only the line being sung follows the interpolated clock; the rest are either
+            // already lit or still dim, so a snapshot is plenty for them.
+            val positionMs = if (isActive) clock.positionMs() + syncOffsetMs else playheadMs
 
             FlowRow(
                 modifier = Modifier
@@ -127,7 +190,7 @@ internal fun EncoreKaraokeLyrics(
                             style = lyricsStyle(
                                 brush = wordBrush(
                                     word = word,
-                                    positionMs = currentPositionMs,
+                                    positionMs = positionMs,
                                     textColor = textColor,
                                     enabled = synced
                                 )

@@ -173,6 +173,9 @@
     <string name="lyrics_not_found">Lyrics not found</string>
     <string name="lyrics_under_player">Show lyrics under player</string>
     <string name="lyrics_under_player_description">Keep the synced line under the artwork instead of the lyrics button</string>
+    <string name="lyrics_download">Download lyrics</string>
+    <string name="lyrics_download_description">Fetch synced lyrics from the lyric providers while a track plays</string>
+    <string name="lyrics_sync">Sync</string>
     <string name="minutes_played">Minutes played</string>
     <string name="more">More</string>
     <string name="more_like_this">More Like This</string>

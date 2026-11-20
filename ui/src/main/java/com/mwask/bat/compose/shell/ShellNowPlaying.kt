@@ -7,6 +7,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.mwask.bat.compose.components.RepeatMode
+import com.mwask.bat.compose.playlist.TrackItem
 import com.mwask.bat.compose.components.ShuffleMode
 import com.mwask.bat.compose.player.EncoreNowPlayingScreen
 import com.mwask.bat.compose.player.LyricsOptions
@@ -69,6 +70,7 @@ internal fun ShellNowPlaying(
     onPlayPause: () -> Unit,
     onSkipNext: () -> Unit,
     onSkipPrevious: () -> Unit,
+    onSwipePrevious: () -> Unit = onSkipPrevious,
     onLike: () -> Unit,
     onShuffle: () -> Unit,
     onRepeat: () -> Unit,
@@ -80,6 +82,8 @@ internal fun ShellNowPlaying(
     onTitleClick: () -> Unit = {},
     onArtistClick: () -> Unit = {},
     onArtistLongClick: (() -> Unit)? = null,
+    previousTrack: TrackItem? = null,
+    nextTrack: TrackItem? = null,
 ) {
     // Loaded once at startup; the flag is a live state so settings changes apply immediately.
     val lyricsInline = LyricsOptions.inlineUnderPlayer
@@ -151,6 +155,7 @@ internal fun ShellNowPlaying(
             onPlayPauseClick = onPlayPause,
             onSkipNextClick = onSkipNext,
             onSkipPreviousClick = onSkipPrevious,
+            onSwipePreviousClick = onSwipePrevious,
             onLikeClick = onLike,
             onShuffleClick = onShuffle,
             onRepeatClick = onRepeat,
@@ -161,7 +166,9 @@ internal fun ShellNowPlaying(
             onShareClick = onShare,
             onTitleClick = onTitleClick,
             onArtistClick = onArtistClick,
-            onArtistLongClick = onArtistLongClick
+            onArtistLongClick = onArtistLongClick,
+            previousTrack = previousTrack,
+            nextTrack = nextTrack
         )
     }
 }

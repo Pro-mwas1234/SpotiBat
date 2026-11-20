@@ -27,6 +27,8 @@ data class YtStream(
     val durationSeconds: Long,
     val title: String,
     val uploader: String,
+    /** Cover art of the video the audio came from; empty when YouTube gave none. */
+    val thumbnailUrl: String = "",
 )
 
 /**
@@ -116,6 +118,10 @@ object YtAudio {
                 durationSeconds = info.duration,
                 title = info.name ?: title,
                 uploader = info.uploaderName ?: artist,
+                thumbnailUrl = info.thumbnails
+                    .mapNotNull { it.url?.takeIf { url -> url.isNotBlank() } }
+                    .lastOrNull()
+                    .orEmpty(),
             )
         } catch (t: Throwable) {
             log.w("yt: resolve failed: ${t.javaClass.simpleName} ${t.message}")

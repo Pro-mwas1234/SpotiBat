@@ -136,6 +136,8 @@ data class ComposePlaybackState(
     val devices: List<ConnectDevice> = emptyList(),
     val queue: List<TrackItem> = emptyList(),
     val queueFromContext: List<TrackItem> = emptyList(),
+    /** The row the back gesture/skip lands on, so the artwork can slide it in. */
+    val queuePrevious: List<TrackItem> = emptyList(),
     val queueContext: String = "",
     val queueContextLabel: String = "",
     val contextUri: String = "",
@@ -160,12 +162,20 @@ interface ComposePlayerListener {
     fun onPlayPause() {}
     fun onSkipNext() {}
     fun onSkipPrevious() {}
+
+    /** Goes back a track even when a plain skip would restart the current one. */
+    fun onPreviousTrack() { onSkipPrevious() }
     fun onSeek(positionMs: Long) {}
     fun onLikeToggle() {}
     fun onShuffleToggle() {}
     fun onRepeatToggle() {}
     fun onTrackSelect(title: String, artist: String) {}
     fun onPlayUri(uri: String) {}
+
+    /** Plays a downloaded track with the downloads list as its play context. */
+    fun onPlayOffline(uris: List<String>, index: Int) {
+        uris.getOrNull(index)?.let(::onPlayUri)
+    }
     fun onPlayTrack(uri: String, contextUri: String, index: Int) { onPlayUri(uri) }
     fun onListRendered(uris: List<String>) {}
     fun onQueueAdd(uri: String) {}

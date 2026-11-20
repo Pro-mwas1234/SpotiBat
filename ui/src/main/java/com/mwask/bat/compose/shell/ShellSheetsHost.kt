@@ -414,10 +414,11 @@ internal fun ShellSheetsHost(env: ShellSheetsEnv) {
             env.playerListener?.onQueueSet(context.map { it.uri })
         },
         onReorderQueue = { reordered ->
+            // The sheet hands back every row it showed, queued and context alike, so this order is
+            // the whole queue; only the rows it could not draw (no metadata) go on the end.
             val queue = playbackState?.queue.orEmpty()
-            val context = playbackState?.queueFromContext.orEmpty()
             val hidden = queue.filter { it.uri.isBlank() || it.title.isBlank() }.map { it.uri }
-            env.playerListener?.onQueueSet(reordered.map { it.uri } + hidden + context.map { it.uri })
+            env.playerListener?.onQueueSet(reordered.map { it.uri } + hidden)
         },
         onSleepTimerSelected = { option ->
             local.sleepTimer = if (option == SleepTimerOption.OFF) null else option
