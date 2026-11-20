@@ -44,6 +44,9 @@ repositories {
 }
 EOF
 
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
       # google-services.json is gitignored, so restore it in CI from a secret.
       # To get working Firebase in CI-built APKs, add a repo secret.
       # GOOGLE_SERVICES_JSON_B64 = base64 of app/google-services.json.
