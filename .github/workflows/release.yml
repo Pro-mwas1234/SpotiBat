@@ -31,18 +31,8 @@ jobs:
       - name: Set Gradle Maven mirror
         run: |
           mkdir -p ~/.gradle/user.home
-          cat > ~/.gradle/user.home/repositories.gradlekts <<'EOF'
-plugins {
-    repository("maven") {
-        url = "https://maven-central.storage-download.googleapis.com/maven2/"
-    }
-}
-repositories {
-    google()
-    mavenCentral()
-    maven("https://jitpack.io")
-}
-EOF
+          echo 'plugins {\n    repository("maven") {\n        url = "https://maven-central.storage-download.googleapis.com/maven2/"\n}\n}' > ~/.gradle/user.home/repositories.gradlekts
+          echo 'repositories {\n    google()\n    mavenCentral()\n    maven("https://jitpack.io")\n}' >> ~/.gradle/user.home/repositories.gradlekts
 
       - name: Make gradlew executable
         run: chmod +x gradlew
