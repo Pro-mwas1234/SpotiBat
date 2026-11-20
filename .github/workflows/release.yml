@@ -27,6 +27,8 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
 
       # google-services.json is gitignored, so restore it in CI from a secret.
       # To get working Firebase in CI-built APKs, add a repo secret.
@@ -64,7 +66,7 @@ jobs:
           fi
 
       - name: Build Release APK
-        run: ./gradlew :app:assembleStandardRelease --stacktrace
+        run: chmod +x ./gradlew && ./gradlew :app:assembleStandardRelease --stacktrace
 
       # Fail loudly if Gradle produced no APK instead of publishing an empty release.
       - name: Collect APK
